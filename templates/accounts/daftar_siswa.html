@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Data Siswa{% endblock %}
+{% block page_title %}Data Siswa{% endblock %}
+{% block content %}
+<div class="flex justify-between items-center mb-5">
+  <form method="GET">
+    <select name="kelas" class="border border-gray-200 rounded-lg px-3 py-2 text-sm" onchange="this.form.submit()">
+      <option value="">Semua Kelas</option>
+      {% for k in kelas_list %}<option value="{{ k }}" {% if k == kelas_filter %}selected{% endif %}>Kelas {{ k }}</option>{% endfor %}
+    </select>
+  </form>
+  <a href="{% url 'accounts:tambah_siswa' %}" class="btn-primary"><i class="ti ti-plus" style="font-size:14px"></i> Tambah Siswa</a>
+</div>
+<div class="card overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-100">
+      <tr>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Nama</th>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">NIS</th>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Kelas</th>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">No. Ortu</th>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Akun Login</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for s in siswa %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 font-medium text-gray-800">{{ s.nama }}</td>
+        <td class="px-4 py-3 text-gray-500 font-mono text-xs">{{ s.nis }}</td>
+        <td class="px-4 py-3"><span class="bg-[#E7EFE3] text-[#155C39] text-xs font-medium px-2 py-0.5 rounded-full">{{ s.kelas }}</span></td>
+        <td class="px-4 py-3 text-gray-500 text-xs">{{ s.no_ortu|default:"—" }}</td>
+        <td class="px-4 py-3">
+          {% if s.user %}
+          <span class="text-xs text-[#155C39]"><i class="ti ti-circle-check" style="font-size:14px"></i> Aktif</span>
+          {% else %}
+          <a href="{% url 'accounts:buat_akun_siswa' s.id %}" onclick="return confirm('Buat akun login untuk {{ s.nama }}?')" class="text-xs text-[#0B3D26] underline">Buat akun</a>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-right"><a href="{% url 'portofolio:detail' s.id %}" class="text-xs text-[#0B3D26] hover:underline">Portofolio →</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center py-12 text-gray-400">Belum ada siswa. <a href="{% url 'accounts:tambah_siswa' %}" class="text-[#0B3D26] underline">Tambah sekarang</a></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

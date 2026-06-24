@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Input Nilai{% endblock %}
+{% block page_title %}Input Nilai{% endblock %}
+{% block content %}
+<div class="max-w-3xl">
+<form method="POST">
+  {% csrf_token %}
+  <div class="card p-5 mb-4">
+    <h3 class="font-semibold text-gray-800 mb-4">Informasi Penilaian</h3>
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Kelas</label>
+        <select name="kelas" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required onchange="window.location.href='?kelas='+this.value">
+          <option value="">-- Pilih Kelas --</option>
+          {% for k in kelas_list %}<option value="{{ k }}" {% if k == kelas_dipilih %}selected{% endif %}>Kelas {{ k }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Mata Pelajaran</label>
+        <select name="mapel" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required>
+          <option>Matematika</option><option>Bahasa Indonesia</option><option>IPA</option>
+          <option>IPS</option><option>Bahasa Inggris</option><option>PKN</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Jenis</label>
+        <select name="jenis" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required>
+          <option value="formatif">Formatif (Kuis/Tugas)</option>
+          <option value="sumatif">Sumatif (UTS/UAS/Proyek)</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Topik / Judul</label>
+        <input type="text" name="topik" required class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="cth: Persamaan Linear Bab 3">
+      </div>
+    </div>
+  </div>
+
+  {% if siswa_list %}
+  <div class="card p-5 mb-4">
+    <h3 class="font-semibold text-gray-800 mb-4">Nilai Siswa (0 – 100)</h3>
+    <div class="space-y-2">
+      {% for siswa in siswa_list %}
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs font-bold flex-shrink-0">{{ siswa.nama|slice:":2"|upper }}</div>
+        <span class="flex-1 text-sm text-gray-700">{{ siswa.nama }}</span>
+        <div class="w-48 bg-gray-100 rounded-full h-2 overflow-hidden">
+          <div class="h-2 rounded-full bg-green-500 transition-all" id="bar-{{ siswa.id }}" style="width:0%"></div>
+        </div>
+        <input type="number" name="skor_{{ siswa.id }}" min="0" max="100" placeholder="—"
+          class="w-20 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-center font-mono focus:outline-none focus:ring-2 focus:ring-green-500"
+          oninput="updateBar({{ siswa.id }}, this.value)">
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <button type="submit" class="btn-primary">💾 Simpan Semua Nilai</button>
+  <a href="{% url 'penilaian:home' %}" class="btn-secondary ml-2">Batal</a>
+  {% elif kelas_dipilih %}
+  <div class="card p-8 text-center text-gray-400 text-sm">Tidak ada siswa di kelas ini</div>
+  {% else %}
+  <div class="card p-8 text-center text-gray-400 text-sm">Pilih kelas terlebih dahulu untuk melihat daftar siswa</div>
+  {% endif %}
+</form>
+</div>
+<script>
+function updateBar(id, val) {
+  const v = Math.min(100, Math.max(0, parseInt(val)||0));
+  const bar = document.getElementById('bar-'+id);
+  bar.style.width = v+'%';
+  bar.style.background = v >= 75 ? '#16a34a' : '#ef4444';
+}
+</script>
+{% endblock %}

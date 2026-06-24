@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Portofolio Siswa{% endblock %}
+{% block page_title %}Portofolio Siswa{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-5">
+  <form method="GET">
+    <select name="kelas" class="border border-gray-200 rounded-lg px-3 py-2 text-sm" onchange="this.form.submit()">
+      <option value="">Semua Kelas</option>
+      {% for k in kelas_list %}<option value="{{ k }}" {% if k == kelas_filter %}selected{% endif %}>Kelas {{ k }}</option>{% endfor %}
+    </select>
+  </form>
+  <p class="text-xs text-gray-400">Portofolio terbentuk otomatis dari absensi, keaktifan & penilaian</p>
+</div>
+<div class="grid grid-cols-3 gap-4">
+  {% for d in data %}
+  <a href="{% url 'portofolio:detail' d.siswa.id %}" class="card overflow-hidden hover:shadow-md transition-all hover:-translate-y-0.5 block">
+    <div class="bg-green-800 p-4 flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{{ d.siswa.nama|slice:":2"|upper }}</div>
+      <div>
+        <h4 class="text-white font-semibold text-sm">{{ d.siswa.nama }}</h4>
+        <p class="text-green-300 text-xs">Kelas {{ d.siswa.kelas }}</p>
+      </div>
+    </div>
+    <div class="p-4">
+      <div class="grid grid-cols-3 gap-2 mb-3 text-center">
+        <div><p class="text-lg font-bold text-green-700">{{ d.kehadiran }}%</p><p class="text-xs text-gray-400">Hadir</p></div>
+        <div><p class="text-lg font-bold text-blue-700">{{ d.avg_nilai|default:"—" }}</p><p class="text-xs text-gray-400">Avg Nilai</p></div>
+        <div><p class="text-lg font-bold text-purple-700">{{ d.total_poin }}</p><p class="text-xs text-gray-400">Aktif</p></div>
+      </div>
+      <p class="text-xs text-gray-400">{{ d.jumlah_nilai }} penilaian tercatat</p>
+    </div>
+  </a>
+  {% empty %}
+  <div class="col-span-3 card p-12 text-center text-gray-400">
+    <p>Belum ada data siswa.</p>
+    <a href="{% url 'accounts:tambah_siswa' %}" class="text-green-700 underline text-sm mt-2 inline-block">Tambah siswa</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

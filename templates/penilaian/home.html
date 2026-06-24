@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Penilaian{% endblock %}
+{% block page_title %}Penilaian{% endblock %}
+{% block content %}
+<div class="flex justify-between items-center mb-5">
+  <p class="text-sm text-gray-500">Riwayat penilaian formatif dan sumatif</p>
+  <a href="{% url 'penilaian:input' %}" class="btn-primary">+ Input Nilai Baru</a>
+</div>
+<div class="card overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-100">
+      <tr>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Mata Pelajaran</th>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Topik</th>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Jenis</th>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Kelas</th>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Tanggal</th>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Rata-rata</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for sesi in sesi_list %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 font-medium text-gray-700">{{ sesi.mapel }}</td>
+        <td class="px-4 py-3 text-gray-600">{{ sesi.topik }}</td>
+        <td class="px-4 py-3">
+          <span class="{% if sesi.jenis == 'formatif' %}bg-blue-100 text-blue-700{% else %}bg-purple-100 text-purple-700{% endif %} text-xs font-medium px-2 py-0.5 rounded-full">{{ sesi.get_jenis_display }}</span>
+        </td>
+        <td class="px-4 py-3 text-gray-600">{{ sesi.kelas }}</td>
+        <td class="px-4 py-3 text-gray-500 text-xs">{{ sesi.tanggal|date:"d M Y" }}</td>
+        <td class="px-4 py-3 font-mono font-bold text-gray-700">{{ sesi.rata_rata }}</td>
+        <td class="px-4 py-3"><a href="{% url 'penilaian:detail_sesi' sesi.id %}" class="text-xs text-green-700 hover:underline">Detail →</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-center py-12 text-gray-400">Belum ada penilaian. <a href="{% url 'penilaian:input' %}" class="text-green-700 underline">Tambah sekarang</a></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="grid grid-cols-4 gap-4 mb-6">
+  <div class="card p-5">
+    <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Total Siswa</p>
+    <p class="text-3xl font-bold text-gray-800 mt-1">{{ total_siswa }}</p>
+    <p class="text-xs text-gray-400 mt-1">aktif terdaftar</p>
+  </div>
+  <div class="card p-5">
+    <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Hadir Hari Ini</p>
+    <p class="text-3xl font-bold text-green-700 mt-1">{{ hadir_hari_ini }}</p>
+    <p class="text-xs text-gray-400 mt-1">dari {{ total_siswa }} siswa</p>
+  </div>
+  <div class="card p-5">
+    <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Rata-rata Nilai</p>
+    <p class="text-3xl font-bold text-blue-700 mt-1">{{ rata_nilai }}</p>
+    <p class="text-xs text-gray-400 mt-1">semua mapel</p>
+  </div>
+  <div class="card p-5">
+    <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Tanggal</p>
+    <p class="text-lg font-bold text-gray-800 mt-1">{{ hari_ini|date:"d M Y" }}</p>
+    <p class="text-xs text-gray-400 mt-1">{{ hari_ini|date:"l" }}</p>
+  </div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+  <div class="card p-5">
+    <h3 class="font-semibold text-gray-800 mb-4">⚡ Keaktifan Tertinggi</h3>
+    {% if top_aktif %}
+    <div class="space-y-2">
+      {% for item in top_aktif %}
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-400 w-4">{{ forloop.counter }}</span>
+        <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold">{{ item.siswa__nama|slice:":2"|upper }}</div>
+        <span class="flex-1 text-sm text-gray-700">{{ item.siswa__nama }}</span>
+        <span class="text-sm font-bold text-purple-700">{{ item.total }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400 text-center py-6">Belum ada data keaktifan</p>
+    {% endif %}
+  </div>
+  <div class="card p-5">
+    <h3 class="font-semibold text-gray-800 mb-4">🚀 Aksi Cepat</h3>
+    <div class="space-y-2">
+      <a href="{% url 'kelas:absensi' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 border border-gray-100">
+        <span class="text-xl">✅</span>
+        <div><p class="text-sm font-medium text-gray-700">Input Absensi</p><p class="text-xs text-gray-400">Rekam kehadiran siswa hari ini</p></div>
+      </a>
+      <a href="{% url 'penilaian:input' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 border border-gray-100">
+        <span class="text-xl">📝</span>
+        <div><p class="text-sm font-medium text-gray-700">Input Nilai</p><p class="text-xs text-gray-400">Formatif atau sumatif</p></div>
+      </a>
+      <a href="{% url 'kelas:keaktifan' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 border border-gray-100">
+        <span class="text-xl">⚡</span>
+        <div><p class="text-sm font-medium text-gray-700">Catat Keaktifan</p><p class="text-xs text-gray-400">Poin partisipasi kelas</p></div>
+      </a>
+      <a href="{% url 'portofolio:daftar' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-amber-50 border border-gray-100">
+        <span class="text-xl">📁</span>
+        <div><p class="text-sm font-medium text-gray-700">Lihat Portofolio</p><p class="text-xs text-gray-400">Rekap otomatis per siswa</p></div>
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

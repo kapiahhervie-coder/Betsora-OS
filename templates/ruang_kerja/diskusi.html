@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Forum Diskusi — {{ ruang.mapel }}{% endblock %}
+{% block page_title %}Forum Diskusi{% endblock %}
+{% block content %}
+<div class="mb-4 flex items-center justify-between">
+  <a href="{% url 'ruang_kerja:detail' ruang.id %}" class="text-sm text-[#0B3D26] hover:underline">← Kembali ke {{ ruang.mapel }}</a>
+</div>
+
+<div class="grid grid-cols-3 gap-5">
+  <div class="col-span-1">
+    <div class="card p-5">
+      <div class="bg-primary rounded-lg p-4 mb-4 text-white">
+        <p class="font-serif text-base">{{ ruang.mapel }}</p>
+        <p class="text-[#A8C2B3] text-xs mt-1">Kelas {{ ruang.kelas }}</p>
+      </div>
+      <h3 class="font-semibold text-gray-800 text-sm mb-3">Mulai Diskusi Baru</h3>
+      <form method="POST" class="space-y-3">
+        {% csrf_token %}
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Judul pertanyaan</label>
+          <input type="text" name="judul" required class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D26]" placeholder="Apa yang ingin ditanyakan?">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Penjelasan</label>
+          <textarea name="isi" rows="4" required class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D26]" placeholder="Jelaskan pertanyaan kamu lebih detail..."></textarea>
+        </div>
+        <button type="submit" class="btn-primary w-full justify-center">Posting Diskusi</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-span-2">
+    <h3 class="font-semibold text-gray-800 text-sm mb-3">{{ diskusi_list.count }} Diskusi</h3>
+    <div class="space-y-3">
+      {% for d in diskusi_list %}
+      <a href="{% url 'ruang_kerja:detail_diskusi' d.id %}" class="card p-5 block hover:shadow-md transition-all">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-full bg-[#E7EFE3] text-[#155C39] flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+            {{ d.diposting_oleh.username|slice:":2"|upper }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <p class="text-sm font-semibold text-gray-800">{{ d.judul }}</p>
+              {% if d.ditutup %}
+              <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Ditutup</span>
+              {% endif %}
+            </div>
+            <p class="text-xs text-gray-500 line-clamp-2">{{ d.isi }}</p>
+            <div class="flex items-center gap-3 mt-2">
+              <span class="text-xs text-gray-400">{{ d.diposting_oleh.get_full_name|default:d.diposting_oleh.username }}</span>
+              <span class="text-xs text-gray-300">·</span>
+              <span class="text-xs text-gray-400">{{ d.dibuat_pada|date:"d M Y, H:i" }}</span>
+              <span class="text-xs text-gray-300">·</span>
+              <span class="text-xs text-[#0B3D26] font-medium">{{ d.komentar.count }} balasan</span>
+            </div>
+          </div>
+        </div>
+      </a>
+      {% empty %}
+      <div class="card p-12 text-center text-gray-400 text-sm">
+        Belum ada diskusi. Mulai yang pertama!
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Keaktifan{% endblock %}
+{% block page_title %}Keaktifan Kelas{% endblock %}
+{% block content %}
+<div class="card p-4 mb-5">
+  <form method="GET" class="flex items-center gap-3">
+    <select name="kelas" class="border border-gray-200 rounded-lg px-3 py-2 text-sm" onchange="this.form.submit()">
+      <option value="">-- Pilih Kelas --</option>
+      {% for k in kelas_list %}<option value="{{ k }}" {% if k == kelas %}selected{% endif %}>Kelas {{ k }}</option>{% endfor %}
+    </select>
+    <span class="text-sm text-gray-500">{{ tanggal|date:"l, d F Y" }}</span>
+  </form>
+</div>
+{% if siswa_list %}
+<form method="POST">
+  {% csrf_token %}
+  <div class="card p-4 mb-4">
+    <div class="flex items-center gap-3">
+      <label class="text-sm font-medium text-gray-700">Mata Pelajaran:</label>
+      <select name="mapel" class="border border-gray-200 rounded-lg px-3 py-2 text-sm">
+        <option>Matematika</option><option>Bahasa Indonesia</option><option>IPA</option>
+        <option>IPS</option><option>Bahasa Inggris</option><option>PKN</option>
+      </select>
+      <p class="text-xs text-gray-400 ml-2">Tekan <strong>+</strong> setiap siswa aktif bertanya, menjawab, atau berdiskusi</p>
+    </div>
+  </div>
+  <div class="grid grid-cols-2 gap-3 mb-5">
+    {% for siswa in siswa_list %}
+    <div class="card p-4 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold flex-shrink-0">{{ siswa.nama|slice:":2"|upper }}</div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium text-gray-700 truncate">{{ siswa.nama }}</p>
+        <p class="text-xs text-gray-400">Kelas {{ siswa.kelas }}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="change({{ siswa.id }},-1)" class="w-7 h-7 rounded border border-gray-200 flex items-center justify-center text-sm hover:bg-gray-50">−</button>
+        <span id="poin-{{ siswa.id }}" class="text-base font-bold text-purple-700 w-7 text-center">0</span>
+        <button type="button" onclick="change({{ siswa.id }},1)" class="w-7 h-7 rounded border border-gray-200 flex items-center justify-center text-sm hover:bg-purple-50 hover:border-purple-300">+</button>
+        <input type="hidden" name="poin_{{ siswa.id }}" id="input-{{ siswa.id }}" value="0">
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <button type="submit" class="btn-primary">💾 Simpan Keaktifan</button>
+</form>
+<script>
+const poin = {};
+{% for siswa in siswa_list %}
+poin[{{ siswa.id }}] = 0;
+{% endfor %}
+function change(id, d) {
+  poin[id] = Math.max(0, (poin[id]||0) + d);
+  document.getElementById(`poin-${id}`).textContent = poin[id];
+  document.getElementById(`input-${id}`).value = poin[id];
+}
+</script>
+{% else %}
+<div class="card p-12 text-center"><p class="text-gray-400 text-sm">Pilih kelas terlebih dahulu</p></div>
+{% endif %}
+{% endblock %}

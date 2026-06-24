@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard Siswa{% endblock %}
+{% block page_title %}Dashboard Siswa{% endblock %}
+{% block content %}
+<div class="bg-primary rounded-xl p-6 flex items-center gap-5 mb-5 text-white">
+  <div class="w-16 h-16 rounded-full bg-white bg-opacity-10 flex items-center justify-center text-2xl font-serif">{{ siswa.nama|slice:":2"|upper }}</div>
+  <div>
+    <h2 class="font-serif text-xl">{{ siswa.nama }}</h2>
+    <p class="text-[#A8C2B3] text-sm mt-1">Kelas {{ siswa.kelas }} &middot; NIS {{ siswa.nis }}</p>
+  </div>
+</div>
+<div class="card p-6 text-center">
+  <p class="text-gray-400 text-sm">Halaman siswa masih dalam pengembangan. Ruang kerja, materi, dan tugas akan tersedia di sini.</p>
+</div>
+{% endblock %}

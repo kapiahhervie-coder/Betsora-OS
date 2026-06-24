@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Absensi{% endblock %}
+{% block page_title %}Absensi{% endblock %}
+{% block content %}
+<div class="card p-5 mb-5">
+  <form method="GET" class="flex items-center gap-3 flex-wrap">
+    <select name="kelas" class="border border-gray-200 rounded-lg px-3 py-2 text-sm" onchange="this.form.submit()">
+      <option value="">-- Pilih Kelas --</option>
+      {% for k in kelas_list %}<option value="{{ k }}" {% if k == kelas %}selected{% endif %}>Kelas {{ k }}</option>{% endfor %}
+    </select>
+    <input type="date" name="tanggal" value="{{ tanggal|date:'Y-m-d' }}" class="border border-gray-200 rounded-lg px-3 py-2 text-sm" onchange="this.form.submit()">
+    <span class="text-sm text-gray-500">{{ tanggal|date:"l, d F Y" }}</span>
+  </form>
+</div>
+
+{% if siswa_list %}
+<form method="POST">
+  {% csrf_token %}
+  <div class="grid grid-cols-4 gap-3 mb-5">
+    {% for siswa in siswa_list %}
+    <div class="card p-4 text-center cursor-pointer" id="card-{{ siswa.id }}" onclick="toggleStatus({{ siswa.id }})" style="border-width:2px">
+      <div class="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-sm font-bold" id="avatar-{{ siswa.id }}">{{ siswa.nama|slice:":2"|upper }}</div>
+      <p class="text-xs font-semibold text-gray-700 leading-tight">{{ siswa.nama }}</p>
+      <p class="text-xs mt-1 font-medium" id="label-{{ siswa.id }}">—</p>
+      <input type="hidden" name="status_{{ siswa.id }}" id="status-{{ siswa.id }}" value="">
+    </div>
+    {% endfor %}
+  </div>
+  <div class="flex gap-3 items-center">
+    <button type="submit" class="btn-primary">💾 Simpan Absensi</button>
+    <button type="button" onclick="setAll('hadir')" class="btn-secondary">✅ Semua Hadir</button>
+    <div class="flex gap-2 text-xs ml-auto">
+      <span class="bg-green-100 text-green-800 px-2 py-1 rounded">● Hadir</span>
+      <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">● Izin</span>
+      <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">● Sakit</span>
+      <span class="bg-red-100 text-red-800 px-2 py-1 rounded">● Alpha</span>
+    </div>
+  </div>
+</form>
+{% else %}
+<div class="card p-12 text-center"><p class="text-gray-400 text-sm">Pilih kelas terlebih dahulu</p></div>
+{% endif %}
+
+<script>
+const STATUS = ['', 'hadir', 'izin', 'sakit', 'alpha'];
+const COLORS = {
+  '': {bg:'#f9fafb',fg:'#374151',text:'—'},
+  'hadir': {bg:'#1a6b3a',fg:'white',text:'Hadir'},
+  'izin': {bg:'#f59e0b',fg:'white',text:'Izin'},
+  'sakit': {bg:'#3b82f6',fg:'white',text:'Sakit'},
+  'alpha': {bg:'#ef4444',fg:'white',text:'Alpha'},
+};
+const state = {};
+{% for siswa in siswa_list %}
+state[{{ siswa.id }}] = "{{ absensi_existing|default_if_none:'' }}";
+{% endfor %}
+function render(id) {
+  const s = state[id] || '';
+  const c = COLORS[s];
+  document.getElementById(`avatar-${id}`).style.background = c.bg;
+  document.getElementById(`avatar-${id}`).style.color = c.fg;
+  document.getElementById(`label-${id}`).textContent = c.text;
+  document.getElementById(`label-${id}`).style.color = s === '' ? '#9ca3af' : c.bg;
+  document.getElementById(`status-${id}`).value = s;
+  document.getElementById(`card-${id}`).style.borderColor = s === '' ? '#f3f4f6' : c.bg;
+}
+function toggleStatus(id) {
+  const cur = STATUS.indexOf(state[id] || '');
+  state[id] = STATUS[(cur + 1) % STATUS.length];
+  render(id);
+}
+function setAll(s) {
+  Object.keys(state).forEach(id => { state[id] = s; render(id); });
+}
+Object.keys(state).forEach(render);
+</script>
+{% endblock %}
