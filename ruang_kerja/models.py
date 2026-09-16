@@ -60,6 +60,17 @@ class Materi(models.Model):
         mastery = self.hitung_mastery(siswa)
         return mastery is not None and mastery >= threshold
 
+    def is_locked_for(self, siswa):
+        """
+        True jika ada prasyarat yang belum tuntas mastery-nya untuk siswa ini.
+        Materi tanpa prasyarat sama sekali selalu unlocked.
+        """
+        for pra in self.prasyarat.select_related('prasyarat').all():
+            mastery_siswa = pra.prasyarat.hitung_mastery(siswa)
+            if mastery_siswa is None or mastery_siswa < pra.mastery_required:
+                return True
+        return False
+
 class SubMateri(models.Model):
     materi = models.ForeignKey(Materi, on_delete=models.CASCADE, related_name='sub_materi')
     judul = models.CharField(max_length=150)
@@ -323,3 +334,28 @@ class JawabanPG(models.Model):
 
     def __str__(self):
         return f'{self.siswa.nama} - {self.soal.pertanyaan[:30]}'
+
+
+class MateriPrasyarat(models.Model):
+    """
+    Relasi prasyarat antar topik (Materi). Guru menentukan manual topik mana
+    harus tuntas dulu sebelum topik lain bisa diakses siswa.
+    """
+    materi = models.ForeignKey(Materi, on_delete=models.CASCADE, related_name='prasyarat')
+    prasyarat = models.ForeignKey(Materi, on_delete=models.CASCADE, related_name='membuka')
+    mastery_required = models.PositiveSmallIntegerField(default=75, help_text='Persentase mastery minimal (0-100) dari topik prasyarat')
+    dibuat_pada = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('materi', 'prasyarat')
+        ordering = ['materi', 'prasyarat']
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.materi_id == self.prasyarat_id:
+            raise ValidationError('Topik tidak bisa menjadi prasyarat untuk dirinya sendiri.')
+        if self.materi.ruang_kerja_id != self.prasyarat.ruang_kerja_id:
+            raise ValidationError('Prasyarat harus berasal dari ruang kerja yang sama.')
+
+    def __str__(self):
+        return f"{self.prasyarat.judul} -> membuka -> {self.materi.judul}"
