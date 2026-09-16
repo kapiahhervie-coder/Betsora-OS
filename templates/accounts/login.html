@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login — Sekolah Digital</title>
+<title>Login — {{ pengaturan.nama_institusi }}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Lora:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -12,11 +12,11 @@
   .font-serif { font-family: 'Lora', serif; }
 </style>
 </head>
-<body class="min-h-screen bg-[#0B3D26] flex items-center justify-center">
+<body class="min-h-screen bg-[#3C8C1F] flex items-center justify-center">
 <div class="w-full max-w-sm">
   <div class="text-center mb-7">
-    <p class="font-serif text-[#F4EFE4] text-[24px]">Sekolah Digital</p>
-    <p class="text-[#8FB39C] text-[12px] mt-1 tracking-wide uppercase">SMP Negeri 1 Contoh</p>
+   <p class="font-serif text-[#F4EFE4] text-[24px]">{{ pengaturan.nama_institusi }}</p>
+    <p class="text-[#B7DFA0] text-[12px] mt-1 tracking-wide uppercase">{{ pengaturan.sub_judul|default:"SMP Negeri 1 Contoh" }}</p>
   </div>
   <div class="bg-white rounded-2xl shadow-xl p-8">
     {% if messages %}
@@ -29,17 +29,17 @@
       <div class="space-y-4">
         <div>
           <label class="block text-[13px] font-medium text-gray-700 mb-1.5">Username</label>
-          <input name="username" type="text" required class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D26] focus:border-[#0B3D26]">
+          <input name="username" type="text" required class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3C8C1F] focus:border-[#3C8C1F]">
         </div>
         <div>
           <label class="block text-[13px] font-medium text-gray-700 mb-1.5">Password</label>
-          <input name="password" type="password" required class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D26] focus:border-[#0B3D26]">
+          <input name="password" type="password" required class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3C8C1F] focus:border-[#3C8C1F]">
         </div>
-        <button type="submit" class="w-full bg-[#0B3D26] text-white rounded-lg py-2.5 text-sm font-medium hover:bg-[#155C39] transition mt-2">Masuk</button>
+        <button type="submit" class="w-full bg-[#3C8C1F] text-white rounded-lg py-2.5 text-sm font-medium hover:bg-[#4FA82E] transition mt-2">Masuk</button>
       </div>
     </form>
   </div>
-  <p class="text-center text-[#6F9479] text-[12px] mt-6">Platform internal — hanya untuk guru dan staf</p>
+  <p class="text-center text-[#82B85F] text-[12px] mt-6">Platform internal — hanya untuk guru dan staf</p>
 </div>
 </body>
 </html>

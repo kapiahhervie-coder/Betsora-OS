@@ -1,13 +1,13 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% block title %}{{ tugas.judul }} — Submisi{% endblock %}
 {% block page_title %}{{ tugas.judul }}{% endblock %}
 {% block content %}
-<div class="mb-4"><a href="{% url 'ruang_kerja:detail' ruang.id %}" class="text-sm text-[#0B3D26] hover:underline">← Kembali ke {{ ruang.mapel }}</a></div>
+<div class="mb-4"><a href="{% url 'ruang_kerja:detail' ruang.id %}" class="text-sm text-[#3C8C1F] hover:underline">← Kembali ke {{ ruang.mapel }}</a></div>
 
 <div class="grid grid-cols-3 gap-5">
   <div class="col-span-1">
     <div class="card p-5">
-      <span class="bg-[#E7EFE3] text-[#155C39] text-xs font-medium px-2 py-0.5 rounded-full">Tugas</span>
+      <span class="bg-[#EAF7DE] text-[#4FA82E] text-xs font-medium px-2 py-0.5 rounded-full">Tugas</span>
       <h2 class="font-serif text-base text-gray-800 mt-3 mb-2">{{ tugas.judul }}</h2>
       <p class="text-sm text-gray-500 leading-relaxed">{{ tugas.instruksi }}</p>
       <div class="mt-4 pt-4 border-t border-gray-100 space-y-1">
@@ -24,14 +24,14 @@
       <div class="card p-5">
         <div class="flex items-start justify-between gap-4">
           <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-full bg-[#E7EFE3] text-[#155C39] flex items-center justify-center text-xs font-bold flex-shrink-0">{{ sub.siswa.nama|slice:":2"|upper }}</div>
+            <div class="w-9 h-9 rounded-full bg-[#EAF7DE] text-[#4FA82E] flex items-center justify-center text-xs font-bold flex-shrink-0">{{ sub.siswa.nama|slice:":2"|upper }}</div>
             <div>
               <p class="text-sm font-medium text-gray-800">{{ sub.siswa.nama }}</p>
               <p class="text-xs text-gray-400">Dikumpulkan: {{ sub.dikirim_pada|date:"d M Y, H:i" }}</p>
             </div>
           </div>
           {% if sub.nilai %}
-          <span class="font-serif text-lg font-bold text-[#0B3D26]">{{ sub.nilai }}<span class="text-xs font-normal text-gray-400">/{{ tugas.nilai_maksimal }}</span></span>
+          <span class="font-serif text-lg font-bold text-[#3C8C1F]">{{ sub.nilai }}<span class="text-xs font-normal text-gray-400">/{{ tugas.nilai_maksimal }}</span></span>
           {% endif %}
         </div>
 
@@ -43,7 +43,7 @@
         {% endif %}
 
         {% if sub.file_jawaban %}
-        <a href="{{ sub.file_jawaban.url }}" target="_blank" class="mt-2 inline-flex items-center gap-1 text-xs text-[#0B3D26] underline">
+        <a href="{{ sub.file_jawaban.url }}" target="_blank" class="mt-2 inline-flex items-center gap-1 text-xs text-[#3C8C1F] underline">
           <i class="ti ti-paperclip"></i> Lihat file
         </a>
         {% endif %}
@@ -52,11 +52,11 @@
           {% csrf_token %}
           <div class="flex-1">
             <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Nilai (0–{{ tugas.nilai_maksimal }})</label>
-            <input type="number" name="nilai" min="0" max="{{ tugas.nilai_maksimal }}" value="{{ sub.nilai|default:'' }}" class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#0B3D26]">
+            <input type="number" name="nilai" min="0" max="{{ tugas.nilai_maksimal }}" value="{{ sub.nilai|default:'' }}" class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#3C8C1F]">
           </div>
           <div class="flex-1">
             <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Feedback</label>
-            <input type="text" name="feedback" value="{{ sub.feedback|default:'' }}" placeholder="Komentar untuk siswa" class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D26]">
+            <input type="text" name="feedback" value="{{ sub.feedback|default:'' }}" placeholder="Komentar untuk siswa" class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#3C8C1F]">
           </div>
           <button type="submit" class="btn-primary text-xs py-2">Simpan Nilai</button>
         </form>

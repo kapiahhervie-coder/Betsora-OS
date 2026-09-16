@@ -1,0 +1,38 @@
+﻿{% extends 'base.html' %}
+{% block title %}Kelola Mata Pelajaran{% endblock %}
+{% block page_title %}Kelola Mata Pelajaran{% endblock %}
+{% block content %}
+
+<div class="mb-4">
+  <a href="{% url 'ruang_kerja:buat' %}" class="text-sm text-[#3C8C1F] hover:underline">← Kembali ke Buat Ruang Kerja</a>
+</div>
+
+<div class="max-w-lg">
+  <div class="card p-5 mb-4">
+    <h3 class="font-semibold text-gray-800 text-sm mb-3">Tambah Mata Pelajaran Baru</h3>
+    <form method="POST" action="{% url 'ruang_kerja:tambah_mapel' %}" style="display:flex; gap:8px;">
+      {% csrf_token %}
+      <input type="text" name="nama" required placeholder="Contoh: PJOK, Seni Budaya, Prakarya"
+        style="flex:1; border:1px solid #e5e7eb; border-radius:8px; padding:9px 14px; font-size:13px; font-family:inherit; outline:none;">
+      <button type="submit" style="background:#3C8C1F; color:white; border:none; border-radius:8px; padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer;">Tambah</button>
+    </form>
+  </div>
+
+  <div class="card">
+    {% for m in mapel_list %}
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid #f3f4f6;">
+      <p style="font-size:13px; font-weight:500; color:#1f2937; margin:0;">{{ m.nama }}</p>
+      <form method="POST" action="{% url 'ruang_kerja:hapus_mapel' m.id %}" onsubmit="return confirm('Hapus mata pelajaran {{ m.nama }}?')">
+        {% csrf_token %}
+        <button type="submit" style="font-size:11px; background:#fee2e2; color:#dc2626; border:none; padding:5px 10px; border-radius:6px; cursor:pointer;">Hapus</button>
+      </form>
+    </div>
+    {% empty %}
+    <div style="padding:32px 16px; text-align:center; color:#9ca3af; font-size:13px;">
+      Belum ada mata pelajaran. Tambahkan lewat form di atas.
+    </div>
+    {% endfor %}
+  </div>
+  <p style="font-size:11px; color:#9ca3af; margin-top:8px;">Mata pelajaran yang sudah dipakai di ruang kerja aktif tidak bisa dihapus.</p>
+</div>
+{% endblock %}

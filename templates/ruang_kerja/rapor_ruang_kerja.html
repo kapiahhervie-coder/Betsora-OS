@@ -1,0 +1,50 @@
+﻿{% extends 'base.html' %}
+{% block title %}Rapor - {{ ruang.mapel }}{% endblock %}
+{% block page_title %}Rapor Digital{% endblock %}
+{% block content %}
+
+<div class="mb-4">
+  <a href="{% url 'ruang_kerja:detail' ruang.id %}" class="text-sm text-[#3C8C1F] hover:underline">← Kembali ke {{ ruang.mapel }}</a>
+</div>
+
+<div class="mb-5">
+  <h2 class="font-serif text-lg text-gray-800">{{ ruang.mapel }} - Kelas {{ ruang.kelas }}</h2>
+  <p class="text-sm text-gray-500">Nilai angka dihitung otomatis dari rata-rata nilai tugas. Tulis catatan narasi untuk tiap siswa di bawah.</p>
+</div>
+
+<div style="display:flex; flex-direction:column; gap:14px;">
+  {% for row in data %}
+  <div class="card p-5">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:34px; height:34px; border-radius:50%; background:#EAF7DE; color:#4FA82E; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0;">
+          {{ row.siswa.nama|slice:":2"|upper }}
+        </div>
+        <div>
+          <p style="font-size:14px; font-weight:600; color:#1f2937; margin:0;">{{ row.siswa.nama }}</p>
+          <p style="font-size:11px; color:#9ca3af; margin:0;">Kelas {{ row.siswa.kelas }} &middot; NIS {{ row.siswa.nis }}</p>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <p style="font-size:22px; font-weight:700; color:#3C8C1F; margin:0; font-family:serif;">{% if row.rata2 %}{{ row.rata2 }}{% else %}-{% endif %}</p>
+        <p style="font-size:10px; color:#9ca3af; margin:0;">rata-rata nilai tugas</p>
+      </div>
+    </div>
+
+    <form method="POST" action="{% url 'ruang_kerja:simpan_catatan_rapor' ruang.id row.siswa.id %}" style="display:flex; gap:8px; align-items:flex-start;">
+      {% csrf_token %}
+      <textarea name="catatan" rows="2" placeholder="Catatan narasi untuk {{ row.siswa.nama }}..."
+        style="flex:1; border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; resize:vertical;">{{ row.catatan }}</textarea>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <button type="submit" style="background:#3C8C1F; color:white; border:none; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">Simpan</button>
+        <a href="{% url 'ruang_kerja:rapor_siswa' ruang.id row.siswa.id %}" target="_blank" style="text-align:center; background:#f3f4f6; color:#374151; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:500; text-decoration:none; white-space:nowrap;">Lihat Rapor</a>
+      </div>
+    </form>
+  </div>
+  {% empty %}
+  <div class="card" style="padding:40px; text-align:center; color:#9ca3af;">
+    Belum ada anggota di ruang kerja ini.
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

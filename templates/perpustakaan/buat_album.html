@@ -1,0 +1,27 @@
+﻿{% extends 'base.html' %}
+{% block title %}Buat Album{% endblock %}
+{% block page_title %}Buat Album Audio{% endblock %}
+{% block content %}
+<div class="max-w-lg">
+<div class="mb-4">
+  <a href="{% url 'perpustakaan:daftar' %}" class="text-sm text-[#0B3D26] hover:underline">← Kembali</a>
+</div>
+<div class="card p-6">
+  <form method="POST" class="space-y-4">
+    {% csrf_token %}
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Judul Album</label>
+      <input type="text" name="judul" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Contoh: Cerita Anak Bab 1" required>
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Deskripsi (opsional)</label>
+      <textarea name="deskripsi" rows="3" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Tentang album ini"></textarea>
+    </div>
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="btn-primary">Buat Album</button>
+      <a href="{% url 'perpustakaan:daftar' %}" class="btn-secondary">Batal</a>
+    </div>
+  </form>
+</div>
+</div>
+{% endblock %}

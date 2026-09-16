@@ -1,67 +1,154 @@
-{% extends 'base.html' %}
-{% block title %}Forum Diskusi — {{ ruang.mapel }}{% endblock %}
-{% block page_title %}Forum Diskusi{% endblock %}
+﻿{% extends "base.html" %}
+{% load chat_filters %}
+{% block title %}Forum Diskusi - {{ ruang.mapel }}{% endblock %}
+{% block page_title %}Forum Diskusi - {{ ruang.mapel }} Kelas {{ ruang.kelas }}{% endblock %}
 {% block content %}
-<div class="mb-4 flex items-center justify-between">
-  <a href="{% url 'ruang_kerja:detail' ruang.id %}" class="text-sm text-[#0B3D26] hover:underline">← Kembali ke {{ ruang.mapel }}</a>
+
+<style>
+  .chat-wrapper { display:flex; flex-direction:column; height:calc(100vh - 180px); max-width:700px; margin:0 auto; background:#ECE5DD; border-radius:12px; overflow:hidden; position:relative; }
+  .chat-header { background:#075E54; color:white; padding:12px 18px; display:flex; align-items:center; gap:12px; flex-shrink:0; }
+  .chat-avatar { width:40px; height:40px; border-radius:50%; background:#128C7E; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; }
+  .chat-messages { flex:1; overflow-y:auto; padding:16px 12px; display:flex; flex-direction:column; gap:6px; }
+  .bubble-wrap-me { display:flex; justify-content:flex-end; }
+  .bubble-wrap-other { display:flex; justify-content:flex-start; gap:8px; }
+  .bubble { max-width:65%; padding:8px 12px 6px; border-radius:8px; font-size:13.5px; line-height:1.5; position:relative; word-break:break-word; }
+  .bubble-me { background:#DCF8C6; border-radius:8px 0 8px 8px; }
+  .bubble-other { background:white; border-radius:0 8px 8px 8px; }
+  .bubble-time { font-size:10px; color:#999; text-align:right; margin-top:2px; }
+  .bubble-name { font-size:11px; font-weight:600; color:#075E54; margin-bottom:2px; }
+  .bubble-guru { color:#E67E22; }
+  .chat-input-area { background:#F0F0F0; padding:8px 12px; display:flex; gap:8px; align-items:flex-end; flex-shrink:0; position:relative; }
+  .chat-input { flex:1; background:white; border:none; border-radius:24px; padding:10px 16px; font-size:13.5px; outline:none; resize:none; max-height:100px; font-family:inherit; }
+  .chat-send { width:44px; height:44px; border-radius:50%; background:#075E54; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .15s; }
+  .chat-send:hover { background:#128C7E; }
+  .avatar-sm { width:34px; height:34px; border-radius:50%; background:#DDD; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:#555; flex-shrink:0; margin-top:2px; }
+  .date-divider { text-align:center; margin:8px 0; }
+  .date-divider span { background:#D9D3CC; color:#666; font-size:11px; padding:3px 10px; border-radius:8px; }
+  .mention-dropdown { position:absolute; bottom:60px; left:12px; right:60px; background:white; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.15); max-height:180px; overflow-y:auto; display:none; z-index:10; }
+  .mention-item { padding:8px 14px; font-size:13px; cursor:pointer; }
+  .mention-item:hover, .mention-item.active { background:#EAF7DE; }
+</style>
+
+<div style="margin-bottom:12px;">
+  <a href="{% url "ruang_kerja:detail" ruang.id %}" class="text-sm text-[#3C8C1F] hover:underline">&larr; Kembali ke {{ pengaturan.label_ruang_kerja }}</a>
 </div>
 
-<div class="grid grid-cols-3 gap-5">
-  <div class="col-span-1">
-    <div class="card p-5">
-      <div class="bg-primary rounded-lg p-4 mb-4 text-white">
-        <p class="font-serif text-base">{{ ruang.mapel }}</p>
-        <p class="text-[#A8C2B3] text-xs mt-1">Kelas {{ ruang.kelas }}</p>
-      </div>
-      <h3 class="font-semibold text-gray-800 text-sm mb-3">Mulai Diskusi Baru</h3>
-      <form method="POST" class="space-y-3">
-        {% csrf_token %}
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Judul pertanyaan</label>
-          <input type="text" name="judul" required class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D26]" placeholder="Apa yang ingin ditanyakan?">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Penjelasan</label>
-          <textarea name="isi" rows="4" required class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D26]" placeholder="Jelaskan pertanyaan kamu lebih detail..."></textarea>
-        </div>
-        <button type="submit" class="btn-primary w-full justify-center">Posting Diskusi</button>
-      </form>
+<div class="chat-wrapper">
+
+  <div class="chat-header">
+    <div class="chat-avatar">&#128172;</div>
+    <div>
+      <p style="font-weight:600; font-size:14px;">Forum Diskusi</p>
+      <p style="font-size:11px; color:#B2D8D8;">Kelas {{ ruang.kelas }} &middot; {{ pesan_list.count }} pesan</p>
     </div>
   </div>
 
-  <div class="col-span-2">
-    <h3 class="font-semibold text-gray-800 text-sm mb-3">{{ diskusi_list.count }} Diskusi</h3>
-    <div class="space-y-3">
-      {% for d in diskusi_list %}
-      <a href="{% url 'ruang_kerja:detail_diskusi' d.id %}" class="card p-5 block hover:shadow-md transition-all">
-        <div class="flex items-start gap-3">
-          <div class="w-9 h-9 rounded-full bg-[#E7EFE3] text-[#155C39] flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
-            {{ d.diposting_oleh.username|slice:":2"|upper }}
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1">
-              <p class="text-sm font-semibold text-gray-800">{{ d.judul }}</p>
-              {% if d.ditutup %}
-              <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Ditutup</span>
-              {% endif %}
-            </div>
-            <p class="text-xs text-gray-500 line-clamp-2">{{ d.isi }}</p>
-            <div class="flex items-center gap-3 mt-2">
-              <span class="text-xs text-gray-400">{{ d.diposting_oleh.get_full_name|default:d.diposting_oleh.username }}</span>
-              <span class="text-xs text-gray-300">·</span>
-              <span class="text-xs text-gray-400">{{ d.dibuat_pada|date:"d M Y, H:i" }}</span>
-              <span class="text-xs text-gray-300">·</span>
-              <span class="text-xs text-[#0B3D26] font-medium">{{ d.komentar.count }} balasan</span>
-            </div>
-          </div>
-        </div>
-      </a>
-      {% empty %}
-      <div class="card p-12 text-center text-gray-400 text-sm">
-        Belum ada diskusi. Mulai yang pertama!
-      </div>
-      {% endfor %}
+  <div class="chat-messages" id="chat-box">
+    {% if not pesan_list %}
+    <div style="text-align:center; margin:auto;">
+      <div class="date-divider"><span>Belum ada pesan</span></div>
+      <p style="color:#999; font-size:13px; margin-top:8px;">Mulai percakapan!</p>
     </div>
+    {% else %}
+    {% for p in pesan_list %}
+    {% if p.dikirim_oleh == request.user %}
+    <div class="bubble-wrap-me">
+      <div class="bubble bubble-me">
+        {{ p.isi|highlight_mentions }}
+        <div class="bubble-time">{{ p.dikirim_pada|date:"H:i" }} &#10003;&#10003;</div>
+      </div>
+    </div>
+    {% else %}
+    <div class="bubble-wrap-other">
+      <div class="avatar-sm">{{ p.dikirim_oleh.username|slice:":2"|upper }}</div>
+      <div class="bubble bubble-other">
+        <div class="bubble-name {% if p.dikirim_oleh.role != "siswa" %}bubble-guru{% endif %}">
+          {{ p.dikirim_oleh.get_full_name|default:p.dikirim_oleh.username }}{% if p.dikirim_oleh.role != "siswa" %} (Guru){% endif %}
+        </div>
+        {{ p.isi|highlight_mentions }}
+        <div class="bubble-time">{{ p.dikirim_pada|date:"H:i" }}</div>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% endif %}
   </div>
+
+  <div class="chat-input-area">
+    <div class="mention-dropdown" id="mention-dropdown"></div>
+    <form method="POST" class="flex gap-2 items-end w-full" id="chat-form">
+      {% csrf_token %}
+      <textarea name="isi" id="chat-input" rows="1" required placeholder="Ketik pesan... (gunakan @ untuk mention)" class="chat-input"></textarea>
+      <button type="submit" class="chat-send">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+      </button>
+    </form>
+  </div>
+
 </div>
+
+<script>
+  var box = document.getElementById("chat-box");
+  box.scrollTop = box.scrollHeight;
+
+  var input = document.getElementById("chat-input");
+  var dropdown = document.getElementById("mention-dropdown");
+  var daftarPeserta = {{ daftar_peserta|safe }};
+  var mentionStart = -1;
+
+  input.addEventListener("keydown", function(e) {
+    if (dropdown.style.display === "block") return;
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (this.value.trim()) document.getElementById("chat-form").submit();
+    }
+  });
+
+  input.addEventListener("input", function() {
+    this.style.height = "auto";
+    this.style.height = Math.min(this.scrollHeight, 100) + "px";
+
+    var cursorPos = this.selectionStart;
+    var textBefore = this.value.substring(0, cursorPos);
+    var atMatch = textBefore.match(/@(\\w*)$/);
+
+    if (atMatch) {
+      mentionStart = cursorPos - atMatch[0].length;
+      var query = atMatch[1].toLowerCase();
+      var matches = daftarPeserta.filter(function(nama) {
+        return nama.toLowerCase().indexOf(query) !== -1;
+      });
+      if (matches.length > 0) {
+        dropdown.innerHTML = "";
+        matches.forEach(function(nama) {
+          var item = document.createElement("div");
+          item.className = "mention-item";
+          item.textContent = nama;
+          item.addEventListener("click", function() {
+            pilihMention(nama);
+          });
+          dropdown.appendChild(item);
+        });
+        dropdown.style.display = "block";
+      } else {
+        dropdown.style.display = "none";
+      }
+    } else {
+      dropdown.style.display = "none";
+    }
+  });
+
+  function pilihMention(nama) {
+    var namaBersih = nama.replace(/\\s+/g, "");
+    var before = input.value.substring(0, mentionStart);
+    var after = input.value.substring(input.selectionStart);
+    input.value = before + "@" + namaBersih + " " + after;
+    dropdown.style.display = "none";
+    input.focus();
+  }
+
+  document.addEventListener("click", function(e) {
+    if (e.target !== input) dropdown.style.display = "none";
+  });
+</script>
 {% endblock %}

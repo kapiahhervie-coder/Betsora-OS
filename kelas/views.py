@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+﻿from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Avg, Sum
@@ -33,16 +33,47 @@ def dashboard(request):
         if alasan:
             perlu_perhatian.append({'siswa': siswa, 'alasan': ', '.join(alasan)})
 
+    from ruang_kerja.models import PesanChat, RuangKerja, Pengumuman
+    if request.user.role == 'siswa' and hasattr(request.user, 'profil_siswa'):
+        kelas_siswa = request.user.profil_siswa.kelas
+        ruang_list = RuangKerja.objects.filter(kelas=kelas_siswa)
+    else:
+        ruang_list = RuangKerja.objects.all()
+
+    pesan_terbaru = PesanChat.objects.filter(
+        ruang_kerja__in=ruang_list
+    ).select_related('dikirim_oleh', 'ruang_kerja').order_by('-dikirim_pada')[:10]
+
+    pengumuman_terbaru = Pengumuman.objects.filter(
+        ruang_kerja__in=ruang_list
+    ).select_related('diposting_oleh', 'ruang_kerja').order_by('-dibuat_pada')[:5]
+
+    from ruang_kerja.models import StatusBaca
+    status_map = {sb.ruang_kerja_id: sb.terakhir_dibaca for sb in StatusBaca.objects.filter(user=request.user)}
+
+    total_belum_dibaca = 0
+    for r in ruang_list:
+        terakhir = status_map.get(r.id)
+        q_pesan = PesanChat.objects.filter(ruang_kerja=r)
+        q_peng = Pengumuman.objects.filter(ruang_kerja=r)
+        if terakhir:
+            q_pesan = q_pesan.filter(dikirim_pada__gt=terakhir)
+            q_peng = q_peng.filter(dibuat_pada__gt=terakhir)
+        total_belum_dibaca += q_pesan.count() + q_peng.count()
+
     return render(request, 'kelas/dashboard.html', {
         'total_siswa': total_siswa,
         'hadir_hari_ini': hadir_hari_ini,
         'persen_hadir': persen_hadir,
-        'rata_nilai': round(rata_nilai, 1) if rata_nilai else '—',
+        'rata_nilai': round(rata_nilai, 1) if rata_nilai else '-',
         'kelas_list': kelas_list,
         'top_aktif': top_aktif,
         'hari_ini': hari_ini,
         'perlu_perhatian': perlu_perhatian[:5],
         'jumlah_perlu_perhatian': len(perlu_perhatian),
+        'pesan_terbaru': pesan_terbaru,
+        'total_belum_dibaca': total_belum_dibaca,
+        'pengumuman_terbaru': pengumuman_terbaru,
     })
 
 

@@ -1,32 +1,63 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% block title %}Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 {% block content %}
+
 <div class="grid grid-cols-4 gap-4 mb-6">
-  <div class="card p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Total Siswa</p>
-    <p class="text-3xl font-bold text-gray-800 mt-1">{{ total_siswa }}</p>
+  <div class="stat-card">
+    <p class="label">Total Siswa</p>
+    <p class="value">{{ total_siswa }}</p>
     <p class="text-xs text-gray-400 mt-1">aktif terdaftar</p>
   </div>
-  <div class="card p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Hadir Hari Ini</p>
-    <p class="text-3xl font-bold text-green-700 mt-1">{{ hadir_hari_ini }}</p>
+  <div class="stat-card">
+    <p class="label">Hadir Hari Ini</p>
+    <p class="value text-green-700">{{ hadir_hari_ini }}</p>
     <p class="text-xs text-gray-400 mt-1">dari {{ total_siswa }} siswa</p>
   </div>
-  <div class="card p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Rata-rata Nilai</p>
-    <p class="text-3xl font-bold text-blue-700 mt-1">{{ rata_nilai }}</p>
+  <div class="stat-card">
+    <p class="label">Rata-rata Nilai</p>
+    <p class="value text-blue-700">{{ rata_nilai }}</p>
     <p class="text-xs text-gray-400 mt-1">semua mapel</p>
   </div>
-  <div class="card p-5">
-    <p class="text-xs text-gray-500 uppercase tracking-wide font-medium">Tanggal</p>
-    <p class="text-lg font-bold text-gray-800 mt-1">{{ hari_ini|date:"d M Y" }}</p>
+  <div class="stat-card">
+    <p class="label">Tanggal</p>
+    <p class="value text-[22px]">{{ hari_ini|date:"d M Y" }}</p>
     <p class="text-xs text-gray-400 mt-1">{{ hari_ini|date:"l" }}</p>
   </div>
 </div>
+
+{% if perlu_perhatian %}
+<div class="alert-row px-5 py-3 mb-5 flex items-center gap-3">
+  <span class="text-sm">&#9888;&#65039;</span>
+  <p class="text-sm text-[#9A3B2E] font-medium">{{ jumlah_perlu_perhatian }} siswa perlu perhatian &mdash;</p>
+  <div class="flex gap-2 flex-wrap">
+    {% for p in perlu_perhatian %}
+    <span class="text-xs bg-white text-[#9A3B2E] px-2 py-0.5 rounded border border-[#F3D4CC]">{{ p.siswa.nama }} ({{ p.alasan }})</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if pengumuman_terbaru %}
+<div class="card p-5 mb-5">
+  <h3 class="font-semibold text-gray-800 mb-4">&#128227; Pengumuman Terbaru</h3>
+  <div class="space-y-3">
+    {% for p in pengumuman_terbaru %}
+    <div class="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0 last:pb-0">
+      <div class="flex-1">
+        <p class="text-sm text-gray-700">{{ p.isi|truncatechars:120 }}</p>
+        <p class="text-xs text-gray-400 mt-1">{{ p.ruang_kerja.mapel }} - Kelas {{ p.ruang_kerja.kelas }} &middot; {{ p.diposting_oleh.get_full_name|default:p.diposting_oleh.username }} &middot; {{ p.dibuat_pada|timesince }} lalu</p>
+      </div>
+      <a href="{% url 'ruang_kerja:detail' p.ruang_kerja.id %}" class="text-xs text-[#3C8C1F] font-medium whitespace-nowrap hover:underline">Lihat &rsaquo;</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <div class="grid grid-cols-2 gap-4">
   <div class="card p-5">
-    <h3 class="font-semibold text-gray-800 mb-4">⚡ Keaktifan Tertinggi</h3>
+    <h3 class="font-semibold text-gray-800 mb-4">&#9889; Keaktifan Tertinggi</h3>
     {% if top_aktif %}
     <div class="space-y-2">
       {% for item in top_aktif %}
@@ -42,26 +73,41 @@
     <p class="text-sm text-gray-400 text-center py-6">Belum ada data keaktifan</p>
     {% endif %}
   </div>
+
   <div class="card p-5">
-    <h3 class="font-semibold text-gray-800 mb-4">🚀 Aksi Cepat</h3>
+    <h3 class="font-semibold text-gray-800 mb-4">&#128172; Diskusi Terbaru</h3>
+    {% if pesan_terbaru %}
+    <div class="space-y-2">
+      {% for pesan in pesan_terbaru|slice:":5" %}
+      <a href="{% url 'ruang_kerja:detail' pesan.ruang_kerja.id %}" class="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
+        <div class="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">{{ pesan.dikirim_oleh.username|slice:":2"|upper }}</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs text-gray-500">{{ pesan.dikirim_oleh.username }} &middot; {{ pesan.ruang_kerja.mapel }}</p>
+          <p class="text-sm text-gray-700 truncate">{{ pesan.isi|truncatechars:60 }}</p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400 text-center py-6">Belum ada diskusi</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-cols-2 gap-4 mt-4">
+  <div class="card p-5">
+    <h3 class="font-semibold text-gray-800 mb-4">&#128640; Aksi Cepat</h3>
     <div class="space-y-2">
       <a href="{% url 'kelas:absensi' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 border border-gray-100">
-        <span class="text-xl">✅</span>
+        <span class="text-xl">&#9989;</span>
         <div><p class="text-sm font-medium text-gray-700">Input Absensi</p><p class="text-xs text-gray-400">Rekam kehadiran siswa hari ini</p></div>
       </a>
       <a href="{% url 'penilaian:input' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 border border-gray-100">
-        <span class="text-xl">📝</span>
-        <div><p class="text-sm font-medium text-gray-700">Input Nilai</p><p class="text-xs text-gray-400">Formatif atau sumatif</p></div>
-      </a>
-      <a href="{% url 'kelas:keaktifan' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 border border-gray-100">
-        <span class="text-xl">⚡</span>
-        <div><p class="text-sm font-medium text-gray-700">Catat Keaktifan</p><p class="text-xs text-gray-400">Poin partisipasi kelas</p></div>
-      </a>
-      <a href="{% url 'portofolio:daftar' %}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-amber-50 border border-gray-100">
-        <span class="text-xl">📁</span>
+        <span class="text-xl">&#128221;</span>
         <div><p class="text-sm font-medium text-gray-700">Lihat Portofolio</p><p class="text-xs text-gray-400">Rekap otomatis per siswa</p></div>
       </a>
     </div>
   </div>
 </div>
+
 {% endblock %}

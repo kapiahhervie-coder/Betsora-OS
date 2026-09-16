@@ -1,9 +1,9 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% block title %}{{ diskusi.judul }}{% endblock %}
 {% block page_title %}Forum Diskusi{% endblock %}
 {% block content %}
 <div class="mb-4">
-  <a href="{% url 'ruang_kerja:daftar_diskusi' ruang.id %}" class="text-sm text-[#0B3D26] hover:underline">← Kembali ke Forum {{ ruang.mapel }}</a>
+  <a href="{% url 'ruang_kerja:daftar_diskusi' ruang.id %}" class="text-sm text-[#3C8C1F] hover:underline">← Kembali ke Forum {{ ruang.mapel }}</a>
 </div>
 
 <div class="max-w-3xl">
@@ -32,7 +32,7 @@
     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ komentar_list.count }} Balasan</p>
     {% for k in komentar_list %}
     <div class="card p-4 flex items-start gap-3 {% if k.diposting_oleh.role == 'guru' or k.diposting_oleh.role == 'kepsek' %}border-l-2 border-[#C8A35A]{% endif %}">
-      <div class="w-8 h-8 rounded-full {% if k.diposting_oleh.role == 'guru' or k.diposting_oleh.role == 'kepsek' %}bg-[#FBF3E3] text-[#92702E]{% else %}bg-[#E7EFE3] text-[#155C39]{% endif %} flex items-center justify-center text-xs font-bold flex-shrink-0">
+      <div class="w-8 h-8 rounded-full {% if k.diposting_oleh.role == 'guru' or k.diposting_oleh.role == 'kepsek' %}bg-[#FBF3E3] text-[#92702E]{% else %}bg-[#EAF7DE] text-[#4FA82E]{% endif %} flex items-center justify-center text-xs font-bold flex-shrink-0">
         {{ k.diposting_oleh.username|slice:":2"|upper }}
       </div>
       <div class="flex-1">
@@ -57,7 +57,7 @@
     <h3 class="font-semibold text-gray-800 text-sm mb-3">Tulis Balasan</h3>
     <form method="POST" class="space-y-3">
       {% csrf_token %}
-      <textarea name="isi" rows="3" required class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D26]" placeholder="Tulis balasan kamu..."></textarea>
+      <textarea name="isi" rows="3" required class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3C8C1F]" placeholder="Tulis balasan kamu..."></textarea>
       <button type="submit" class="btn-primary">Kirim Balasan</button>
     </form>
   </div>

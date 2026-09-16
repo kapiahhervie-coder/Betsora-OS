@@ -6,3 +6,8 @@ db.sqlite3
 media/
 staticfiles/
 *.log
+# Script debug sementara
+fix_*.ps1
+add_edit_*.ps1
+cek_*.py
+

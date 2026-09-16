@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}Penilaian - {{ materi.judul }}{% endblock %}
+{% block page_title %}Penilaian Topik{% endblock %}
+{% block content %}
+
+<style>
+  .nilai-col { display:flex; flex-direction:column; gap:4px; flex:1; min-width:120px; }
+  .nilai-col label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; }
+  .nilai-input { width:100%; border:1px solid #e5e7eb; border-radius:6px; padding:6px 8px; font-size:13px; font-family:inherit; outline:none; box-sizing:border-box; }
+  .catatan-input { width:100%; border:1px solid #e5e7eb; border-radius:6px; padding:6px 8px; font-size:12px; font-family:inherit; outline:none; box-sizing:border-box; margin-top:4px; }
+  .formatif-row { display:flex; align-items:center; gap:8px; padding:6px 10px; background:white; border:1px solid #e5e7eb; border-radius:6px; margin-bottom:6px; }
+  .formatif-badge { font-family:serif; font-weight:700; color:#3C8C1F; font-size:14px; min-width:36px; text-align:center; }
+</style>
+
+<div class="mb-4">
+  <a href="{% url 'ruang_kerja:detail' ruang.id %}" class="text-sm text-[#3C8C1F] hover:underline">← Kembali ke {{ ruang.mapel }}</a>
+</div>
+
+<div class="mb-5">
+  <h2 class="font-serif text-lg text-gray-800">Penilaian Topik: {{ materi.judul }}</h2>
+  <p class="text-sm text-gray-500">{{ ruang.mapel }} - Kelas {{ ruang.kelas }} &middot; Formatif bisa diisi berkali-kali, Sumatif &amp; Remedial masing-masing satu nilai.</p>
+</div>
+
+<div style="display:flex; flex-direction:column; gap:14px;">
+  {% for row in data %}
+  <div class="card p-5">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+      <div style="width:32px; height:32px; border-radius:50%; background:#EAF7DE; color:#4FA82E; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0;">
+        {{ row.siswa.nama|slice:":2"|upper }}
+      </div>
+      <div>
+        <p style="font-size:14px; font-weight:600; color:#1f2937; margin:0;">{{ row.siswa.nama }}</p>
+        <p style="font-size:11px; color:#9ca3af; margin:0;">Kelas {{ row.siswa.kelas }} &middot; NIS {{ row.siswa.nis }}</p>
+      </div>
+    </div>
+
+    {% if row.refleksi %}
+    <div style="background:#fafbfa; border-left:3px solid #3C8C1F; padding:8px 12px; border-radius:0 6px 6px 0; margin-bottom:14px;">
+      <p style="font-size:10px; font-weight:700; color:#3C8C1F; text-transform:uppercase; letter-spacing:0.04em; margin:0 0 3px;">Refleksi Siswa</p>
+      <p style="font-size:12px; color:#374151; margin:0; line-height:1.5;">{{ row.refleksi }}</p>
+    </div>
+    {% endif %}
+
+    <!-- FORMATIF: daftar berkali-kali -->
+    <div style="margin-bottom:16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+        <label style="font-size:11px; font-weight:700; color:#3C8C1F; text-transform:uppercase; letter-spacing:0.04em;">
+          Formatif {% if row.rata2_formatif %}<span style="color:#9ca3af; font-weight:500; text-transform:none;">(rata-rata: {{ row.rata2_formatif }})</span>{% endif %}
+        </label>
+      </div>
+
+      {% for f in row.formatif_list %}
+      <div class="formatif-row">
+        <div class="formatif-badge">{{ f.nilai|default:"-" }}</div>
+        <div style="flex:1; min-width:0;">
+          <p style="font-size:12px; color:#374151; margin:0;">{{ f.catatan|default:"-" }}</p>
+          <p style="font-size:10px; color:#9ca3af; margin:0;">{{ f.dibuat_pada|date:"d M Y, H:i" }}</p>
+        </div>
+        <form method="POST" action="{% url 'ruang_kerja:hapus_formatif' f.id %}" onsubmit="return confirm('Hapus nilai formatif ini?')">
+          {% csrf_token %}
+          <button type="submit" style="background:none; border:none; cursor:pointer; color:#d1d5db; font-size:14px;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#d1d5db'">✕</button>
+        </form>
+      </div>
+      {% empty %}
+      <p style="font-size:11px; color:#9ca3af; font-style:italic; margin:0 0 8px;">Belum ada nilai formatif.</p>
+      {% endfor %}
+
+      <form method="POST" action="{% url 'ruang_kerja:tambah_formatif' materi.id row.siswa.id %}" style="display:flex; gap:8px; align-items:flex-start; margin-top:8px;">
+        {% csrf_token %}
+        <input type="number" step="0.1" min="0" max="100" name="nilai_formatif" placeholder="Nilai" class="nilai-input" style="max-width:90px;">
+        <input type="text" name="catatan_formatif" placeholder="Catatan (contoh: Kuis lisan bab 1)" class="nilai-input" style="flex:1;">
+        <button type="submit" style="background:#EAF7DE; color:#3C8C1F; border:none; border-radius:6px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">+ Tambah</button>
+      </form>
+    </div>
+
+    <!-- SUMATIF & REMEDIAL: satu nilai -->
+    <form method="POST" action="{% url 'ruang_kerja:simpan_penilaian_topik' materi.id row.siswa.id %}">
+      {% csrf_token %}
+      <div style="display:flex; gap:14px; flex-wrap:wrap;">
+        <div class="nilai-col">
+          <label style="color:#2563eb;">Sumatif</label>
+          <input type="number" step="0.1" min="0" max="100" name="nilai_sumatif" value="{{ row.sumatif.nilai|default:'' }}" placeholder="Nilai" class="nilai-input">
+          <input type="text" name="catatan_sumatif" value="{{ row.sumatif.catatan|default:'' }}" placeholder="Catatan" class="catatan-input">
+        </div>
+        <div class="nilai-col">
+          <label style="color:#dc2626;">Remedial</label>
+          <input type="number" step="0.1" min="0" max="100" name="nilai_remedial" value="{{ row.remedial.nilai|default:'' }}" placeholder="Nilai" class="nilai-input">
+          <input type="text" name="catatan_remedial" value="{{ row.remedial.catatan|default:'' }}" placeholder="Catatan" class="catatan-input">
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+        <button type="submit" style="background:#3C8C1F; color:white; border:none; border-radius:8px; padding:8px 18px; font-size:12px; font-weight:600; cursor:pointer;">Simpan Sumatif &amp; Remedial</button>
+      </div>
+    </form>
+  </div>
+  {% empty %}
+  <div class="card" style="padding:40px; text-align:center; color:#9ca3af;">
+    Belum ada anggota di ruang kerja ini.
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

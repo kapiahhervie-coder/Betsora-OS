@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 from decouple import config
 import os
 
@@ -20,6 +20,9 @@ INSTALLED_APPS = [
     'penilaian',
     'portofolio',
     'ruang_kerja',
+    'pengaturan',
+    'pesan',
+    'perpustakaan',
 ]
 
 MIDDLEWARE = [
@@ -46,6 +49,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'pengaturan.context_processors.pengaturan_sekolah',
+                'pengaturan.context_processors.notifikasi_belum_dibaca',
             ],
         },
     },
@@ -100,3 +105,7 @@ if DATABASE_URL:
 # Tambah Railway domain ke ALLOWED_HOSTS otomatis
 if os.environ.get('RAILWAY_STATIC_URL'):
     ALLOWED_HOSTS.append('.up.railway.app')
+
+
+
+

@@ -1,24 +1,24 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% block title %}Buat Ruang Kerja{% endblock %}
 {% block page_title %}Buat Ruang Kerja{% endblock %}
 {% block content %}
 <div class="max-w-lg">
-<div class="mb-4"><a href="{% url 'ruang_kerja:daftar' %}" class="text-sm text-[#0B3D26] hover:underline">← Kembali</a></div>
+<div class="mb-4" style="display:flex; justify-content:space-between; align-items:center;">
+  <a href="{% url 'ruang_kerja:daftar' %}" class="text-sm text-[#3C8C1F] hover:underline">← Kembali</a>
+  <a href="{% url 'ruang_kerja:kelola_mapel' %}" class="text-sm text-[#3C8C1F] hover:underline">⚙️ Kelola Mata Pelajaran</a>
+</div>
 <div class="card p-6">
   <form method="POST" class="space-y-4">
     {% csrf_token %}
     <div>
       <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Mata Pelajaran</label>
       <select name="mapel" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required>
-        <option>Matematika</option><option>Bahasa Indonesia</option><option>IPA</option>
-        <option>IPS</option><option>Bahasa Inggris</option><option>PKN</option>
+        {% for m in mapel_list %}<option value="{{ m.nama }}">{{ m.nama }}</option>{% endfor %}
       </select>
     </div>
     <div>
       <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Kelas</label>
-      <select name="kelas" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required>
-        {% for k in kelas_list %}<option value="{{ k }}">Kelas {{ k }}</option>{% endfor %}
-      </select>
+      <input type="text" name="kelas" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="Contoh: 3, 4A, Kelompok Pagi" required>
     </div>
     <div>
       <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Deskripsi (opsional)</label>

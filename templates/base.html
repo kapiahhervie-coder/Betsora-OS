@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{% block title %}Sekolah Digital{% endblock %}</title>
+<title>{% block title %}{{ pengaturan.nama_institusi }}{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.1.0/iconfont/tabler-icons.min.css">
@@ -12,9 +12,9 @@
 tailwind.config = {
   theme: { extend: {
     colors: {
-      primary: '#0B3D26',
-      'primary-mid': '#155C39',
-      'primary-light': '#E7EFE3',
+      primary: '#3C8C1F',
+      'primary-mid': '#4FA82E',
+      'primary-light': '#EAF7DE',
       accent: '#C8A35A',
       'accent-light': '#FBF3E3'
     },
@@ -30,65 +30,76 @@ tailwind.config = {
   .font-serif { font-family: 'Lora', serif; }
   .nav-link { display:flex; align-items:center; gap:10px; padding:9px 14px; border-radius:8px; font-size:13.5px; color:#A8C2B3; transition:all .15s; text-decoration:none; }
   .nav-link:hover { background:rgba(255,255,255,0.06); color:#F4EFE4; }
-  .nav-link.active { background:rgba(255,255,255,0.1); color:#F4EFE4; font-weight:500; border-left:2px solid #C8A35A; padding-left:12px; }
-  .btn-primary { display:inline-flex; align-items:center; gap:6px; background:#0B3D26; color:white; padding:9px 18px; border-radius:8px; font-size:13.5px; font-weight:500; letter-spacing:0.01em; text-decoration:none; border:none; cursor:pointer; }
-  .btn-primary:hover { background:#155C39; }
+  .nav-link.active { background:rgba(255,255,255,0.1); color:#F4EFE4; font-weight:500; border-left:3px solid #2ECC71; padding-left:11px; }
+  .btn-primary { display:inline-flex; align-items:center; gap:6px; background:#1E6B43; color:white; padding:9px 18px; border-radius:8px; font-size:13.5px; font-weight:600; letter-spacing:0.01em; text-decoration:none; border:none; cursor:pointer; }
+  .btn-primary:hover { background:#4FA82E; }
   .btn-secondary { display:inline-flex; align-items:center; gap:6px; background:white; color:#374151; border:1px solid #E2E0D5; padding:9px 18px; border-radius:8px; font-size:13.5px; font-weight:500; text-decoration:none; cursor:pointer; }
   .btn-secondary:hover { background:#FAF9F5; }
-  .card { background:white; border-radius:12px; border:1px solid #ECEAE0; box-shadow:0 1px 3px rgba(11,61,38,0.04); }
+  .card { background:white; border-radius:12px; border:1px solid #E5E7EB; box-shadow:0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1); }
   .stat-card { background:white; border-radius:12px; border:1px solid #ECEAE0; padding:1.1rem 1.25rem; }
   .stat-card .label { font-size:11px; font-weight:500; color:#8B8B7E; text-transform:uppercase; letter-spacing:0.06em; }
-  .stat-card .value { font-family:'Lora',serif; font-size:28px; font-weight:600; color:#0B3D26; margin-top:6px; line-height:1; }
-  .badge-hadir { background:#E7EFE3; color:#155C39; font-size:11px; font-weight:500; padding:3px 10px; border-radius:9999px; }
+  .stat-card .value { font-family:'Lora',serif; font-size:28px; font-weight:600; color:#3C8C1F; margin-top:6px;line-height:1; }
+  .badge-hadir { background:#E6F4EA; color:#137333; font-size:11px; font-weight:500; padding:3px 10px; border-radius:9999px; }
   .badge-izin { background:#FBF3E3; color:#92702E; font-size:11px; font-weight:500; padding:3px 10px; border-radius:9999px; }
   .badge-alpha { background:#FBEAE7; color:#9A3B2E; font-size:11px; font-weight:500; padding:3px 10px; border-radius:9999px; }
   .badge-sakit { background:#E7EEF7; color:#2E5C92; font-size:11px; font-weight:500; padding:3px 10px; border-radius:9999px; }
-  .alert-row { background:#FBEAE7; border:1px solid #F3D4CC; border-radius:10px; }
-  .nav-section { color:#6F9479; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; padding:12px 14px 4px; }
+  .alert-row { background:#FEF2F2; border:1px solid #FCA5A5; border-radius:10px; color:#991B1B; }
+  .nav-section { color:#82B85F; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; padding:12px 14px 4px; }
 </style>
 </head>
 <body class="bg-[#FAF9F5] min-h-screen flex">
 
 {% if user.is_authenticated %}
-<aside class="w-60 bg-primary flex flex-col flex-shrink-0 min-h-screen">
+<aside class="w-60 flex flex-col flex-shrink-0 min-h-screen" style="background:#0F2C1D;">
 
   <!-- Brand -->
   <div class="px-5 py-6 border-b border-white border-opacity-10">
-    <p class="font-serif text-white text-[19px] leading-tight">Sekolah Digital</p>
-    <p class="text-[11px] text-[#8FB39C] mt-1 tracking-wide uppercase">SMP Negeri 1 Contoh</p>
+    <p class="font-serif text-white text-[19px] leading-tight font-bold tracking-wide">{{ pengaturan.nama_institusi }}</p>
+    <p class="text-[11px] text-[#B7DFA0] mt-1 tracking-wide uppercase">{{ pengaturan.sub_judul|default:"SMP Negeri 1 Contoh" }}</p>
   </div>
 
   <!-- Nav -->
   <nav class="flex-1 px-3 py-4 overflow-y-auto">
 
+    
     <p class="nav-section">Utama</p>
     <a href="{% url 'kelas:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
       <i class="ti ti-layout-dashboard" style="font-size:16px"></i>Dashboard
     </a>
+    <a href="{% url 'pesan:daftar' %}" class="nav-link {% if request.resolver_match.app_name == 'pesan' %}active{% endif %}" style="padding-left:28px; font-size:12.5px;">
+      <i class="ti ti-messages" style="font-size:15px"></i>Class Chat
+    </a>
 
     {% if user.role != 'siswa' %}
     <p class="nav-section">Administrasi Kelas</p>
+    {% if pengaturan.mode == 'formal' %}
     <a href="{% url 'kelas:absensi' %}" class="nav-link {% if request.resolver_match.url_name == 'absensi' %}active{% endif %}">
       <i class="ti ti-checklist" style="font-size:16px"></i>Absensi
     </a>
     <a href="{% url 'kelas:keaktifan' %}" class="nav-link {% if request.resolver_match.url_name == 'keaktifan' %}active{% endif %}">
       <i class="ti ti-bolt" style="font-size:16px"></i>Keaktifan
     </a>
+    {% endif %}
+    {% if pengaturan.mode == 'formal' or pengaturan.mode == 'homeschool' %}
     <a href="{% url 'penilaian:home' %}" class="nav-link {% if request.resolver_match.app_name == 'penilaian' %}active{% endif %}">
       <i class="ti ti-clipboard-text" style="font-size:16px"></i>Penilaian
     </a>
     {% endif %}
+    {% endif %}
 
     <p class="nav-section">Pembelajaran</p>
-    <a href="{% url 'ruang_kerja:daftar' %}" class="nav-link {% if request.resolver_match.app_name == 'ruang_kerja' %}active{% endif %}">
-      <i class="ti ti-book-2" style="font-size:16px"></i>Ruang Kerja
-    </a>
+    <a href="{% url 'ruang_kerja:daftar' %}" class="nav-link {% if request.resolver_match.url_name == 'daftar' and request.resolver_match.app_name == 'ruang_kerja' %}active{% endif %}">
+  <i class="ti ti-book-2" style="font-size:16px"></i>{{ pengaturan.label_ruang_kerja }}
+  {% if total_belum_dibaca %}<span style="background:#dc2626; color:white; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:auto;">{{ total_belum_dibaca }}</span>{% endif %}
+</a>
 
     {% if user.role != 'siswa' %}
     <p class="nav-section">Siswa</p>
+    {% if pengaturan.mode == 'formal' or pengaturan.mode == 'homeschool' %}
     <a href="{% url 'portofolio:daftar' %}" class="nav-link {% if request.resolver_match.app_name == 'portofolio' %}active{% endif %}">
       <i class="ti ti-folder" style="font-size:16px"></i>Portofolio
     </a>
+    {% endif %}
     <a href="{% url 'accounts:daftar_siswa' %}" class="nav-link {% if request.resolver_match.url_name == 'daftar_siswa' %}active{% endif %}">
       <i class="ti ti-users" style="font-size:16px"></i>Data Siswa
     </a>
@@ -104,7 +115,7 @@ tailwind.config = {
       </div>
       <p class="text-[#DCE8E0] text-[13px] truncate">{{ user.get_full_name|default:user.username }}</p>
     </div>
-    <a href="{% url 'accounts:logout' %}" class="nav-link text-[#8FB39C] hover:text-white">
+    <a href="{% url 'accounts:logout' %}" class="nav-link text-[#B7DFA0] hover:text-white">
       <i class="ti ti-logout" style="font-size:16px"></i>Keluar
     </a>
   </div>
@@ -125,7 +136,7 @@ tailwind.config = {
     {% if messages %}
     <div class="mb-5 space-y-2">
       {% for msg in messages %}
-      <div class="border rounded-lg px-4 py-3 text-sm {% if msg.tags == 'error' %}bg-red-50 border-red-200 text-red-700{% else %}bg-[#E7EFE3] border-[#CFE0D0] text-[#155C39]{% endif %}">
+      <div class="border rounded-lg px-4 py-3 text-sm {% if msg.tags == 'error' %}bg-red-50 border-red-200 text-red-700{% else %}bg-[#EAF7DE] border-[#CFE0D0] text-[#4FA82E]{% endif %}">
         {{ msg }}
       </div>
       {% endfor %}
@@ -137,3 +148,7 @@ tailwind.config = {
 
 </body>
 </html>
+
+
+
+

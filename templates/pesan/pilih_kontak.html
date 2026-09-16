@@ -1,0 +1,28 @@
+﻿{% extends 'base.html' %}
+{% block title %}Pilih Kontak{% endblock %}
+{% block page_title %}Pesan Baru{% endblock %}
+{% block content %}
+
+<div class="mb-4">
+  <a href="{% url 'pesan:daftar' %}" class="text-sm text-[#3C8C1F] hover:underline">← Kembali</a>
+</div>
+
+<div class="card" style="overflow:hidden;">
+  {% for k in kontak_list %}
+  <a href="{% url 'pesan:chat' k.id %}" style="display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid #ECEAE0; text-decoration:none; color:inherit;">
+    <div style="width:38px; height:38px; border-radius:50%; background:#EAF7DE; color:#4FA82E; display:flex; align-items:center; justify-content:center; font-weight:600; flex-shrink:0;">
+      {{ k.username|slice:':2'|upper }}
+    </div>
+    <div style="flex:1; min-width:0;">
+      <p style="font-size:14px; font-weight:600; color:#1f2937; margin:0;">{{ k.get_full_name|default:k.username }}</p>
+      <p style="font-size:12px; color:#9ca3af; margin:0;">{{ k.get_role_display|default:k.role }}</p>
+    </div>
+  </a>
+  {% empty %}
+  <div style="text-align:center; padding:60px 20px; color:#9ca3af;">
+    <p style="font-size:14px; margin:0;">Tidak ada kontak tersedia</p>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

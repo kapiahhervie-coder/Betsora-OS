@@ -1,0 +1,110 @@
+﻿{% extends 'base.html' %}
+{% block title %}Rapor {{ siswa.nama }} - {{ ruang.mapel }}{% endblock %}
+{% block page_title %}Rapor Digital{% endblock %}
+{% block content %}
+
+<style>
+  @media print {
+    .no-print { display:none !important; }
+    .rapor-sheet { box-shadow:none !important; border:none !important; }
+  }
+  .rapor-sheet { background:white; border:1px solid #e5e7eb; border-radius:12px; padding:36px; max-width:720px; margin:0 auto; }
+  .rapor-header { text-align:center; border-bottom:2px solid #3C8C1F; padding-bottom:16px; margin-bottom:20px; }
+  .rapor-header h1 { font-family:serif; font-size:20px; color:#3C8C1F; margin:0 0 4px; }
+  .rapor-header p { font-size:12px; color:#6b7280; margin:0; }
+  .rapor-bio { display:flex; justify-content:space-between; font-size:13px; color:#374151; margin-bottom:20px; }
+  .rapor-score { text-align:center; background:#f0f7f0; border-radius:10px; padding:20px; margin-bottom:24px; }
+  .rapor-score .angka { font-family:serif; font-size:42px; font-weight:700; color:#3C8C1F; }
+  .rapor-score .label { font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em; }
+  .rapor-table { width:100%; border-collapse:collapse; margin-bottom:24px; font-size:13px; }
+  .rapor-table th { text-align:left; background:#f9fafb; padding:8px 12px; font-size:11px; color:#6b7280; text-transform:uppercase; border-bottom:1px solid #e5e7eb; }
+  .rapor-table td { padding:8px 12px; border-bottom:1px solid #f3f4f6; }
+  .rapor-narasi { background:#fafafa; border-left:3px solid #3C8C1F; padding:14px 18px; border-radius:0 8px 8px 0; font-size:13px; color:#374151; line-height:1.7; white-space:pre-wrap; }
+  .rapor-narasi-title { font-size:11px; font-weight:700; color:#3C8C1F; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px; }
+</style>
+
+<div class="mb-4 no-print" style="display:flex; justify-content:space-between; align-items:center;">
+  <a href="{% url 'ruang_kerja:rapor_ruang_kerja' ruang.id %}" class="text-sm text-[#3C8C1F] hover:underline">← Kembali ke Daftar Rapor</a>
+  <button onclick="window.print()" style="background:#3C8C1F; color:white; border:none; border-radius:8px; padding:8px 18px; font-size:13px; font-weight:600; cursor:pointer;">🖨️ Print / Simpan PDF</button>
+</div>
+
+<div class="rapor-sheet">
+  <div class="rapor-header">
+    <h1>Rapor Digital - {{ ruang.mapel }}</h1>
+    <p>Sakala Learning Centre</p>
+  </div>
+
+  <div class="rapor-bio">
+    <div>
+      <strong>{{ siswa.nama }}</strong><br>
+      NIS: {{ siswa.nis }}
+    </div>
+    <div style="text-align:right;">
+      Kelas {{ ruang.kelas }}<br>
+      {{ "now"|date:"d F Y" }}
+    </div>
+  </div>
+
+  <div style="display:flex; gap:16px; margin-bottom:24px;">
+    <div class="rapor-score" style="flex:1; margin-bottom:0;">
+      <div class="angka">{% if rata2 %}{{ rata2 }}{% else %}-{% endif %}</div>
+      <div class="label">Rata-rata Nilai Tugas</div>
+    </div>
+    <div class="rapor-score" style="flex:1; margin-bottom:0;">
+      <div class="angka">{% if rata2_mastery %}{{ rata2_mastery }}{% else %}-{% endif %}</div>
+      <div class="label">Rata-rata Mastery</div>
+      {% if total_topik_dinilai %}<div style="font-size:11px; color:#6b7280; margin-top:4px;">{{ jumlah_topik_mastered }} dari {{ total_topik_dinilai }} topik tuntas</div>{% endif %}
+    </div>
+  </div>
+
+  <table class="rapor-table">
+    <thead>
+      <tr><th>Tugas</th><th>Nilai</th><th>Feedback</th></tr>
+    </thead>
+    <tbody>
+      {% for tn in tugas_nilai %}
+      <tr>
+        <td>{{ tn.tugas.judul }}</td>
+        <td>{% if tn.nilai %}{{ tn.nilai }}/{{ tn.tugas.nilai_maksimal }}{% else %}Belum dinilai{% endif %}</td>
+        <td>{{ tn.feedback|default:"-" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" style="text-align:center; color:#9ca3af; padding:20px;">Belum ada tugas yang dikumpulkan.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if penilaian_topik_list %}
+  <div style="margin-bottom:24px;">
+    <div class="rapor-narasi-title" style="margin-bottom:10px;">Penilaian Formatif, Sumatif &amp; Remedial per Topik</div>
+    {% for pt in penilaian_topik_list %}
+    <div style="border:1px solid #e5e7eb; border-radius:8px; padding:12px 16px; margin-bottom:10px;">
+      <p style="font-size:13px; font-weight:600; color:#374151; margin:0 0 8px; display:flex; align-items:center; gap:8px;">{{ pt.topik.judul }}{% if pt.mastery is not None %}<span style="font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; text-transform:uppercase; letter-spacing:0.03em; {% if pt.is_mastered %}background:#dcfce7; color:#16a34a;{% else %}background:#f3f4f6; color:#6b7280;{% endif %}">{{ pt.mastery }}%{% if pt.is_mastered %} · Tuntas{% endif %}</span>{% endif %}</p>
+      <div style="display:flex; gap:20px; flex-wrap:wrap; font-size:12px;">
+        <div>
+          <span style="color:#3C8C1F; font-weight:600;">Formatif:</span>
+          {% if pt.formatif_list %}
+            {% for f in pt.formatif_list %}{{ f.nilai|default:"-" }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            {% if pt.rata2_formatif %}<span style="color:#9ca3af;">(rata-rata {{ pt.rata2_formatif }})</span>{% endif %}
+          {% else %}<span style="color:#9ca3af;">belum ada</span>{% endif %}
+        </div>
+        <div>
+          <span style="color:#2563eb; font-weight:600;">Sumatif:</span>
+          {% if pt.sumatif.nilai %}{{ pt.sumatif.nilai }}{% else %}<span style="color:#9ca3af;">belum ada</span>{% endif %}
+        </div>
+        <div>
+          <span style="color:#dc2626; font-weight:600;">Remedial:</span>
+          {% if pt.remedial.nilai %}{{ pt.remedial.nilai }}{% else %}<span style="color:#9ca3af;">belum ada</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="rapor-narasi">
+    <div class="rapor-narasi-title">Catatan Guru</div>
+    {% if catatan %}{{ catatan }}{% else %}<span style="color:#9ca3af; font-style:italic;">Belum ada catatan dari guru.</span>{% endif %}
+  </div>
+</div>
+{% endblock %}

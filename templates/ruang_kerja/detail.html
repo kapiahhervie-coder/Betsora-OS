@@ -1,116 +1,303 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
+{% load ruang_kerja_extras %}
 {% block title %}{{ ruang.mapel }} - Kelas {{ ruang.kelas }}{% endblock %}
-{% block page_title %}{{ ruang.mapel }} — Kelas {{ ruang.kelas }}{% endblock %}
+{% block page_title %}{{ ruang.mapel }} - Kelas {{ ruang.kelas }}{% endblock %}
 {% block content %}
-<div class="mb-4"><a href="{% url 'ruang_kerja:daftar' %}" class="text-sm text-[#0B3D26] hover:underline">← Kembali ke Ruang Kerja</a></div>
 
-<div class="bg-primary rounded-xl p-6 mb-5 text-white">
-  <h2 class="font-serif text-xl">{{ ruang.mapel }}</h2>
-  <p class="text-[#A8C2B3] text-sm mt-1">Kelas {{ ruang.kelas }}{% if ruang.deskripsi %} &middot; {{ ruang.deskripsi }}{% endif %}</p>
-  <div class="flex gap-4 mt-3 text-xs text-[#A8C2B3] items-center">
-    <span>{{ materi_list.count }} materi</span>
-    <span>{{ tugas_list.count }} tugas</span>
-    <span>{{ pengumuman_list.count }} pengumuman</span>
-    <a href="{% url 'ruang_kerja:daftar_diskusi' ruang.id %}" class="ml-auto bg-white bg-opacity-10 hover:bg-opacity-20 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all">💬 Forum Diskusi →</a>
+<style>
+  .moodle-main { background:white; border-radius:12px; border:1px solid #e5e7eb; overflow:hidden; min-height:calc(100vh - 120px); }
+  .topbar { display:flex; align-items:center; gap:20px; padding:14px 24px; border-bottom:1px solid #e5e7eb; background:#f9fafb; flex-wrap:wrap; }
+  .topbar-title p { font-size:14px; font-weight:700; color:#3C8C1F; margin:0; }
+  .topbar-title span { font-size:11px; color:#9ca3af; }
+  .topbar-tabs { display:flex; gap:4px; margin-left:auto; }
+  .topbar-tabs a { display:flex; align-items:center; gap:6px; padding:8px 14px; font-size:13px; font-weight:500; color:#6b7280; text-decoration:none; border-radius:8px; cursor:pointer; transition:all .15s; }
+  .topbar-tabs a:hover { background:#f0f7f0; color:#3C8C1F; }
+  .topbar-tabs a.active { background:#3C8C1F; color:white; }
+  .main-header { padding:20px 24px; border-bottom:1px solid #f3f4f6; background:#f9fafb; }
+  .main-content { padding:24px; }
+  .topik-block { margin-bottom:24px; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; }
+  .topik-block-header { background:#f0f7f0; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
+  .topik-block-header:hover { background:#e7f0e7; }
+  .topik-num { width:26px; height:26px; border-radius:50%; background:#3C8C1F; color:white; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .item-row { display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid #f9fafb; transition:background .1s; }
+  .item-row:last-child { border-bottom:none; }
+  .item-row:hover { background:#f9fafb; }
+  .item-icon { width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+  .item-icon.file { background:#fee2e2; }
+  .item-icon.video { background:#fef3c7; }
+  .item-icon.link { background:#dbeafe; }
+  .item-icon.text { background:#f3f4f6; }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; }
+  .add-topik-form { display:none; padding:12px 16px; background:#f0f7f0; border-top:1px solid #ECEAE0; }
+</style>
+
+<div style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
+  <a href="{% url 'ruang_kerja:daftar' %}" style="font-size:13px; color:#3C8C1F; text-decoration:none;">← {{ pengaturan.label_ruang_kerja }}</a>
+  <div style="display:flex; gap:8px; align-items:center;">
+    {% if pengaturan.mode != 'kursus_online' %}<a href="{% url 'ruang_kerja:daftar_diskusi' ruang.id %}" style="font-size:12px; background:#EAF7DE; color:#3C8C1F; padding:6px 14px; border-radius:8px; text-decoration:none; font-weight:500;">💬 Diskusi</a> <a href="{% url 'ruang_kerja:video_call' ruang.id %}" style="font-size:12px; background:#3C8C1F; color:white; padding:6px 14px; border-radius:8px; text-decoration:none; font-weight:500;">📹 Video Call</a>{% endif %}
   </div>
 </div>
 
-<div class="grid grid-cols-3 gap-5">
+<div class="moodle-main">
 
-  <!-- MATERI -->
-  <div>
-    <h3 class="font-semibold text-gray-800 text-sm mb-3">Materi</h3>
-    {% if request.user.role != 'siswa' %}
-    <div class="card p-4 mb-3">
-      <form method="POST" action="{% url 'ruang_kerja:tambah_materi' ruang.id %}" enctype="multipart/form-data" class="space-y-2">
-        {% csrf_token %}
-        <input type="text" name="judul" required placeholder="Judul materi" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D26]">
-        <textarea name="deskripsi" rows="2" placeholder="Deskripsi (opsional)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D26]"></textarea>
-        <input type="file" name="file" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-[#E7EFE3] file:text-[#0B3D26]">
-        <button type="submit" class="btn-primary text-xs py-2 w-full justify-center">Unggah Materi</button>
-      </form>
+  <!-- TOPBAR SATU BARIS -->
+  <div class="topbar">
+    <div class="topbar-title">
+      <p>{{ ruang.mapel }}</p>
+      <span>Kelas {{ ruang.kelas }}</span>
     </div>
-    {% endif %}
-    <div class="space-y-2">
-      {% for m in materi_list %}
-      <div class="card p-4">
-        <p class="text-sm font-medium text-gray-800">{{ m.judul }}</p>
-        {% if m.deskripsi %}<p class="text-xs text-gray-500 mt-1">{{ m.deskripsi }}</p>{% endif %}
-        <div class="flex items-center justify-between mt-2">
-          <p class="text-xs text-gray-400">{{ m.dibuat_pada|date:"d M Y" }}</p>
-          {% if m.file %}<a href="{{ m.file.url }}" target="_blank" class="text-xs text-[#0B3D26] underline">Unduh</a>{% endif %}
-        </div>
-      </div>
-      {% empty %}
-      <p class="text-sm text-gray-400 text-center py-6">Belum ada materi.</p>
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- TUGAS -->
-  <div>
-    <h3 class="font-semibold text-gray-800 text-sm mb-3">Tugas</h3>
-    {% if request.user.role != 'siswa' %}
-    <div class="card p-4 mb-3">
-      <form method="POST" action="{% url 'ruang_kerja:tambah_tugas' ruang.id %}" class="space-y-2">
-        {% csrf_token %}
-        <input type="text" name="judul" required placeholder="Judul tugas" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D26]">
-        <textarea name="instruksi" rows="3" required placeholder="Instruksi tugas lengkap..." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D26]"></textarea>
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-gray-500 flex-shrink-0">Nilai maks:</label>
-          <input type="number" name="nilai_maksimal" value="100" min="1" max="100" class="w-20 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-center font-mono focus:outline-none focus:ring-2 focus:ring-[#0B3D26]">
-        </div>
-        <button type="submit" class="btn-primary text-xs py-2 w-full justify-center">Buat Tugas</button>
-      </form>
-    </div>
-    {% endif %}
-    <div class="space-y-2">
-      {% for t in tugas_list %}
-      <a href="{% url 'ruang_kerja:detail_tugas' t.id %}" class="card p-4 block hover:shadow-md transition-all">
-        <div class="flex items-start justify-between gap-2">
-          <p class="text-sm font-medium text-gray-800">{{ t.judul }}</p>
-          <span class="text-xs text-gray-400 flex-shrink-0">{{ t.nilai_maksimal }} poin</span>
-        </div>
-        <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ t.instruksi }}</p>
-        {% if request.user.role == 'siswa' and siswa_obj %}
-          {% if t.id in tugas_sudah_submit %}
-          <span class="mt-2 inline-block text-xs bg-[#E7EFE3] text-[#155C39] px-2 py-0.5 rounded-full">Sudah dikumpulkan</span>
-          {% else %}
-          <span class="mt-2 inline-block text-xs bg-[#FBF3E3] text-[#92702E] px-2 py-0.5 rounded-full">Belum dikumpulkan</span>
-          {% endif %}
-        {% else %}
-        <p class="text-xs text-gray-400 mt-2">{{ t.submisi.count }} submisi masuk</p>
-        {% endif %}
+    <div class="topbar-tabs">
+      <a onclick="showTab('materi')" class="active" id="nav-materi">📚 Materi</a>
+      <a onclick="showTab('tugas')" id="nav-tugas">
+        📝 Tugas
+        {% if tugas_list.count %}<span style="background:#fee2e2; color:#dc2626; font-size:10px; padding:1px 6px; border-radius:10px;">{{ tugas_list.count }}</span>{% endif %}
       </a>
-      {% empty %}
-      <p class="text-sm text-gray-400 text-center py-6">Belum ada tugas.</p>
-      {% endfor %}
+      {% if pengaturan.mode != 'kursus_online' %}<a onclick="showTab('pengumuman')" id="nav-pengumuman">📣 Pengumuman</a>{% endif %}
     </div>
-  </div>
-
-  <!-- PENGUMUMAN -->
-  <div>
-    <h3 class="font-semibold text-gray-800 text-sm mb-3">Pengumuman</h3>
     {% if request.user.role != 'siswa' %}
-    <div class="card p-4 mb-3">
-      <form method="POST" action="{% url 'ruang_kerja:tambah_pengumuman' ruang.id %}" class="space-y-2">
-        {% csrf_token %}
-        <textarea name="isi" rows="3" required placeholder="Tulis pengumuman..." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D26]"></textarea>
-        <button type="submit" class="btn-primary text-xs py-2 w-full justify-center">Posting</button>
-      </form>
-    </div>
+    {% if pengaturan.mode != 'kursus_online' %}
+    <a href="{% url 'ruang_kerja:rapor_ruang_kerja' ruang.id %}" style="font-size:12px; background:#f3f4f6; color:#374151; padding:8px 14px; border-radius:8px; text-decoration:none; font-weight:500; white-space:nowrap;">📊 Rapor</a>
+    <a href="{% url 'ruang_kerja:kelola_anggota' ruang.id %}" style="font-size:12px; background:#f3f4f6; color:#374151; padding:8px 14px; border-radius:8px; text-decoration:none; font-weight:500; white-space:nowrap;">👥 Anggota ({{ jumlah_anggota }})</a>
     {% endif %}
-    <div class="space-y-2">
-      {% for p in pengumuman_list %}
-      <div class="card p-4">
-        <p class="text-sm text-gray-700 leading-relaxed">{{ p.isi }}</p>
-        <p class="text-xs text-gray-400 mt-2">{{ p.dibuat_pada|date:"d M Y, H:i" }}</p>
-      </div>
-      {% empty %}
-      <p class="text-sm text-gray-400 text-center py-6">Belum ada pengumuman.</p>
-      {% endfor %}
-    </div>
+    <a onclick="toggleAddTopik(); return false;" style="font-size:12px; background:#EAF7DE; color:#3C8C1F; padding:8px 14px; border-radius:8px; text-decoration:none; font-weight:500; white-space:nowrap; cursor:pointer;">➕ Tambah Topik</a>
+    {% endif %}
   </div>
 
-</div>
+  {% if request.user.role != 'siswa' %}
+  <div class="add-topik-form" id="add-topik-form">
+    <form method="POST" action="{% url 'ruang_kerja:tambah_topik' ruang.id %}" style="display:flex; gap:8px; align-items:center;">
+      {% csrf_token %}
+      <input type="text" name="judul" required placeholder="Nama topik baru"
+        style="flex:1; border:1px solid #ECEAE0; border-radius:6px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; box-sizing:border-box;">
+      <button type="submit" style="background:#3C8C1F; color:white; border:none; border-radius:6px; padding:8px 16px; font-size:13px; cursor:pointer;">Simpan</button>
+      <button type="button" onclick="toggleAddTopik()" style="background:white; color:#374151; border:1px solid #d1d5db; border-radius:6px; padding:8px 16px; font-size:13px; cursor:pointer;">Batal</button>
+    </form>
+  </div>
+  {% endif %}
+    <div class="tab-panel active" id="panel-materi">
+      <div class="main-content">
+        {% for topik in materi_list %}
+        <div class="topik-block" id="topik-{{ topik.id }}">
+          <div class="topik-block-header" onclick="toggleTopikBlock('body-{{ topik.id }}', 'arrow-{{ topik.id }}')">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div class="topik-num">{{ forloop.counter }}</div>
+              <div>
+                <p style="font-size:14px; font-weight:600; color:#3C8C1F; margin:0;">{{ topik.judul }}</p>
+                {% if topik.deskripsi %}<div style="font-size:11px; color:#6b7280; margin:2px 0 0;">{{ topik.deskripsi|safe }}</div>{% endif %}
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:11px; color:#6b7280; background:white; padding:2px 8px; border-radius:10px; border:1px solid #e5e7eb;">{{ topik.sub_materi.count }} item</span>
+              {% if request.user.role != 'siswa' %}
+              <a href="{% url 'ruang_kerja:tambah_item' topik.id %}" onclick="event.stopPropagation()"
+                style="font-size:11px; background:#EAF7DE; color:#3C8C1F; padding:4px 10px; border-radius:6px; text-decoration:none; font-weight:500; white-space:nowrap;">+ Item</a>
+              <form method="POST" action="{% url 'ruang_kerja:hapus_topik' topik.id %}" onclick="event.stopPropagation()" onsubmit="return confirm('Hapus topik ini?')">
+                {% csrf_token %}
+                <button type="submit" style="font-size:11px; background:#fee2e2; color:#dc2626; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;">Hapus</button>
+              </form>
+              {% endif %}
+              <span id="arrow-{{ topik.id }}" style="color:#9ca3af; font-size:11px;">▼</span>
+            </div>
+          </div>
+          <div id="body-{{ topik.id }}">
+            {% for item in topik.sub_materi.all %}
+            <div class="item-row">
+              <div class="item-icon {% if item.file %}file{% elif item.video_url %}video{% elif item.link_url %}link{% else %}text{% endif %}">
+                {% if item.file %}📄{% elif item.video_url %}▶{% elif item.link_url %}🔗{% else %}📝{% endif %}
+              </div>
+              <div style="flex:1; min-width:0;">
+                <p style="font-size:13px; font-weight:500; color:#1f2937; margin:0; {% if item.deskripsi %}cursor:pointer;{% endif %}" {% if item.deskripsi %}onclick="toggleItemDeskripsi('desc-{{ item.id }}', this)"{% endif %}>
+                  {{ item.judul }}{% if item.deskripsi %} <span id="arrow-desc-{{ item.id }}" style="font-size:10px; color:#9ca3af;">▶</span>{% endif %}
+                </p>
+                {% if item.deskripsi %}<div id="desc-{{ item.id }}" style="display:none; font-size:11px; color:#6b7280; margin:6px 0 0;">{{ item.deskripsi|safe }}</div>{% endif %}
+                <div style="display:flex; gap:10px; margin-top:4px; flex-wrap:wrap;">
+                  {% if item.file and not item.is_video_file and not item.is_audio_file %}<a href="{{ item.file.url }}" target="_blank" style="font-size:11px; color:#3C8C1F;">⬇ Unduh</a>{% endif %}
+                  {% if item.link_url %}<a href="{{ item.link_url }}" target="_blank" style="font-size:11px; color:#2563eb;">🔗 Buka Link</a>{% endif %}
+                  {% if item.video_url %}<button onclick="toggleVideoInline('v-{{ item.id }}')" style="font-size:11px; color:#dc2626; background:none; border:none; cursor:pointer; padding:0;">▶️ Putar Video</button>{% endif %}
+                </div>
+                {% if item.video_url %}
+                <div id="v-{{ item.id }}" style="display:none; margin-top:8px; border-radius:8px; overflow:hidden; max-width:480px; aspect-ratio:16/9;">
+                  <iframe src="{{ item.get_video_embed }}" style="width:100%; height:100%;" frameborder="0" allowfullscreen></iframe>
+                </div>
+                {% endif %}
+                {% if item.is_video_file %}
+                <video controls controlsList="nodownload noremoteplayback" disablepictureinpicture oncontextmenu="return false;" style="width:100%; max-width:480px; border-radius:8px; margin-top:8px; display:block;">
+                  <source src="{{ item.file.url }}">
+                </video>
+                {% endif %}
+                {% if item.is_audio_file %}
+                <audio controls controlsList="nodownload" oncontextmenu="return false;" style="width:100%; max-width:400px; margin-top:8px; display:block;">
+                  <source src="{{ item.file.url }}">
+                </audio>
+                {% endif %}
+              </div>
+              {% if request.user.role != 'siswa' %}
+              <a href="{% url 'ruang_kerja:edit_item' item.id %}" style="color:#9ca3af; font-size:13px; text-decoration:none; margin-right:8px;" onmouseover="this.style.color='#3C8C1F'" onmouseout="this.style.color='#9ca3af'">✏️</a>
+              <form method="POST" action="{% url 'ruang_kerja:hapus_item' item.id %}" onsubmit="return confirm('Hapus item ini?')" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" style="background:none; border:none; cursor:pointer; color:#d1d5db; font-size:14px;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#d1d5db'">✕</button>
+              </form>
+              {% endif %}
+            </div>
+            {% empty %}
+            <div style="padding:16px; font-size:12px; color:#9ca3af; font-style:italic; text-align:center;">
+              Belum ada item.{% if request.user.role != 'siswa' %} Klik "+ Item" untuk menambahkan.{% endif %}
+            </div>
+            {% endfor %}
+
+            <!-- REFLEKSI & PENILAIAN PER TOPIK -->
+            <div style="padding:14px 16px; border-top:1px solid #f3f4f6; background:#fafbfa;">
+              {% if request.user.role == 'siswa' %}
+              <form method="POST" action="{% url 'ruang_kerja:simpan_refleksi' topik.id %}">
+                {% csrf_token %}
+                <label style="display:block; font-size:11px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">✍️ Refleksi Topik Ini</label>
+                <textarea name="isi_refleksi" rows="2" placeholder="Apa yang sudah kamu pelajari? Bagian mana yang masih sulit?"
+                  style="width:100%; border:1.5px solid #e5e7eb; border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit; outline:none; resize:vertical; box-sizing:border-box;">{{ refleksi_map|get_item:topik.id|default_if_none:'' }}</textarea>
+                <div style="display:flex; justify-content:flex-end; margin-top:6px;">
+                  <button type="submit" style="background:#3C8C1F; color:white; border:none; border-radius:6px; padding:6px 16px; font-size:12px; font-weight:600; cursor:pointer;">Simpan Refleksi</button>
+                </div>
+              </form>
+              {% else %}
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <p style="font-size:11px; color:#9ca3af; margin:0;">Penilaian Formatif, Sumatif &amp; Remedial untuk topik ini</p>
+                <a href="{% url 'ruang_kerja:penilaian_topik' topik.id %}" style="font-size:11px; background:#EAF7DE; color:#3C8C1F; padding:5px 12px; border-radius:6px; text-decoration:none; font-weight:600; white-space:nowrap;">📊 Penilaian Topik</a>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div style="text-align:center; padding:60px 20px; color:#9ca3af;">
+          <p style="font-size:32px; margin:0 0 8px;">📚</p>
+          <p style="font-size:14px; font-weight:500; margin:0 0 4px;">Belum ada topik</p>
+          <p style="font-size:12px; margin:0;">{% if request.user.role != 'siswa' %}Klik "➕ Tambah Topik" di kanan atas{% else %}Guru belum menambahkan materi{% endif %}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- TAB TUGAS -->
+    <div class="tab-panel" id="panel-tugas">
+      {% if request.user.role != 'siswa' %}
+      <div style="padding:16px 24px; border-bottom:1px solid #f3f4f6; background:#f9fafb;">
+        <form method="POST" action="{% url 'ruang_kerja:tambah_tugas' ruang.id %}" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:10px;">
+          {% csrf_token %}
+          <input type="text" name="judul" required placeholder="Judul tugas"
+            style="border:1px solid #e5e7eb; border-radius:8px; padding:9px 14px; font-size:13px; font-family:inherit; outline:none;">
+          <textarea name="instruksi" rows="3" required placeholder="Instruksi tugas lengkap..."
+            style="border:1px solid #e5e7eb; border-radius:8px; padding:9px 14px; font-size:13px; font-family:inherit; outline:none; resize:vertical;"></textarea>
+          <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <label style="font-size:12px; color:#6b7280;">Batas waktu:</label>
+              <input type="datetime-local" name="deadline"
+                style="border:1px solid #e5e7eb; border-radius:6px; padding:6px 10px; font-size:13px; font-family:inherit; outline:none;">
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <label style="font-size:12px; color:#6b7280;">Lampiran:</label>
+              <input type="file" name="lampiran"
+                style="font-size:12px; font-family:inherit;">
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <label style="font-size:12px; color:#6b7280;">Nilai maks:</label>
+              <input type="number" name="nilai_maksimal" value="100" min="1"
+                style="width:70px; border:1px solid #e5e7eb; border-radius:6px; padding:6px; font-size:13px; text-align:center; font-family:inherit; outline:none;">
+            </div>
+            <button type="submit" style="background:#3C8C1F; color:white; border:none; border-radius:8px; padding:8px 20px; font-size:13px; font-weight:500; cursor:pointer;">Buat Tugas</button>
+          </div>
+        </form>
+      </div>
+      {% endif %}
+      <div>
+        {% for t in tugas_list %}
+        <a href="{% url 'ruang_kerja:detail_tugas' t.id %}" style="display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid #f3f4f6; text-decoration:none; color:inherit; transition:background .1s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">
+          <div>
+            <p style="font-size:14px; font-weight:500; color:#1f2937; margin:0 0 3px;">{{ t.judul }}</p>
+            <p style="font-size:12px; color:#6b7280; margin:0;">{{ t.instruksi|truncatechars:60 }}</p>
+            {% if t.deadline %}<p style="font-size:11px; color:#dc2626; margin:2px 0 0;">⏰ Batas: {{ t.deadline|date:"d M Y, H:i" }}</p>{% endif %}
+            {% if t.lampiran %}<a href="{{ t.lampiran.url }}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px; color:#3C8C1F; margin:2px 0 0; display:inline-block;">📎 Lampiran soal</a>{% endif %}
+            {% if request.user.role == 'siswa' and siswa_obj %}
+            <span style="font-size:11px; {% if t.id in tugas_sudah_submit %}background:#EAF7DE; color:#4FA82E;{% else %}background:#FBF3E3; color:#92702E;{% endif %} padding:2px 8px; border-radius:10px; margin-top:4px; display:inline-block;">
+              {% if t.id in tugas_sudah_submit %}✓ Sudah dikumpulkan{% else %}Belum dikumpulkan{% endif %}
+            </span>
+            {% else %}
+            <span style="font-size:11px; color:#9ca3af;">{{ t.submisi.count }} submisi</span>
+            {% endif %}
+          </div>
+          <span style="font-size:12px; font-weight:600; background:#f3f4f6; color:#374151; padding:4px 10px; border-radius:6px; flex-shrink:0;">{{ t.nilai_maksimal }} poin</span>
+        </a>
+        {% empty %}
+        <div style="text-align:center; padding:60px 20px; color:#9ca3af;">
+          <p style="font-size:32px; margin:0 0 8px;">📝</p>
+          <p style="font-size:14px; margin:0;">Belum ada tugas</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- TAB PENGUMUMAN -->
+    <div class="tab-panel" id="panel-pengumuman">
+      {% if request.user.role != 'siswa' %}
+      <div style="padding:16px 24px; border-bottom:1px solid #f3f4f6; background:#f9fafb;">
+        <form method="POST" action="{% url 'ruang_kerja:tambah_pengumuman' ruang.id %}">
+          {% csrf_token %}
+          <textarea name="isi" rows="3" required placeholder="Tulis pengumuman untuk siswa..."
+            style="width:100%; border:1px solid #e5e7eb; border-radius:8px; padding:9px 14px; font-size:13px; font-family:inherit; outline:none; resize:vertical; box-sizing:border-box; margin-bottom:8px;"></textarea>
+          <div style="display:flex; justify-content:flex-end;">
+            <button type="submit" style="background:#3C8C1F; color:white; border:none; border-radius:8px; padding:8px 20px; font-size:13px; font-weight:500; cursor:pointer;">Posting</button>
+          </div>
+        </form>
+      </div>
+      {% endif %}
+      <div>
+        {% for p in pengumuman_list %}
+        <div style="padding:14px 24px; border-bottom:1px solid #f3f4f6;">
+          <p style="font-size:13px; color:#374151; margin:0 0 6px; line-height:1.6;">{{ p.isi }}</p>
+          <p style="font-size:11px; color:#9ca3af; margin:0;">{{ p.diposting_oleh.get_full_name|default:p.diposting_oleh.username }} &middot; {{ p.dibuat_pada|date:"d M Y, H:i" }}</p>
+        </div>
+        {% empty %}
+        <div style="text-align:center; padding:60px 20px; color:#9ca3af;">
+          <p style="font-size:32px; margin:0 0 8px;">📢</p>
+          <p style="font-size:14px; margin:0;">Belum ada pengumuman</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+<script>
+function showTab(tab) {
+  ['materi','tugas','pengumuman'].forEach(function(t) {
+    document.getElementById('panel-'+t).classList.remove('active');
+    document.getElementById('nav-'+t) && document.getElementById('nav-'+t).classList.remove('active');
+  });
+  document.getElementById('panel-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab) && document.getElementById('nav-'+tab).classList.add('active');
+  return false;
+}
+function toggleAddTopik() {
+  var f = document.getElementById('add-topik-form');
+  f.style.display = f.style.display === 'none' || f.style.display === '' ? 'block' : 'none';
+}
+function toggleTopikBlock(bodyId, arrowId) {
+  var b = document.getElementById(bodyId);
+  var a = document.getElementById(arrowId);
+  if (b.style.display === 'none') { b.style.display='block'; a.textContent='▼'; }
+  else { b.style.display='none'; a.textContent='▶'; }
+}
+function toggleVideoInline(id) {
+  var el = document.getElementById(id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function toggleItemDeskripsi(descId, judulEl) {
+  var el = document.getElementById(descId);
+  var arrow = document.getElementById('arrow-' + descId);
+  var terbuka = el.style.display === 'block';
+  el.style.display = terbuka ? 'none' : 'block';
+  if (arrow) { arrow.textContent = terbuka ? '▶' : '▼'; }
+}
+</script>
 {% endblock %}

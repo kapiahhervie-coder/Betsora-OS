@@ -1,0 +1,20 @@
+﻿{% extends "base.html" %}
+{% block title %}Video Call - {{ ruang.mapel }}{% endblock %}
+{% block page_title %}Video Call{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:12px;">
+  <a href="{% url "ruang_kerja:detail" ruang.id %}" style="font-size:13px; color:#3C8C1F; text-decoration:none;">&larr; Kembali ke {{ pengaturan.label_ruang_kerja }}</a>
+</div>
+
+<div class="card" style="padding:40px; text-align:center;">
+  <p style="font-size:16px; font-weight:600; color:#3C8C1F; margin:0 0 6px;">{{ ruang.mapel }} - Kelas {{ ruang.kelas }}</p>
+  <p style="font-size:13px; color:#6b7280; margin:0 0 24px;">Video Call akan terbuka di tab baru, tanpa perlu akun</p>
+  <a href="https://meet.jit.si/{{ nama_ruangan }}" target="_blank" rel="noopener"
+    style="display:inline-block; background:#3C8C1F; color:white; padding:14px 32px; border-radius:10px; text-decoration:none; font-size:15px; font-weight:600;">
+    &#128249; Buka Video Call
+  </a>
+  <p style="font-size:12px; color:#9ca3af; margin:20px 0 0;">Bagikan tautan halaman ini ke siswa lain supaya masuk ke ruangan yang sama</p>
+</div>
+
+{% endblock %}

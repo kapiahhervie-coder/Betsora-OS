@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% block title %}Detail Penilaian{% endblock %}
 {% block page_title %}Detail Penilaian{% endblock %}
 {% block content %}
@@ -10,7 +10,7 @@
       <p class="text-sm text-gray-500 mt-1">{{ sesi.get_jenis_display }} · Kelas {{ sesi.kelas }} · {{ sesi.tanggal|date:"d F Y" }}</p>
     </div>
     <div class="text-right">
-      <p class="text-3xl font-bold text-gray-800">{{ sesi.rata_rata }}</p>
+      <p class="text-3xl font-bold text-gray-800 tabular-nums">{{ sesi.rata_rata }}</p>
       <p class="text-xs text-gray-400">rata-rata kelas</p>
     </div>
   </div>

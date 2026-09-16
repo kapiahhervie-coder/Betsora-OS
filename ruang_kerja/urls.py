@@ -1,4 +1,4 @@
-from django.urls import path
+﻿from django.urls import path
 from . import views
 
 app_name = 'ruang_kerja'
@@ -6,12 +6,38 @@ app_name = 'ruang_kerja'
 urlpatterns = [
     path('', views.daftar_ruang_kerja, name='daftar'),
     path('buat/', views.buat_ruang_kerja, name='buat'),
+    path('<int:ruang_id>/hapus/', views.hapus_ruang_kerja, name='hapus_ruang_kerja'),
     path('<int:ruang_id>/', views.detail_ruang_kerja, name='detail'),
     path('<int:ruang_id>/materi/tambah/', views.tambah_materi, name='tambah_materi'),
     path('<int:ruang_id>/pengumuman/tambah/', views.tambah_pengumuman, name='tambah_pengumuman'),
     path('<int:ruang_id>/tugas/tambah/', views.tambah_tugas, name='tambah_tugas'),
     path('tugas/<int:tugas_id>/', views.detail_tugas, name='detail_tugas'),
+    path('tugas/<int:tugas_id>/soal/', views.kelola_soal, name='kelola_soal'),
+    path('tugas/<int:tugas_id>/soal/tambah/', views.tambah_soal, name='tambah_soal'),
+    path('soal/<int:soal_id>/hapus/', views.hapus_soal, name='hapus_soal'),
     path('submisi/<int:submisi_id>/nilai/', views.nilai_submisi, name='nilai_submisi'),
     path('<int:ruang_id>/diskusi/', views.daftar_diskusi, name='daftar_diskusi'),
+    path('<int:ruang_id>/video-call/', views.video_call, name='video_call'),
     path('diskusi/<int:diskusi_id>/', views.detail_diskusi, name='detail_diskusi'),
+    path('materi/<int:materi_id>/hapus/', views.hapus_materi, name='hapus_materi'),
+    path('materi/<int:materi_id>/duplikat/', views.duplikat_materi, name='duplikat_materi'),
+    path('<int:ruang_id>/topik/tambah/', views.tambah_topik, name='tambah_topik'),
+    path('topik/<int:materi_id>/hapus/', views.hapus_topik, name='hapus_topik'),
+    path('topik/<int:materi_id>/refleksi/', views.simpan_refleksi, name='simpan_refleksi'),
+    path('topik/<int:materi_id>/penilaian/', views.penilaian_topik, name='penilaian_topik'),
+    path('topik/<int:materi_id>/penilaian/<int:siswa_id>/simpan/', views.simpan_penilaian_topik, name='simpan_penilaian_topik'),
+    path('topik/<int:materi_id>/penilaian/<int:siswa_id>/formatif/tambah/', views.tambah_formatif, name='tambah_formatif'),
+    path('penilaian/formatif/<int:penilaian_id>/hapus/', views.hapus_formatif, name='hapus_formatif'),
+    path('topik/<int:materi_id>/item/tambah/', views.tambah_item, name='tambah_item'),
+    path('item/<int:item_id>/hapus/', views.hapus_item, name='hapus_item'),
+    path('item/<int:item_id>/edit/', views.edit_item, name='edit_item'),
+    path('<int:ruang_id>/anggota/', views.kelola_anggota, name='kelola_anggota'),
+    path('<int:ruang_id>/anggota/tambah/', views.tambah_anggota, name='tambah_anggota'),
+    path('anggota/<int:anggota_id>/hapus/', views.hapus_anggota, name='hapus_anggota'),
+    path('mapel/', views.kelola_mapel, name='kelola_mapel'),
+    path('mapel/tambah/', views.tambah_mapel, name='tambah_mapel'),
+    path('mapel/<int:mapel_id>/hapus/', views.hapus_mapel, name='hapus_mapel'),
+    path('<int:ruang_id>/rapor/', views.rapor_ruang_kerja, name='rapor_ruang_kerja'),
+    path('<int:ruang_id>/rapor/<int:siswa_id>/', views.rapor_siswa, name='rapor_siswa'),
+    path('<int:ruang_id>/rapor/<int:siswa_id>/simpan/', views.simpan_catatan_rapor, name='simpan_catatan_rapor'),
 ]

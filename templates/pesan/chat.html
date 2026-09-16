@@ -1,0 +1,45 @@
+﻿{% extends 'base.html' %}
+{% block title %}Chat - {{ lawan.get_full_name|default:lawan.username }}{% endblock %}
+{% block page_title %}Class Chat{% endblock %}
+{% block content %}
+
+<div class="mb-4">
+  <a href="{% url 'pesan:daftar' %}" class="text-sm text-[#3C8C1F] hover:underline">← Kembali</a>
+</div>
+
+<div class="card" style="display:flex; flex-direction:column; height:calc(100vh - 220px);">
+
+  <div style="padding:14px 20px; border-bottom:1px solid #ECEAE0; display:flex; align-items:center; gap:10px;">
+    <div style="width:34px; height:34px; border-radius:50%; background:#EAF7DE; color:#4FA82E; display:flex; align-items:center; justify-content:center; font-weight:600; flex-shrink:0;">
+      {{ lawan.username|slice:':2'|upper }}
+    </div>
+    <p style="font-size:14px; font-weight:600; color:#1f2937; margin:0;">{{ lawan.get_full_name|default:lawan.username }}</p>
+  </div>
+
+  <div style="flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:10px;">
+    {% for pesan in pesan_list %}
+    {% if pesan.pengirim == request.user %}
+    <div style="align-self:flex-end; max-width:70%; background:#3C8C1F; color:white; padding:8px 14px; border-radius:14px 14px 2px 14px; font-size:13px;">
+      {{ pesan.isi }}
+    </div>
+    {% else %}
+    <div style="align-self:flex-start; max-width:70%; background:#F3F4F6; color:#1f2937; padding:8px 14px; border-radius:14px 14px 14px 2px; font-size:13px;">
+      {{ pesan.isi }}
+    </div>
+    {% endif %}
+    {% empty %}
+    <div style="text-align:center; padding:40px 20px; color:#9ca3af;">
+      <p style="font-size:14px; margin:0;">Mulai percakapan dengan mengirim pesan</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <form method="POST" style="display:flex; gap:8px; padding:14px 20px; border-top:1px solid #ECEAE0;">
+    {% csrf_token %}
+    <input type="text" name="isi" required autocomplete="off" placeholder="Tulis pesan..." style="flex:1; border:1px solid #ECEAE0; border-radius:8px; padding:10px 14px; font-size:13px; font-family:inherit; outline:none;">
+    <button type="submit" style="background:#3C8C1F; color:white; border:none; border-radius:8px; padding:10px 20px; font-size:13px; font-weight:500; cursor:pointer;">Kirim</button>
+  </form>
+
+</div>
+
+{% endblock %}
