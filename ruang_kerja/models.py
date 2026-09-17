@@ -34,6 +34,24 @@ class Materi(models.Model):
     def __str__(self):
         return self.judul
 
+    def get_tipe_media(self):
+        # Kumpulan tipe media di topik ini (dari Materi sendiri + semua SubMateri).
+        # Dipakai untuk badge indikator multimodal di daftar topik.
+        tipe = set()
+        items = list(self.sub_materi.all()) + [self]
+        for item in items:
+            if getattr(item, "is_video_file", None) and item.is_video_file():
+                tipe.add("video")
+            elif getattr(item, "is_audio_file", None) and item.is_audio_file():
+                tipe.add("audio")
+            elif item.file:
+                tipe.add("dokumen")
+            if item.video_url:
+                tipe.add("video")
+            if item.link_url:
+                tipe.add("link")
+        return tipe
+
 
     def hitung_mastery(self, siswa):
         """
