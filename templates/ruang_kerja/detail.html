@@ -16,6 +16,8 @@
   .main-header { padding:20px 24px; border-bottom:1px solid #f3f4f6; background:#f9fafb; }
   .main-content { padding:24px; }
   .topik-block { margin-bottom:24px; border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; }
+  .topik-locked { opacity:0.6; }
+  .topik-locked .topik-block-header { cursor:not-allowed; }
   .topik-block-header { background:#f0f7f0; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
   .topik-block-header:hover { background:#e7f0e7; }
   .topik-num { width:26px; height:26px; border-radius:50%; background:#3C8C1F; color:white; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -78,12 +80,12 @@
     <div class="tab-panel active" id="panel-materi">
       <div class="main-content">
         {% for topik in materi_list %}
-        <div class="topik-block" id="topik-{{ topik.id }}">
-          <div class="topik-block-header" onclick="toggleTopikBlock('body-{{ topik.id }}', 'arrow-{{ topik.id }}')">
+        <div class="topik-block{% if topik.locked %} topik-locked{% endif %}" id="topik-{{ topik.id }}">
+          <div class="topik-block-header"{% if not topik.locked %} onclick="toggleTopikBlock('body-{{ topik.id }}', 'arrow-{{ topik.id }}')"{% endif %}>
             <div style="display:flex; align-items:center; gap:10px;">
               <div class="topik-num">{{ forloop.counter }}</div>
               <div>
-                <p style="font-size:14px; font-weight:600; color:#3C8C1F; margin:0;">{{ topik.judul }}</p>
+                <p style="font-size:14px; font-weight:600; color:#3C8C1F; margin:0;">{{ topik.judul }}{% if topik.locked %} <span style="font-size:11px; color:#9ca3af; font-weight:500;">🔒 Terkunci</span>{% endif %}</p>
                 {% if topik.deskripsi %}<div style="font-size:11px; color:#6b7280; margin:2px 0 0;">{{ topik.deskripsi|safe }}</div>{% endif %}
               </div>
             </div>
@@ -101,6 +103,12 @@
             </div>
           </div>
           <div id="body-{{ topik.id }}">
+            {% if topik.locked %}
+            <div style="padding:24px; text-align:center; color:#9ca3af;">
+              <p style="font-size:24px; margin:0 0 6px;">🔒</p>
+              <p style="font-size:12px; margin:0;">Selesaikan topik prasyarat terlebih dahulu untuk membuka topik ini.</p>
+            </div>
+            {% else %}
             {% for item in topik.sub_materi.all %}
             <div class="item-row">
               <div class="item-icon {% if item.file %}file{% elif item.video_url %}video{% elif item.link_url %}link{% else %}text{% endif %}">
@@ -165,6 +173,7 @@
               </div>
               {% endif %}
             </div>
+            {% endif %}
           </div>
         </div>
         {% empty %}

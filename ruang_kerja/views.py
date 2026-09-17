@@ -95,6 +95,8 @@ def detail_ruang_kerja(request, ruang_id):
         }
 
     materi_list = ruang.materi.all()
+    for m in materi_list:
+        m.locked = m.is_locked_for(siswa_obj) if siswa_obj else False
     pengumuman_list = ruang.pengumuman.all()
     tugas_list = ruang.tugas.all()
     jumlah_anggota = ruang.anggota.count()
