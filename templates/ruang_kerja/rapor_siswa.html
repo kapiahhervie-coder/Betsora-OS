@@ -106,5 +106,15 @@
     <div class="rapor-narasi-title">Catatan Guru</div>
     {% if catatan %}{{ catatan }}{% else %}<span style="color:#9ca3af; font-style:italic;">Belum ada catatan dari guru.</span>{% endif %}
   </div>
+
+  <div class="rapor-narasi" style="margin-top:16px;">
+    <div class="rapor-narasi-title">Disiplin &amp; Kebiasaan Belajar</div>
+    {% if catatan_disiplin %}{{ catatan_disiplin }}{% else %}<span style="color:#9ca3af; font-style:italic;">Belum ada catatan dari guru.</span>{% endif %}
+  </div>
+
+  <div class="rapor-narasi" style="margin-top:16px;">
+    <div class="rapor-narasi-title">Fisik &amp; Motorik</div>
+    {% if catatan_fisik_motorik %}{{ catatan_fisik_motorik }}{% else %}<span style="color:#9ca3af; font-style:italic;">Belum ada catatan dari guru.</span>{% endif %}
+  </div>
 </div>
 {% endblock %}
