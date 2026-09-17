@@ -723,18 +723,21 @@ def rapor_ruang_kerja(request, ruang_id):
 
     anggota_list = AnggotaRuangKerja.objects.filter(ruang_kerja=ruang).select_related('siswa').order_by('siswa__nama')
     catatan_map = {
-        c.siswa_id: c.catatan
+        c.siswa_id: c
         for c in CatatanRapor.objects.filter(ruang_kerja=ruang)
     }
 
     data = []
     for a in anggota_list:
         rata2 = hitung_rata_rata_nilai(ruang, a.siswa)
-        catatan_ada = catatan_map.get(a.siswa_id, '')
+        catatan_obj = catatan_map.get(a.siswa_id)
+        catatan_ada = catatan_obj.catatan if catatan_obj else ''
         data.append({
             'siswa': a.siswa,
             'rata2': rata2,
             'catatan': catatan_ada,
+            'catatan_disiplin': catatan_obj.catatan_disiplin if catatan_obj else '',
+            'catatan_fisik_motorik': catatan_obj.catatan_fisik_motorik if catatan_obj else '',
             'draft_komentar': catatan_ada or generate_draft_komentar(ruang, a.siswa, rata2),
         })
 

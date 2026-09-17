@@ -31,13 +31,27 @@
       </div>
     </div>
 
-    <form method="POST" action="{% url 'ruang_kerja:simpan_catatan_rapor' ruang.id row.siswa.id %}" style="display:flex; gap:8px; align-items:flex-start;">
+    <form method="POST" action="{% url 'ruang_kerja:simpan_catatan_rapor' ruang.id row.siswa.id %}" style="display:flex; flex-direction:column; gap:8px;">
       {% csrf_token %}
-      <textarea name="catatan" rows="2" placeholder="Catatan narasi untuk {{ row.siswa.nama }}..."
-        style="flex:1; border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; resize:vertical;">{{ row.catatan }}</textarea>
-      <div style="display:flex; flex-direction:column; gap:6px;">
-        <button type="submit" style="background:#3C8C1F; color:white; border:none; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">Simpan</button>
+      {% if not row.catatan %}<p style="font-size:10px; color:#92702E; margin:0 0 3px;">✨ Draft otomatis — silakan tinjau &amp; simpan</p>{% endif %}
+      <div>
+        <label style="font-size:10px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em;">Catatan Akademik</label>
+        <textarea name="catatan" rows="2" placeholder="Catatan narasi akademik untuk {{ row.siswa.nama }}..."
+          style="width:100%; border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; resize:vertical; box-sizing:border-box; margin-top:3px;">{{ row.draft_komentar }}</textarea>
+      </div>
+      <div>
+        <label style="font-size:10px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em;">Disiplin &amp; Kebiasaan Belajar</label>
+        <textarea name="catatan_disiplin" rows="2" placeholder="Perkembangan disiplin & kebiasaan belajar {{ row.siswa.nama }}..."
+          style="width:100%; border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; resize:vertical; box-sizing:border-box; margin-top:3px;">{{ row.catatan_disiplin }}</textarea>
+      </div>
+      <div>
+        <label style="font-size:10px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em;">Fisik &amp; Motorik</label>
+        <textarea name="catatan_fisik_motorik" rows="2" placeholder="Perkembangan fisik & motorik {{ row.siswa.nama }}..."
+          style="width:100%; border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; resize:vertical; box-sizing:border-box; margin-top:3px;">{{ row.catatan_fisik_motorik }}</textarea>
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
         <a href="{% url 'ruang_kerja:rapor_siswa' ruang.id row.siswa.id %}" target="_blank" style="text-align:center; background:#f3f4f6; color:#374151; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:500; text-decoration:none; white-space:nowrap;">Lihat Rapor</a>
+        <button type="submit" style="background:#3C8C1F; color:white; border:none; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">Simpan</button>
       </div>
     </form>
   </div>
