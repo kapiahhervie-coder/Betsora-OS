@@ -1,5 +1,5 @@
-from django.contrib import admin
-from .models import RuangKerja, Materi, Pengumuman, Tugas, SubmisiTugas
+﻿from django.contrib import admin
+from .models import RuangKerja, Materi, Pengumuman, Tugas, SubmisiTugas, MateriPrasyarat
 
 
 @admin.register(RuangKerja)
@@ -11,6 +11,7 @@ class RuangKerjaAdmin(admin.ModelAdmin):
 @admin.register(Materi)
 class MateriAdmin(admin.ModelAdmin):
     list_display = ['judul', 'ruang_kerja', 'dibuat_pada']
+    search_fields = ['judul']
 
 
 @admin.register(Pengumuman)
@@ -28,3 +29,9 @@ class TugasAdmin(admin.ModelAdmin):
 class SubmisiTugasAdmin(admin.ModelAdmin):
     list_display = ['siswa', 'tugas', 'dikirim_pada', 'nilai']
     list_filter = ['tugas__ruang_kerja']
+
+@admin.register(MateriPrasyarat)
+class MateriPrasyaratAdmin(admin.ModelAdmin):
+    list_display = ['materi', 'prasyarat', 'mastery_required']
+    list_filter = ['materi__ruang_kerja']
+    autocomplete_fields = ['materi', 'prasyarat']
