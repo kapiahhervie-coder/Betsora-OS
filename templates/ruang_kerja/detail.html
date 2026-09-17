@@ -85,7 +85,7 @@
             <div style="display:flex; align-items:center; gap:10px;">
               <div class="topik-num">{{ forloop.counter }}</div>
               <div>
-                <p style="font-size:14px; font-weight:600; color:#3C8C1F; margin:0;">{{ topik.judul }}{% if topik.locked %} <span style="font-size:11px; color:#9ca3af; font-weight:500;">🔒 Terkunci</span>{% endif %}</p>
+                <p style="font-size:14px; font-weight:600; color:#3C8C1F; margin:0; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">{{ topik.judul }}{% if topik.locked %} <span style="font-size:11px; color:#9ca3af; font-weight:500;">🔒 Terkunci</span>{% endif %}{% with tipe_media=topik.get_tipe_media %}{% if "video" in tipe_media %}<span title="Ada video" style="font-size:11px;">🎬</span>{% endif %}{% if "audio" in tipe_media %}<span title="Ada audio" style="font-size:11px;">🎧</span>{% endif %}{% if "link" in tipe_media %}<span title="Ada link eksternal" style="font-size:11px;">🔗</span>{% endif %}{% if "dokumen" in tipe_media %}<span title="Ada dokumen" style="font-size:11px;">📄</span>{% endif %}{% endwith %}</p>
                 {% if topik.deskripsi %}<div style="font-size:11px; color:#6b7280; margin:2px 0 0;">{{ topik.deskripsi|safe }}</div>{% endif %}
               </div>
             </div>
