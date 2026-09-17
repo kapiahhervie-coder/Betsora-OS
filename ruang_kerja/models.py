@@ -310,6 +310,8 @@ class CatatanRapor(models.Model):
     ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name='catatan_rapor')
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='catatan_rapor')
     catatan = models.TextField(blank=True)
+    catatan_disiplin = models.TextField(blank=True, help_text='Perkembangan disiplin & kebiasaan belajar siswa')
+    catatan_fisik_motorik = models.TextField(blank=True, help_text='Perkembangan fisik & motorik siswa')
     diperbarui_oleh = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     diperbarui_pada = models.DateTimeField(auto_now=True)
 
