@@ -1,10 +1,11 @@
-from django.contrib.auth.models import AbstractUser
+﻿from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
 class User(AbstractUser):
-    ROLE_CHOICES = [('guru', 'Guru'), ('kepsek', 'Kepala Sekolah'), ('admin', 'Admin'), ('siswa', 'Siswa')]
+    ROLE_CHOICES = [('guru', 'Guru'), ('kepsek', 'Kepala Sekolah'), ('admin', 'Admin'), ('siswa', 'Siswa'), ('orangtua', 'Orang Tua')]
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='guru')
+    anak = models.ForeignKey('Siswa', on_delete=models.SET_NULL, null=True, blank=True, related_name='orang_tua_list', help_text='Diisi hanya untuk akun dengan role Orang Tua')
 
     def __str__(self):
         return f"{self.get_full_name() or self.username} ({self.get_role_display()})"
