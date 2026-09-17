@@ -14,6 +14,7 @@ class KaryaSiswa(models.Model):
     file = models.FileField(upload_to='karya_siswa/')
     dibagikan = models.BooleanField(default=False, help_text='Jika dicentang, siswa lain juga bisa melihat karya ini')
     diunggah_pada = models.DateTimeField(auto_now_add=True)
+    refleksi = models.TextField(blank=True, help_text='Refleksi siswa: tantangan terbesar & perasaan setelah menyelesaikan karya ini')
 
     class Meta:
         ordering = ['-diunggah_pada']
