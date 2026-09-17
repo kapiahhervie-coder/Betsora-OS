@@ -20,6 +20,7 @@
         <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Kelas</th>
         <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">No. Ortu</th>
         <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Akun Login</th>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Akun Ortu</th>
         <th class="px-4 py-3"></th>
       </tr>
     </thead>
@@ -37,10 +38,17 @@
           <a href="{% url 'accounts:buat_akun_siswa' s.id %}" onclick="return confirm('Buat akun login untuk {{ s.nama }}?')" class="text-xs text-[#3C8C1F] underline">Buat akun</a>
           {% endif %}
         </td>
+        <td class="px-4 py-3">
+          {% if s.orang_tua_list.exists %}
+          <span class="text-xs text-[#4FA82E]"><i class="ti ti-circle-check" style="font-size:14px"></i> Aktif</span>
+          {% else %}
+          <a href="{% url 'accounts:buat_akun_orangtua' s.id %}" onclick="return confirm('Buat akun orang tua untuk {{ s.nama }}?')" class="text-xs text-[#3C8C1F] underline">Buat akun</a>
+          {% endif %}
+        </td>
         <td class="px-4 py-3 text-right"><a href="{% url 'portofolio:detail' s.id %}" class="text-xs text-[#3C8C1F] hover:underline">Portofolio →</a></td>
       </tr>
       {% empty %}
-      <tr><td colspan="6" class="text-center py-12 text-gray-400">Belum ada siswa. <a href="{% url 'accounts:tambah_siswa' %}" class="text-[#3C8C1F] underline">Tambah sekarang</a></td></tr>
+      <tr><td colspan="7" class="text-center py-12 text-gray-400">Belum ada siswa. <a href="{% url 'accounts:tambah_siswa' %}" class="text-[#3C8C1F] underline">Tambah sekarang</a></td></tr>
       {% endfor %}
     </tbody>
   </table>
