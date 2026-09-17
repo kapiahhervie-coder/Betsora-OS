@@ -686,6 +686,34 @@ def hitung_rata_rata_nilai(ruang, siswa):
     return round(avg, 1) if avg is not None else None
 
 
+def generate_draft_komentar(ruang, siswa, rata2):
+    mastery_values = []
+    jumlah_mastered = 0
+    total_topik = 0
+    for topik in ruang.materi.all():
+        m = topik.hitung_mastery(siswa)
+        if m is not None:
+            mastery_values.append(m)
+            total_topik += 1
+            if topik.is_mastered(siswa):
+                jumlah_mastered += 1
+    rata2_mastery = round(sum(mastery_values) / len(mastery_values), 1) if mastery_values else None
+
+    if total_topik == 0:
+        return 'Belum ada data penilaian topik untuk periode ini.'
+
+    if rata2_mastery is not None and rata2_mastery >= 85:
+        kalimat = f'Ananda {siswa.nama} menunjukkan penguasaan yang sangat baik, dengan {jumlah_mastered} dari {total_topik} topik telah dikuasai secara tuntas.'
+    elif rata2_mastery is not None and rata2_mastery >= 70:
+        kalimat = f'Ananda {siswa.nama} telah menguasai sebagian besar topik pembelajaran ({jumlah_mastered} dari {total_topik} topik tuntas), namun masih memerlukan penguatan pada beberapa bagian.'
+    else:
+        kalimat = f'Ananda {siswa.nama} masih memerlukan pendampingan ekstra untuk memperkuat pemahaman pada sebagian besar topik ({jumlah_mastered} dari {total_topik} topik tuntas).'
+
+    if rata2:
+        kalimat += f' Rata-rata nilai tugas berada pada angka {rata2}.'
+
+    return kalimat
+
 @login_required
 def rapor_ruang_kerja(request, ruang_id):
     ruang = get_object_or_404(RuangKerja, id=ruang_id)
@@ -701,10 +729,13 @@ def rapor_ruang_kerja(request, ruang_id):
 
     data = []
     for a in anggota_list:
+        rata2 = hitung_rata_rata_nilai(ruang, a.siswa)
+        catatan_ada = catatan_map.get(a.siswa_id, '')
         data.append({
             'siswa': a.siswa,
-            'rata2': hitung_rata_rata_nilai(ruang, a.siswa),
-            'catatan': catatan_map.get(a.siswa_id, ''),
+            'rata2': rata2,
+            'catatan': catatan_ada,
+            'draft_komentar': catatan_ada or generate_draft_komentar(ruang, a.siswa, rata2),
         })
 
     return render(request, 'ruang_kerja/rapor_ruang_kerja.html', {
@@ -722,9 +753,16 @@ def simpan_catatan_rapor(request, ruang_id, siswa_id):
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     if request.method == 'POST':
         catatan_text = request.POST.get('catatan', '').strip()
+        catatan_disiplin_text = request.POST.get('catatan_disiplin', '').strip()
+        catatan_fisik_text = request.POST.get('catatan_fisik_motorik', '').strip()
         CatatanRapor.objects.update_or_create(
             ruang_kerja=ruang, siswa=siswa,
-            defaults={'catatan': catatan_text, 'diperbarui_oleh': request.user}
+            defaults={
+                'catatan': catatan_text,
+                'catatan_disiplin': catatan_disiplin_text,
+                'catatan_fisik_motorik': catatan_fisik_text,
+                'diperbarui_oleh': request.user,
+            }
         )
         messages.success(request, f'Catatan rapor {siswa.nama} disimpan.')
     return redirect('ruang_kerja:rapor_ruang_kerja', ruang_id=ruang.id)
