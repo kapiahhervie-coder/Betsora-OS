@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% block title %}Portofolio {{ siswa.nama }}{% endblock %}
 {% block page_title %}Portofolio Siswa{% endblock %}
 {% block content %}
@@ -48,6 +48,46 @@
       <h3 class="font-semibold text-gray-800 mb-3">⚡ Keaktifan</h3>
       <p class="text-3xl font-bold text-purple-700">{{ total_poin }} <span class="text-sm font-normal text-gray-400">poin total</span></p>
     </div>
+  </div>
+</div>
+<div class="card p-5 mt-4">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="font-semibold text-gray-800">Karya Saya</h3>
+    {% if is_pemilik %}
+    <button onclick="document.getElementById('form-tambah-karya').classList.toggle('hidden')" class="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-medium">+ Tambah Karya</button>
+    {% endif %}
+  </div>
+  {% if is_pemilik %}
+  <form id="form-tambah-karya" method="POST" action="{% url 'portofolio:tambah_karya' %}" enctype="multipart/form-data" class="hidden mb-5 p-4 bg-gray-50 rounded-lg space-y-3">
+    {% csrf_token %}
+    <input type="text" name="judul" required placeholder="Judul karya" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+    <textarea name="deskripsi" rows="2" placeholder="Ceritakan tentang karya ini (opsional)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></textarea>
+    <input type="file" name="file" required class="text-sm">
+    <label class="flex items-center gap-2 text-sm text-gray-600">
+      <input type="checkbox" name="dibagikan"> Bagikan ke siswa lain
+    </label>
+    <button type="submit" class="bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg">Unggah</button>
+  </form>
+  {% endif %}
+  <div class="grid grid-cols-3 gap-3">
+    {% for karya in karya_list %}
+    <div class="border border-gray-200 rounded-lg p-3">
+      <p class="text-sm font-medium text-gray-700 truncate">{{ karya.judul }}</p>
+      {% if karya.deskripsi %}<p class="text-xs text-gray-400 mt-1">{{ karya.deskripsi }}</p>{% endif %}
+      <div class="flex items-center justify-between mt-2">
+        <a href="{{ karya.file.url }}" target="_blank" class="text-xs text-blue-600">Lihat File</a>
+        <span class="text-xs {% if karya.dibagikan %}text-green-600{% else %}text-gray-400{% endif %}">{% if karya.dibagikan %}Dibagikan{% else %}Privat{% endif %}</span>
+      </div>
+      {% if is_pemilik or request.user.role != 'siswa' %}
+      <form method="POST" action="{% url 'portofolio:hapus_karya' karya.id %}" onsubmit="return confirm('Hapus karya ini?')" class="mt-2">
+        {% csrf_token %}
+        <button type="submit" class="text-xs text-red-500">Hapus</button>
+      </form>
+      {% endif %}
+    </div>
+    {% empty %}
+    <p class="text-sm text-gray-400 text-center py-4 col-span-3">Belum ada karya diunggah.</p>
+    {% endfor %}
   </div>
 </div>
 {% endblock %}
