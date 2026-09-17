@@ -817,6 +817,8 @@ def rapor_siswa(request, ruang_id, siswa_id):
         'tugas_nilai': tugas_nilai,
         'rata2': hitung_rata_rata_nilai(ruang, siswa),
         'catatan': catatan_obj.catatan if catatan_obj else '',
+        'catatan_disiplin': catatan_obj.catatan_disiplin if catatan_obj else '',
+        'catatan_fisik_motorik': catatan_obj.catatan_fisik_motorik if catatan_obj else '',
         'penilaian_topik_list': penilaian_topik_list,
         'rata2_mastery': rata2_mastery,
         'jumlah_topik_mastered': jumlah_topik_mastered,
