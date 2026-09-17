@@ -77,6 +77,7 @@ def tambah_karya(request):
                 deskripsi=request.POST.get('deskripsi', ''),
                 file=file,
                 dibagikan=request.POST.get('dibagikan') == 'on',
+                refleksi=request.POST.get('refleksi', ''),
             )
             messages.success(request, 'Karya berhasil diunggah.')
         else:
