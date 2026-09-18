@@ -45,7 +45,7 @@ def detail_portofolio(request, siswa_id):
 
     siswa_obj = get_siswa_obj(request.user)
     is_pemilik = siswa_obj is not None and siswa_obj.id == siswa.id
-    is_staff_role = request.user.role != 'siswa'
+    is_staff_role = request.user.is_staff_role()
 
     if is_pemilik or is_staff_role:
         karya_list = KaryaSiswa.objects.filter(siswa=siswa)
@@ -92,7 +92,7 @@ def hapus_karya(request, karya_id):
     karya = get_object_or_404(KaryaSiswa, id=karya_id)
     siswa_obj = get_siswa_obj(request.user)
     is_pemilik = siswa_obj is not None and siswa_obj.id == karya.siswa_id
-    is_staff_role = request.user.role != 'siswa'
+    is_staff_role = request.user.is_staff_role()
     if (is_pemilik or is_staff_role) and request.method == 'POST':
         siswa_id = karya.siswa_id
         karya.delete()
