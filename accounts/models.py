@@ -10,6 +10,9 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.get_full_name() or self.username} ({self.get_role_display()})"
 
+    def is_staff_role(self):
+        return self.role in ('guru', 'kepsek', 'admin')
+
 
 class Siswa(models.Model):
     user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='profil_siswa')
