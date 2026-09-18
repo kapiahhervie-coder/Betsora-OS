@@ -687,6 +687,7 @@ def hitung_rata_rata_nilai(ruang, siswa):
 
 
 def generate_draft_komentar(ruang, siswa, rata2):
+    nama_depan = siswa.nama.split()[0] if siswa.nama else siswa.nama
     mastery_values = []
     jumlah_mastered = 0
     total_topik = 0
@@ -700,17 +701,25 @@ def generate_draft_komentar(ruang, siswa, rata2):
     rata2_mastery = round(sum(mastery_values) / len(mastery_values), 1) if mastery_values else None
 
     if total_topik == 0:
-        return 'Belum ada data penilaian topik untuk periode ini.'
+        return f'Penilaian topik untuk {nama_depan} belum tersedia pada periode ini.'
 
-    if rata2_mastery is not None and rata2_mastery >= 85:
-        kalimat = f'Ananda {siswa.nama} menunjukkan penguasaan yang sangat baik, dengan {jumlah_mastered} dari {total_topik} topik telah dikuasai secara tuntas.'
-    elif rata2_mastery is not None and rata2_mastery >= 70:
-        kalimat = f'Ananda {siswa.nama} telah menguasai sebagian besar topik pembelajaran ({jumlah_mastered} dari {total_topik} topik tuntas), namun masih memerlukan penguatan pada beberapa bagian.'
+    jumlah_belum = total_topik - jumlah_mastered
+
+    if jumlah_mastered > 0:
+        kalimat = f'{nama_depan} mampu menuntaskan {jumlah_mastered} dari {total_topik} topik pembelajaran yang diberikan.'
     else:
-        kalimat = f'Ananda {siswa.nama} masih memerlukan pendampingan ekstra untuk memperkuat pemahaman pada sebagian besar topik ({jumlah_mastered} dari {total_topik} topik tuntas).'
+        kalimat = f'{nama_depan} telah mengikuti proses pembelajaran pada {total_topik} topik yang diberikan.'
 
     if rata2:
-        kalimat += f' Rata-rata nilai tugas berada pada angka {rata2}.'
+        kalimat += f' Hal ini didukung dengan rata-rata nilai tugas pada angka {rata2}.'
+
+    if jumlah_belum > 0:
+        kalimat += f' Di samping itu, {nama_depan} perlu meningkatkan pemahaman pada {jumlah_belum} topik yang belum dikuasai secara tuntas.'
+
+    if jumlah_belum == 0:
+        kalimat += f' Harapannya, {nama_depan} terus mempertahankan semangat belajar dan siap menghadapi topik pembelajaran berikutnya.'
+    else:
+        kalimat += f' Harapannya, {nama_depan} terus berkomitmen memperkuat pemahaman melalui latihan dan pendampingan yang konsisten.'
 
     return kalimat
 
