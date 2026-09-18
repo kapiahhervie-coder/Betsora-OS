@@ -31,7 +31,7 @@ def buat_album(request):
 @login_required
 def detail_album(request, album_id):
     album = get_object_or_404(AlbumAudio, id=album_id)
-    if request.method == 'POST' and request.user.role != 'siswa':
+    if request.method == 'POST' and not request.user.is_staff_role():
         urutan = album.audio_list.count()
         Audio.objects.create(
             album=album,
@@ -50,7 +50,7 @@ def detail_album(request, album_id):
 @login_required
 def hapus_album(request, album_id):
     album = get_object_or_404(AlbumAudio, id=album_id)
-    if request.user.role != 'siswa' and request.method == 'POST':
+    if not request.user.is_staff_role() and request.method == 'POST':
         album.delete()
         messages.success(request, 'Album berhasil dihapus.')
     return redirect('perpustakaan:daftar')
@@ -60,7 +60,7 @@ def hapus_album(request, album_id):
 def hapus_audio(request, audio_id):
     audio = get_object_or_404(Audio, id=audio_id)
     album_id = audio.album.id
-    if request.user.role != 'siswa' and request.method == 'POST':
+    if not request.user.is_staff_role() and request.method == 'POST':
         audio.delete()
         messages.success(request, 'Audio berhasil dihapus.')
     return redirect('perpustakaan:detail', album_id=album_id)
