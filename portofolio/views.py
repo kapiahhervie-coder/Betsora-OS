@@ -70,18 +70,20 @@ def tambah_karya(request):
     if request.method == 'POST':
         judul = request.POST.get('judul', '').strip()
         file = request.FILES.get('file')
-        if judul and file:
+        video_url = request.POST.get('video_url', '').strip()
+        if judul and (file or video_url):
             KaryaSiswa.objects.create(
                 siswa=siswa_obj,
                 judul=judul,
                 deskripsi=request.POST.get('deskripsi', ''),
                 file=file,
+                video_url=video_url,
                 dibagikan=request.POST.get('dibagikan') == 'on',
                 refleksi=request.POST.get('refleksi', ''),
             )
             messages.success(request, 'Karya berhasil diunggah.')
         else:
-            messages.error(request, 'Judul dan file wajib diisi.')
+            messages.error(request, 'Judul wajib diisi, dan minimal file atau link video harus dilampirkan.')
     return redirect('portofolio:detail', siswa_id=siswa_obj.id)
 
 
