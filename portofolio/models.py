@@ -22,3 +22,9 @@ class KaryaSiswa(models.Model):
 
     def __str__(self):
         return f"{self.siswa.nama} - {self.judul}"
+
+    def is_image(self):
+        if not self.file:
+            return False
+        ext = self.file.name.lower().split('.')[-1]
+        return ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']
