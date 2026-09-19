@@ -36,18 +36,38 @@
       {% if not row.catatan %}<p style="font-size:10px; color:#92702E; margin:0 0 3px;">✨ Draft otomatis — silakan tinjau &amp; simpan</p>{% endif %}
       <div>
         <label style="font-size:10px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em;">Catatan Akademik</label>
-        <textarea name="catatan" rows="2" placeholder="Catatan narasi akademik untuk {{ row.siswa.nama }}..."
+        <textarea name="catatan" rows="2" class="auto-grow" placeholder="Catatan narasi akademik untuk {{ row.siswa.nama }}..."
           style="width:100%; border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; resize:vertical; box-sizing:border-box; margin-top:3px;">{{ row.draft_komentar }}</textarea>
       </div>
-      <div>
-        <label style="font-size:10px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em;">Disiplin &amp; Kebiasaan Belajar</label>
-        <textarea name="catatan_disiplin" rows="2" placeholder="Perkembangan disiplin & kebiasaan belajar {{ row.siswa.nama }}..."
-          style="width:100%; border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; resize:vertical; box-sizing:border-box; margin-top:3px;">{{ row.catatan_disiplin }}</textarea>
+      <div data-nama="{{ row.siswa.nama }}">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:3px;">
+          <label style="font-size:10px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em;">Disiplin &amp; Kebiasaan Belajar</label>
+          <select onchange="sisipkanKalimat(this, 'disiplin-{{ row.siswa.id }}')" style="font-size:10px; border:1px solid #e5e7eb; border-radius:6px; padding:2px 4px; color:#6b7280;">
+            <option value="">+ Sisipkan kalimat bantuan</option>
+            <option value="{NAMA} mampu mengumpulkan tugas sesuai dengan waktu yang ditentukan.">Ketepatan waktu tugas</option>
+            <option value="{NAMA} mampu mempersiapkan perlengkapan belajar sebelum kelas dimulai.">Kesiapan belajar</option>
+            <option value="{NAMA} mampu mengikuti instruksi guru dengan baik selama proses pembelajaran.">Mengikuti instruksi</option>
+            <option value="{NAMA} perlu meningkatkan konsistensi dalam mengerjakan tugas yang diberikan.">Area: konsistensi tugas</option>
+            <option value="{NAMA} perlu bimbingan tambahan dalam mengatur waktu belajar di kelas.">Area: manajemen waktu</option>
+          </select>
+        </div>
+        <textarea id="disiplin-{{ row.siswa.id }}" name="catatan_disiplin" rows="2" class="auto-grow" placeholder="Perkembangan disiplin & kebiasaan belajar {{ row.siswa.nama }}..."
+          style="width:100%; border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; resize:vertical; box-sizing:border-box;">{{ row.catatan_disiplin }}</textarea>
       </div>
-      <div>
-        <label style="font-size:10px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em;">Fisik &amp; Motorik</label>
-        <textarea name="catatan_fisik_motorik" rows="2" placeholder="Perkembangan fisik & motorik {{ row.siswa.nama }}..."
-          style="width:100%; border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; resize:vertical; box-sizing:border-box; margin-top:3px;">{{ row.catatan_fisik_motorik }}</textarea>
+      <div data-nama="{{ row.siswa.nama }}">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:3px;">
+          <label style="font-size:10px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em;">Fisik &amp; Motorik</label>
+          <select onchange="sisipkanKalimat(this, 'fisik-{{ row.siswa.id }}')" style="font-size:10px; border:1px solid #e5e7eb; border-radius:6px; padding:2px 4px; color:#6b7280;">
+            <option value="">+ Sisipkan kalimat bantuan</option>
+            <option value="{NAMA} mampu menunjukkan koordinasi gerak yang baik saat aktivitas fisik di kelas.">Koordinasi gerak</option>
+            <option value="{NAMA} mampu mengikuti kegiatan olahraga dengan stamina yang cukup baik.">Stamina & ketahanan</option>
+            <option value="{NAMA} mampu menjaga kerapian dan kebersihan diri selama kegiatan pembelajaran.">Kerapian & kebersihan diri</option>
+            <option value="{NAMA} perlu melatih koordinasi tangan-mata melalui latihan menulis dan menggambar secara rutin.">Area: koordinasi tangan-mata</option>
+            <option value="{NAMA} perlu meningkatkan stamina melalui aktivitas fisik yang lebih rutin.">Area: stamina</option>
+          </select>
+        </div>
+        <textarea id="fisik-{{ row.siswa.id }}" name="catatan_fisik_motorik" rows="2" class="auto-grow" placeholder="Perkembangan fisik & motorik {{ row.siswa.nama }}..."
+          style="width:100%; border:1px solid #e5e7eb; border-radius:8px; padding:8px 12px; font-size:13px; font-family:inherit; outline:none; resize:vertical; box-sizing:border-box;">{{ row.catatan_fisik_motorik }}</textarea>
       </div>
       <div style="display:flex; gap:8px; justify-content:flex-end;">
         <a href="{% url 'ruang_kerja:rapor_siswa' ruang.id row.siswa.id %}" target="_blank" style="text-align:center; background:#f3f4f6; color:#374151; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:500; text-decoration:none; white-space:nowrap;">Lihat Rapor</a>
@@ -61,4 +81,28 @@
   </div>
   {% endfor %}
 </div>
+<script>
+  function sisipkanKalimat(select, textareaId) {
+    var kalimat = select.value;
+    if (!kalimat) return;
+    var textarea = document.getElementById(textareaId);
+    var namaDepan = select.closest("[data-nama]").getAttribute("data-nama").split(" ")[0];
+    var kalimatJadi = kalimat.replace("{NAMA}", namaDepan);
+    if (textarea.value.trim().length > 0) {
+      textarea.value = textarea.value.trim() + " " + kalimatJadi;
+    } else {
+      textarea.value = kalimatJadi;
+    }
+    select.value = "";
+    resizeTextarea(textarea);
+  }
+  function resizeTextarea(el) {
+    el.style.height = "auto";
+    el.style.height = (el.scrollHeight + 2) + "px";
+  }
+  document.querySelectorAll(".auto-grow").forEach(function(el) {
+    resizeTextarea(el);
+    el.addEventListener("input", function() { resizeTextarea(el); });
+  });
+</script>
 {% endblock %}
