@@ -9,6 +9,8 @@
     <p class="text-[#A8C2B3] text-sm mt-1">Kelas {{ siswa.kelas }} &middot; NIS {{ siswa.nis }}</p>
   </div>
 </div>
+<a href="{% url 'perpustakaan:peta' %}" class="btn-primary" style="display:inline-block; margin-bottom:20px;">&#128218; Buka Perpustakaan</a>
+{% include 'perpustakaan/_lencana_kartu.html' %}
 <div class="card p-6 text-center">
   <p class="text-gray-400 text-sm">Halaman siswa masih dalam pengembangan. Ruang kerja, materi, dan tugas akan tersedia di sini.</p>
 </div>

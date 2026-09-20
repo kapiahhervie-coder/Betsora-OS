@@ -1,0 +1,413 @@
+{% extends 'base.html' %}
+{% block title %}{{ sumber.judul }}{% endblock %}
+{% block page_title %}{{ sumber.judul }}{% endblock %}
+{% block content %}
+
+<style>
+  .baca-wrap { max-width:900px; }
+  .baca-cover { width:100%; max-height:280px; object-fit:cover; border-radius:12px; margin-bottom:16px; }
+  .rec-box { background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-top:10px; }
+  .rec-btn { border:none; border-radius:8px; padding:10px 18px; font-size:13px; font-weight:600; cursor:pointer; }
+  .rec-start { background:#0B3D26; color:white; }
+  .rec-stop { background:#dc2626; color:white; }
+  .rec-status { font-size:12px; color:#6b7280; margin-top:8px; }
+  .tab-jenis { display:flex; gap:6px; margin-bottom:14px; }
+  .tab-jenis button { border:1px solid #e5e7eb; background:white; padding:6px 14px; border-radius:8px; font-size:12px; cursor:pointer; }
+  .tab-jenis button.active { background:#0B3D26; color:white; border-color:#0B3D26; }
+  .refleksi-item { padding:10px 0; border-bottom:1px solid #f3f4f6; font-size:13px; }
+  .ab-on { background:#FDE68A; border-radius:4px; }
+  .ab-btn { border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer; }
+  #ab-teks { position:relative; max-height:240px; overflow:auto; background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:12px 14px; font-size:14px; line-height:1.9; color:#374151; }
+  .komik-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width: 700px) { .komik-grid { grid-template-columns:1fr; } }
+  .komik-gambar-box { background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:10px; min-height:280px; display:flex; align-items:center; justify-content:center; }
+  .komik-gambar-box img { max-width:100%; max-height:360px; border-radius:6px; }
+</style>
+
+<div class="mb-4"><a href="{% url 'perpustakaan:detail_zona' sumber.zona.id %}" class="text-sm text-[#0B3D26] hover:underline">&larr; Kembali ke {{ sumber.zona.nama }}</a></div>
+
+<div class="baca-wrap">
+  {% if sumber.cover %}<img src="{{ sumber.cover.url }}" class="baca-cover" alt="{{ sumber.judul }}">{% endif %}
+
+  <h2 class="font-serif text-xl text-gray-800 mb-2">{{ sumber.judul }}</h2>
+  {% if request.user.role in "guru,kepsek,admin" %}
+  <p style="margin:0 0 12px; display:flex; gap:14px; flex-wrap:wrap; align-items:center;">
+    <a href="{% url 'perpustakaan:edit_sumber' sumber.id %}" style="font-size:12px; color:#0369a1;">Edit koleksi ini</a>
+    {% if sumber.file and '.pdf' in sumber.file.name|lower %}
+    <form method="POST" action="{% url 'perpustakaan:ekstrak_halaman' sumber.id %}" onsubmit="return confirm('Buat ulang gambar tiap halaman dari PDF ini? Halaman lama (jika ada) akan diganti.')" style="margin:0;">
+      {% csrf_token %}
+      <button type="submit" style="font-size:12px; background:none; border:none; color:#0369a1; cursor:pointer; padding:0; text-decoration:underline;">Buat tampilan komik dari PDF</button>
+    </form>
+    {% endif %}
+  </p>
+  {% endif %}
+  {% if sumber.deskripsi %}<p class="text-sm text-gray-600 mb-4">{{ sumber.deskripsi }}</p>{% endif %}
+
+  <div class="card p-5 mb-5">
+    {% if sumber.jenis == 'VIDEO' and sumber.link_url %}
+    <div style="position:relative; padding-bottom:56.25%; height:0; border-radius:8px; overflow:hidden;">
+      <iframe src="{{ sumber.get_video_embed }}" style="position:absolute; top:0; left:0; width:100%; height:100%;" frameborder="0" allowfullscreen></iframe>
+    </div>
+    {% elif sumber.jenis == 'VIDEO' and sumber.file %}
+    <video controls style="width:100%; border-radius:8px;"><source src="{{ sumber.file.url }}"></video>
+    {% elif sumber.jenis == 'AUDIO' %}
+      {% if sumber.file %}
+      <audio controls style="width:100%;"><source src="{{ sumber.file.url }}"></audio>
+      {% elif sumber.link_url %}
+      <a href="{{ sumber.link_url }}" target="_blank" class="btn-primary">Buka Audio</a>
+      {% else %}
+      <p class="text-sm text-gray-400">Belum ada file audio.</p>
+      {% endif %}
+    {% else %}
+      {% if sumber.file %}
+      <a href="{{ sumber.file.url }}" target="_blank" class="btn-primary">Buka / Unduh E-Book</a>
+      {% elif sumber.link_url %}
+      <a href="{{ sumber.link_url }}" target="_blank" class="btn-primary">Buka Link</a>
+      {% else %}
+      <p class="text-sm text-gray-400">Belum ada file.</p>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  {% if halaman_data %}
+  <div class="card p-5 mb-5">
+    <h3 class="font-semibold text-gray-800 text-sm mb-3">&#128214; Baca &amp; Dengarkan Cerita</h3>
+    <div class="komik-grid">
+      <div style="text-align:center;">
+        <div class="komik-gambar-box">
+          <img id="halaman-img" src="" alt="Halaman cerita">
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+          <button type="button" class="ab-btn" style="background:#f3f4f6; color:#374151;" onclick="halamanGeser(-1)">&#9664; Sebelumnya</button>
+          <span id="halaman-info" style="font-size:12px; color:#6b7280;"></span>
+          <button type="button" class="ab-btn" style="background:#0B3D26; color:white;" onclick="halamanGeser(1)">Berikutnya &#9654;</button>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+          <button type="button" id="ab-putar" class="ab-btn" style="background:#0B3D26; color:white;">&#9654; Putar</button>
+          <button type="button" id="ab-jeda" class="ab-btn" style="background:#f3f4f6; color:#374151;">&#9208; Jeda</button>
+          <label style="font-size:12px; color:#6b7280;">Kecepatan
+            <select id="ab-rate" style="border:1px solid #e5e7eb; border-radius:6px; padding:3px 6px;">
+              <option value="0.75">Pelan</option>
+              <option value="0.9" selected>Sedang</option>
+              <option value="1.1">Cepat</option>
+            </select>
+          </label>
+        </div>
+        <p id="ab-status" style="font-size:12px; color:#6b7280; margin:0 0 8px;">Tekan Putar untuk mendengarkan halaman ini.</p>
+        <div id="ab-teks"></div>
+      </div>
+    </div>
+    {{ halaman_data|json_script:"halaman-data" }}
+  </div>
+  <script>
+  (function () {
+    var dataEl = document.getElementById('halaman-data');
+    if (!dataEl) return;
+    var halaman = JSON.parse(dataEl.textContent);
+    if (!halaman.length) return;
+    var cur = 0;
+    var img = document.getElementById('halaman-img');
+    var info = document.getElementById('halaman-info');
+    var box = document.getElementById('ab-teks');
+    var status = document.getElementById('ab-status');
+    var spans = [];
+    var kalimat = [];
+    var idx = 0, token = 0;
+
+    if (!('speechSynthesis' in window)) {
+      status.textContent = 'Browser ini belum mendukung suara otomatis. Coba Chrome atau Edge.';
+    }
+
+    function suara() {
+      var l = speechSynthesis.getVoices().filter(function (v) { return /^id/i.test(v.lang); });
+      return l.length ? l[0] : null;
+    }
+
+    function renderHalaman() {
+      speechSynthesis.cancel();
+      token++;
+      img.src = halaman[cur].gambar;
+      info.textContent = 'Halaman ' + (cur + 1) + ' dari ' + halaman.length;
+      box.innerHTML = '';
+      spans = [];
+      idx = 0;
+      var teksHal = halaman[cur].teks || '';
+      var potong = teksHal.replace(/\s+/g, ' ').match(/[^.!?\u2026]+[.!?\u2026]*\s*/g) || (teksHal ? [teksHal] : []);
+      kalimat = [];
+      potong.forEach(function (k) {
+        while (k.length > 200) {
+          var cut = k.lastIndexOf(',', 200);
+          if (cut < 60) cut = k.lastIndexOf(' ', 200);
+          if (cut < 1) cut = 200;
+          kalimat.push(k.slice(0, cut + 1));
+          k = k.slice(cut + 1);
+        }
+        if (k.trim()) kalimat.push(k);
+      });
+      kalimat.forEach(function (k, i) {
+        var s = document.createElement('span');
+        s.textContent = k;
+        s.style.cursor = 'pointer';
+        s.addEventListener('click', function () { mulai(i); });
+        box.appendChild(s);
+        spans.push(s);
+      });
+      if ('speechSynthesis' in window) {
+        status.textContent = kalimat.length ? 'Tekan Putar untuk mendengarkan halaman ini.' : 'Halaman ini belum ada teksnya.';
+      }
+    }
+
+    function sorot(i) {
+      spans.forEach(function (s, j) { s.classList.toggle('ab-on', j === i); });
+      if (spans[i]) box.scrollTop = Math.max(0, spans[i].offsetTop - 40);
+    }
+
+    function bicara(i, t) {
+      if (t !== token) return;
+      if (i >= kalimat.length) {
+        sorot(-1);
+        status.textContent = 'Halaman selesai dibacakan.';
+        return;
+      }
+      idx = i; sorot(i);
+      var u = new SpeechSynthesisUtterance(kalimat[i].trim());
+      u.lang = 'id-ID';
+      var v = suara();
+      if (v) u.voice = v;
+      u.rate = parseFloat(document.getElementById('ab-rate').value);
+      u.onend = function () { if (t === token) bicara(i + 1, t); };
+      u.onerror = function () { if (t === token) bicara(i + 1, t); };
+      speechSynthesis.speak(u);
+    }
+
+    function mulai(i) {
+      speechSynthesis.cancel();
+      token++;
+      status.textContent = suara() ? 'Sedang membacakan...' : 'Suara bahasa Indonesia belum ada di perangkat ini, memakai suara bawaan.';
+      bicara(i, token);
+    }
+
+    document.getElementById('ab-putar').addEventListener('click', function () { mulai(idx); });
+    document.getElementById('ab-jeda').addEventListener('click', function () {
+      token++;
+      speechSynthesis.cancel();
+      status.textContent = 'Dijeda. Tekan Putar untuk melanjutkan.';
+    });
+
+    window.halamanGeser = function (arah) {
+      var baru = cur + arah;
+      if (baru < 0 || baru >= halaman.length) return;
+      cur = baru;
+      renderHalaman();
+    };
+
+    renderHalaman();
+    window.addEventListener('beforeunload', function () { speechSynthesis.cancel(); });
+  })();
+  </script>
+  {% elif sumber.teks_baca %}
+  <div class="card p-5 mb-5">
+    <h3 class="font-semibold text-gray-800 text-sm mb-3">&#127911; Dengarkan Cerita</h3>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+      <button type="button" id="ab-putar" class="ab-btn" style="background:#0B3D26; color:white;">&#9654; Putar</button>
+      <button type="button" id="ab-jeda" class="ab-btn" style="background:#f3f4f6; color:#374151;">&#9208; Jeda</button>
+      <button type="button" id="ab-ulang" class="ab-btn" style="background:#f3f4f6; color:#374151;">&#8634; Dari awal</button>
+      <label style="font-size:12px; color:#6b7280;">Kecepatan
+        <select id="ab-rate" style="border:1px solid #e5e7eb; border-radius:6px; padding:3px 6px;">
+          <option value="0.75">Pelan</option>
+          <option value="0.9" selected>Sedang</option>
+          <option value="1.1">Cepat</option>
+        </select>
+      </label>
+    </div>
+    <p id="ab-status" style="font-size:12px; color:#6b7280; margin:0 0 8px;">Tekan Putar, atau ketuk kalimat untuk mulai dari situ.</p>
+    <div id="ab-teks"></div>
+    {{ sumber.teks_baca|json_script:"teks-data" }}
+  </div>
+  <script>
+  (function () {
+    var data = document.getElementById('teks-data');
+    var box = document.getElementById('ab-teks');
+    var status = document.getElementById('ab-status');
+    if (!data || !box) return;
+    if (!('speechSynthesis' in window)) {
+      status.textContent = 'Browser ini belum mendukung suara otomatis. Coba Chrome atau Edge.';
+      return;
+    }
+    var teks = JSON.parse(data.textContent);
+    var potong = teks.replace(/\s+/g, ' ').match(/[^.!?\u2026]+[.!?\u2026]*\s*/g) || [teks];
+    var kalimat = [];
+    potong.forEach(function (k) {
+      while (k.length > 200) {
+        var cut = k.lastIndexOf(',', 200);
+        if (cut < 60) cut = k.lastIndexOf(' ', 200);
+        if (cut < 1) cut = 200;
+        kalimat.push(k.slice(0, cut + 1));
+        k = k.slice(cut + 1);
+      }
+      if (k.trim()) kalimat.push(k);
+    });
+    var spans = kalimat.map(function (k, i) {
+      var s = document.createElement('span');
+      s.textContent = k;
+      s.style.cursor = 'pointer';
+      s.addEventListener('click', function () { mulai(i); });
+      box.appendChild(s);
+      return s;
+    });
+    var idx = 0, token = 0;
+
+    function suara() {
+      var l = speechSynthesis.getVoices().filter(function (v) { return /^id/i.test(v.lang); });
+      return l.length ? l[0] : null;
+    }
+    function sorot(i) {
+      spans.forEach(function (s, j) { s.classList.toggle('ab-on', j === i); });
+      if (spans[i]) box.scrollTop = Math.max(0, spans[i].offsetTop - 40);
+    }
+    function bicara(i, t) {
+      if (t !== token) return;
+      if (i >= kalimat.length) {
+        idx = 0; sorot(-1);
+        status.textContent = 'Selesai. Sekarang ceritakan bagian favoritmu di bawah!';
+        return;
+      }
+      idx = i; sorot(i);
+      var u = new SpeechSynthesisUtterance(kalimat[i].trim());
+      u.lang = 'id-ID';
+      var v = suara();
+      if (v) u.voice = v;
+      u.rate = parseFloat(document.getElementById('ab-rate').value);
+      u.onend = function () { if (t === token) bicara(i + 1, t); };
+      u.onerror = function () { if (t === token) bicara(i + 1, t); };
+      speechSynthesis.speak(u);
+    }
+    function mulai(i) {
+      speechSynthesis.cancel();
+      token++;
+      status.textContent = suara() ? 'Sedang membacakan...' : 'Suara bahasa Indonesia belum ada di perangkat ini, memakai suara bawaan.';
+      bicara(i, token);
+    }
+    function jeda() {
+      token++;
+      speechSynthesis.cancel();
+      status.textContent = 'Dijeda. Tekan Putar untuk melanjutkan.';
+    }
+    document.getElementById('ab-putar').addEventListener('click', function () { mulai(idx); });
+    document.getElementById('ab-jeda').addEventListener('click', jeda);
+    document.getElementById('ab-ulang').addEventListener('click', function () { mulai(0); });
+    window.addEventListener('beforeunload', function () { speechSynthesis.cancel(); });
+  })();
+  </script>
+  {% endif %}
+
+  {% if siswa_obj %}
+  <div class="card p-5">
+    <h3 class="font-semibold text-gray-800 text-sm mb-3">Kirim Refleksi</h3>
+    <div class="tab-jenis">
+      <button type="button" class="active" onclick="pilihJenis('TEKS')" id="tab-TEKS">Teks</button>
+      <button type="button" onclick="pilihJenis('AUDIO')" id="tab-AUDIO">Rekam Suara</button>
+      <button type="button" onclick="pilihJenis('FOTO')" id="tab-FOTO">Foto Karya</button>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="refleksi-form">
+      {% csrf_token %}
+      <input type="hidden" name="jenis" id="jenis-input" value="TEKS">
+
+      <div id="panel-TEKS">
+        <textarea name="teks" rows="3" placeholder="Tulis 1 hal favoritmu dari ini..." style="width:100%; border:1px solid #e5e7eb; border-radius:8px; padding:9px 14px; font-size:13px; font-family:inherit; outline:none; resize:vertical; box-sizing:border-box;"></textarea>
+      </div>
+
+      <div id="panel-AUDIO" style="display:none;">
+        <div class="rec-box">
+          <button type="button" class="rec-btn rec-start" id="btn-rec-start" onclick="mulaiRekam()">Mulai Rekam</button>
+          <button type="button" class="rec-btn rec-stop" id="btn-rec-stop" onclick="berhentiRekam()" style="display:none;">Berhenti</button>
+          <p class="rec-status" id="rec-status">Klik "Mulai Rekam" lalu ceritakan kesanmu.</p>
+          <audio id="preview-audio" controls style="width:100%; margin-top:10px; display:none;"></audio>
+          <input type="file" name="file_audio" id="audio-file-input" style="display:none;" accept="audio/*">
+        </div>
+      </div>
+
+      <div id="panel-FOTO" style="display:none;">
+        <input type="file" name="file_foto" accept="image/*" style="width:100%; font-size:13px;">
+      </div>
+
+      <label style="display:block; margin-top:12px; font-size:12px; color:#6b7280;"><input type="checkbox" name="simpan_portofolio" value="1"> Simpan juga ke Portofolio saya (untuk rekaman suara &amp; foto)</label>
+      <button type="submit" style="margin-top:12px; background:#0B3D26; color:white; border:none; border-radius:8px; padding:9px 20px; font-size:13px; font-weight:600; cursor:pointer;">Kirim Refleksi</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="card p-5" style="margin-top:16px;">
+    <h3 class="font-semibold text-gray-800 text-sm mb-3">Refleksi Teman</h3>
+    {% for r in refleksi_list %}
+    <div class="refleksi-item">
+      <strong>{{ r.siswa.nama }}</strong>
+      {% if r.jenis == 'TEKS' %}
+        <p style="margin:4px 0 0; color:#374151;">{{ r.teks }}</p>
+      {% elif r.jenis == 'AUDIO' and r.file %}
+        <audio controls style="width:100%; margin-top:6px;"><source src="{{ r.file.url }}"></audio>
+      {% elif r.jenis == 'FOTO' and r.file %}
+        <img src="{{ r.file.url }}" style="max-width:200px; border-radius:8px; margin-top:6px;">
+      {% endif %}
+    </div>
+    {% empty %}
+    <p style="color:#9ca3af; font-size:13px;">Belum ada refleksi. Jadilah yang pertama!</p>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+function pilihJenis(jenis) {
+  ['TEKS', 'AUDIO', 'FOTO'].forEach(function(j) {
+    document.getElementById('panel-' + j).style.display = (j === jenis) ? 'block' : 'none';
+    document.getElementById('tab-' + j).classList.toggle('active', j === jenis);
+  });
+  document.getElementById('jenis-input').value = jenis;
+}
+
+var mediaRecorder;
+var audioChunks = [];
+
+function mulaiRekam() {
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    mediaRecorder.addEventListener('dataavailable', function(e) {
+      audioChunks.push(e.data);
+    });
+    mediaRecorder.addEventListener('stop', function() {
+      var blob = new Blob(audioChunks, { type: 'audio/webm' });
+      var url = URL.createObjectURL(blob);
+      var preview = document.getElementById('preview-audio');
+      preview.src = url;
+      preview.style.display = 'block';
+
+      var file = new File([blob], 'rekaman.webm', { type: 'audio/webm' });
+      var dt = new DataTransfer();
+      dt.items.add(file);
+      document.getElementById('audio-file-input').files = dt.files;
+
+      stream.getTracks().forEach(function(t) { t.stop(); });
+    });
+    mediaRecorder.start();
+    document.getElementById('btn-rec-start').style.display = 'none';
+    document.getElementById('btn-rec-stop').style.display = 'inline-block';
+    document.getElementById('rec-status').textContent = 'Sedang merekam...';
+  }).catch(function(err) {
+    document.getElementById('rec-status').textContent = 'Tidak bisa akses mikrofon: ' + err.message;
+  });
+}
+
+function berhentiRekam() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+  document.getElementById('btn-rec-start').style.display = 'inline-block';
+  document.getElementById('btn-rec-stop').style.display = 'none';
+  document.getElementById('rec-status').textContent = 'Rekaman selesai. Cek preview di bawah, lalu klik Kirim Refleksi.';
+}
+</script>
+{% endblock %}

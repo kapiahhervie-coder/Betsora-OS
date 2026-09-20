@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
@@ -68,6 +68,9 @@ tailwind.config = {
     </a>
     <a href="{% url 'pesan:daftar' %}" class="nav-link {% if request.resolver_match.app_name == 'pesan' %}active{% endif %}" style="padding-left:28px; font-size:12.5px;">
       <i class="ti ti-messages" style="font-size:15px"></i>Class Chat
+    </a>
+    <a href="{% url 'perpustakaan:peta' %}" class="nav-link {% if request.resolver_match.app_name == 'perpustakaan' %}active{% endif %}" style="padding-left:28px; font-size:12.5px;">
+      <i class="ti ti-books" style="font-size:15px"></i>Perpustakaan
     </a>
     {% if user.role == "siswa" and user.profil_siswa %}
     <a href="{% url 'portofolio:detail' user.profil_siswa.id %}" class="nav-link {% if request.resolver_match.app_name == 'portofolio' %}active{% endif %}" style="padding-left:28px; font-size:12.5px;">

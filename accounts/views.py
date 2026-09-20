@@ -1,4 +1,4 @@
-﻿from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -33,6 +33,9 @@ def logout_view(request):
 
 @login_required
 def daftar_siswa(request):
+    if request.user.role in ('siswa', 'orangtua'):
+        messages.error(request, 'Anda tidak punya akses ke halaman ini.')
+        return redirect('kelas:dashboard')
     kelas_filter = request.GET.get('kelas', '')
     siswa = Siswa.objects.filter(aktif=True)
     if kelas_filter:
@@ -43,6 +46,9 @@ def daftar_siswa(request):
 
 @login_required
 def tambah_siswa(request):
+    if request.user.role in ('siswa', 'orangtua'):
+        messages.error(request, 'Anda tidak punya akses ke halaman ini.')
+        return redirect('kelas:dashboard')
     if request.method == 'POST':
         Siswa.objects.create(
             nama=request.POST['nama'], nis=request.POST['nis'], kelas=request.POST['kelas'],
@@ -55,6 +61,9 @@ def tambah_siswa(request):
 
 @login_required
 def buat_akun_siswa(request, siswa_id):
+    if request.user.role in ('siswa', 'orangtua'):
+        messages.error(request, 'Anda tidak punya akses ke halaman ini.')
+        return redirect('kelas:dashboard')
     siswa = get_object_or_404(Siswa, id=siswa_id)
     if siswa.user:
         messages.error(request, f'{siswa.nama} sudah punya akun login.')
@@ -67,7 +76,7 @@ def buat_akun_siswa(request, siswa_id):
     siswa.user = user
     siswa.save()
 
-    messages.success(request, f'Akun untuk {siswa.nama} dibuat. Username: {username} â€” Password: {password} (catat sekarang, password tidak akan ditampilkan lagi)')
+    messages.success(request, f'Akun untuk {siswa.nama} dibuat. Username: {username} - Password: {password} (catat sekarang, password tidak akan ditampilkan lagi)')
     return redirect('accounts:daftar_siswa')
 
 
@@ -77,10 +86,15 @@ def dashboard_siswa(request):
         messages.error(request, 'Akun ini tidak terhubung ke data siswa manapun.')
         return redirect('accounts:logout')
     siswa = request.user.profil_siswa
-    return render(request, 'accounts/dashboard_siswa.html', {'siswa': siswa})
+    from perpustakaan.models import LencanaDiperoleh
+    lencana_list = LencanaDiperoleh.objects.filter(siswa=siswa).select_related('lencana', 'sumber')
+    return render(request, 'accounts/dashboard_siswa.html', {'siswa': siswa, 'lencana_list': lencana_list})
 
 @login_required
 def buat_akun_orangtua(request, siswa_id):
+    if request.user.role in ('siswa', 'orangtua'):
+        messages.error(request, 'Anda tidak punya akses ke halaman ini.')
+        return redirect('kelas:dashboard')
     siswa = get_object_or_404(Siswa, id=siswa_id)
     if User.objects.filter(anak=siswa, role='orangtua').exists():
         messages.error(request, f'{siswa.nama} sudah punya akun orang tua yang terhubung.')
@@ -91,7 +105,7 @@ def buat_akun_orangtua(request, siswa_id):
 
     User.objects.create_user(username=username, password=password, role='orangtua', anak=siswa, first_name=f'Orang Tua {siswa.nama}')
 
-    messages.success(request, f'Akun orang tua untuk {siswa.nama} dibuat. Username: {username} â€” Password: {password} (catat sekarang, password tidak akan ditampilkan lagi)')
+    messages.success(request, f'Akun orang tua untuk {siswa.nama} dibuat. Username: {username} - Password: {password} (catat sekarang, password tidak akan ditampilkan lagi)')
     return redirect('accounts:daftar_siswa')
 
 
@@ -112,10 +126,14 @@ def dashboard_orangtua(request):
     avg_nilai = Nilai.objects.filter(siswa=siswa).aggregate(avg=Avg('skor'))['avg']
     total_poin = Keaktifan.objects.filter(siswa=siswa).aggregate(t=Sum('poin'))['t'] or 0
 
+    from perpustakaan.models import LencanaDiperoleh
+    lencana_list = LencanaDiperoleh.objects.filter(siswa=siswa).select_related('lencana', 'sumber')
+
     return render(request, 'accounts/dashboard_orangtua.html', {
         'siswa': siswa,
         'kehadiran': round(hadir / total_hari * 100) if total_hari else 0,
         'avg_nilai': round(avg_nilai, 1) if avg_nilai else None,
         'total_poin': total_poin,
         'absensi_list': absensi_list[:10],
+        'lencana_list': lencana_list,
     })

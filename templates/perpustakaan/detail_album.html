@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}{{ album.judul|default:album }}{% endblock %}
+{% block page_title %}{{ album.judul|default:album }}{% endblock %}
+{% block content %}
+<div class="max-w-2xl">
+<div class="mb-4"><a href="{% url 'perpustakaan:daftar' %}" class="text-sm text-[#0B3D26] hover:underline">&larr; Semua Album</a></div>
+
+{% if album.deskripsi %}<p class="text-sm text-gray-600 mb-4">{{ album.deskripsi }}</p>{% endif %}
+
+<div class="card p-5 mb-5">
+  {% for a in album.audio_list.all %}
+  <div style="padding:12px 0; border-bottom:1px solid #f3f4f6;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+      <strong style="font-size:14px; color:#1f2937;">{{ forloop.counter }}. {{ a.judul }}</strong>
+      {% if request.user.role in "guru,kepsek,admin" %}
+      <form method="POST" action="{% url 'perpustakaan:hapus_audio' a.id %}" onsubmit="return confirm('Hapus {{ a.judul|escapejs }}?')" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" style="font-size:10px; background:#fee2e2; color:#dc2626; border:none; padding:3px 8px; border-radius:6px; cursor:pointer;">Hapus</button>
+      </form>
+      {% endif %}
+    </div>
+    {% if a.file %}<audio controls style="width:100%;"><source src="{{ a.file.url }}"></audio>{% endif %}
+  </div>
+  {% empty %}
+  <p style="color:#9ca3af; font-size:13px; text-align:center; padding:20px 0; margin:0;">Belum ada audio di album ini.</p>
+  {% endfor %}
+</div>
+
+{% if request.user.role in "guru,kepsek,admin" %}
+<div class="card p-5">
+  <h3 class="font-semibold text-gray-800 text-sm mb-3">Tambah Audio</h3>
+  <form method="POST" enctype="multipart/form-data" class="space-y-3">
+    {% csrf_token %}
+    <input type="text" name="judul" required maxlength="150" placeholder="Judul audio" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+    <input type="file" name="file" accept="audio/*" required class="w-full text-sm">
+    <button type="submit" class="btn-primary">Unggah</button>
+  </form>
+</div>
+{% endif %}
+</div>
+{% endblock %}

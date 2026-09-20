@@ -1,4 +1,5 @@
-﻿from django.shortcuts import render, get_object_or_404, redirect
+from accounts.permissions import hanya_staf
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Sum
@@ -13,6 +14,7 @@ def get_siswa_obj(user):
 
 
 @login_required
+@hanya_staf
 def daftar_portofolio(request):
     kelas_filter = request.GET.get('kelas', '')
     siswa_list = Siswa.objects.filter(aktif=True, kelas=kelas_filter) if kelas_filter else Siswa.objects.filter(aktif=True)

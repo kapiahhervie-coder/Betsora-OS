@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Galeri Karya{% endblock %}
+{% block page_title %}{% if semua %}Galeri Karya{% else %}Galeri Karya Hari Ini{% endif %}{% endblock %}
+{% block content %}
+
+<div class="mb-4" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+  <a href="{% url 'perpustakaan:peta' %}" class="text-sm text-[#0B3D26] hover:underline">&larr; Peta Perpustakaan</a>
+  {% if semua %}
+  <a href="{% url 'perpustakaan:galeri_karya' %}" style="font-size:12px; background:#f3f4f6; color:#374151; padding:8px 14px; border-radius:8px; text-decoration:none;">Hanya hari ini</a>
+  {% else %}
+  <a href="?semua=1" style="font-size:12px; background:#f3f4f6; color:#374151; padding:8px 14px; border-radius:8px; text-decoration:none;">Lihat semua karya</a>
+  {% endif %}
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:14px;">
+  {% for r in refleksi_list %}
+  <div class="card p-4">
+    <p style="font-size:11px; color:#9ca3af; margin:0 0 6px;">{{ r.siswa.nama }} &middot; {{ r.sumber.judul }}</p>
+    {% if r.jenis == 'AUDIO' and r.file %}
+    <audio controls style="width:100%;"><source src="{{ r.file.url }}"></audio>
+    {% elif r.jenis == 'FOTO' and r.file %}
+    <img src="{{ r.file.url }}" style="width:100%; border-radius:8px;">
+    {% endif %}
+  </div>
+  {% empty %}
+  <div style="grid-column:1/-1; text-align:center; padding:60px 20px; color:#9ca3af;">
+    {% if semua %}Belum ada karya yang diunggah.{% else %}Belum ada karya hari ini. Jadilah yang pertama!{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

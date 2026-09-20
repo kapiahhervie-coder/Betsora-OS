@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}{{ zona.nama }}{% endblock %}
+{% block page_title %}{{ zona.nama }}{% endblock %}
+{% block content %}
+
+<style>
+  .sumber-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; }
+  .sumber-card { border-radius:12px; overflow:hidden; border:1px solid #e5e7eb; text-decoration:none; color:inherit; display:block; position:relative; background:white; transition:box-shadow .15s; }
+  .sumber-card:hover { box-shadow:0 4px 12px rgba(0,0,0,0.08); }
+  .sumber-cover { height:120px; background:#E7EFE3; display:flex; align-items:center; justify-content:center; font-size:32px; color:#155C39; }
+  .sumber-cover img { width:100%; height:100%; object-fit:cover; }
+  .sumber-body { padding:10px 12px; }
+  .sumber-judul { font-size:13px; font-weight:600; color:#1f2937; margin:0 0 4px; }
+  .sumber-jenis { font-size:10px; color:#9ca3af; text-transform:uppercase; letter-spacing:.05em; }
+  .sumber-hapus { position:absolute; top:8px; right:8px; font-size:10px; background:#fee2e2; color:#dc2626; border:none; padding:3px 7px; border-radius:6px; cursor:pointer; }
+  .sumber-edit { position:absolute; top:8px; left:8px; z-index:2; font-size:10px; background:#e0f2fe; color:#0369a1; padding:3px 7px; border-radius:6px; text-decoration:none; }
+</style>
+
+<div class="mb-4" style="display:flex; justify-content:space-between; align-items:center;">
+  <a href="{% url 'perpustakaan:peta' %}" class="text-sm text-[#0B3D26] hover:underline">&larr; Peta Perpustakaan</a>
+  {% if request.user.role in "guru,kepsek,admin" %}
+  <div style="display:flex; gap:8px;">
+    <a href="{% url 'perpustakaan:edit_zona' zona.id %}" style="font-size:12px; background:#f3f4f6; color:#374151; padding:8px 14px; border-radius:8px; text-decoration:none; font-weight:500;">Edit Zona</a>
+    <a href="{% url 'perpustakaan:tambah_sumber' zona.id %}" class="btn-primary">+ Tambah Koleksi</a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="mb-5">
+  <h2 class="font-serif text-lg text-gray-800">{{ zona.ikon }} {{ zona.nama }}</h2>
+  {% if zona.deskripsi %}<p class="text-sm text-gray-500 mt-1">{{ zona.deskripsi }}</p>{% endif %}
+</div>
+
+<style>
+  .tab-filter { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .tab-filter a { font-size:13px; font-weight:600; padding:8px 16px; border-radius:99px; text-decoration:none;
+                  background:white; color:#374151; border:1px solid #e5e7eb; }
+  .tab-filter a.on { background:#0B3D26; color:white; border-color:#0B3D26; }
+</style>
+<div class="tab-filter">
+  <a href="{% url 'perpustakaan:detail_zona' zona.id %}" class="{% if not jenis_aktif %}on{% endif %}">Semua</a>
+  <a href="?jenis=TEKS" class="{% if jenis_aktif == 'TEKS' %}on{% endif %}">&#128214; Baca</a>
+  <a href="?jenis=AUDIO" class="{% if jenis_aktif == 'AUDIO' %}on{% endif %}">&#127911; Dengar</a>
+  <a href="?jenis=VIDEO" class="{% if jenis_aktif == 'VIDEO' %}on{% endif %}">&#127916; Tonton</a>
+</div>
+
+<div class="sumber-grid">
+  {% for s in sumber_list %}
+  <div class="sumber-card">
+    {% if request.user.role in "guru,kepsek,admin" %}
+    <form method="POST" action="{% url 'perpustakaan:hapus_sumber' s.id %}" onsubmit="return confirm('Hapus {{ s.judul|escapejs }}?')" style="margin:0;">
+      {% csrf_token %}
+      <button type="submit" class="sumber-hapus">Hapus</button>
+    </form>
+    <a href="{% url 'perpustakaan:edit_sumber' s.id %}" class="sumber-edit">Edit</a>
+    {% endif %}
+    <a href="{% url 'perpustakaan:detail_sumber' s.id %}" style="text-decoration:none; color:inherit; display:block;">
+      <div class="sumber-cover">
+        {% if s.cover %}<img src="{{ s.cover.url }}" alt="{{ s.judul }}">
+        {% elif s.jenis == 'AUDIO' %}&#128266;
+        {% elif s.jenis == 'VIDEO' %}&#127909;
+        {% else %}&#128218;
+        {% endif %}
+      </div>
+      <div class="sumber-body">
+        <p class="sumber-judul">{{ s.judul }}</p>
+        <p class="sumber-jenis">{{ s.get_jenis_display }}</p>
+      </div>
+    </a>
+  </div>
+  {% empty %}
+  <div style="grid-column:1/-1; text-align:center; padding:40px 20px; color:#9ca3af;">
+    {% if jenis_aktif %}Belum ada koleksi dengan jenis ini di zona ini.{% else %}Belum ada koleksi di zona ini.{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

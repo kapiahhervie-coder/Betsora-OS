@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Edit Koleksi{% endblock %}
+{% block page_title %}Edit Koleksi{% endblock %}
+{% block content %}
+<div class="max-w-lg">
+<div class="mb-4"><a href="{% url 'perpustakaan:detail_sumber' sumber.id %}" class="text-sm text-[#0B3D26] hover:underline">&larr; Kembali</a></div>
+<div class="card p-6">
+  <form method="POST" enctype="multipart/form-data" class="space-y-4">
+    {% csrf_token %}
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Judul</label>
+      <input type="text" name="judul" value="{{ sumber.judul }}" required maxlength="200" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Zona</label>
+      <select name="zona" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+        {% for z in zona_list %}<option value="{{ z.id }}" {% if z.id == sumber.zona_id %}selected{% endif %}>{{ z.ikon }} {{ z.nama }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Jenis</label>
+      <select name="jenis" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+        <option value="TEKS" {% if sumber.jenis == 'TEKS' %}selected{% endif %}>E-Book / Teks</option>
+        <option value="AUDIO" {% if sumber.jenis == 'AUDIO' %}selected{% endif %}>Audiobook</option>
+        <option value="VIDEO" {% if sumber.jenis == 'VIDEO' %}selected{% endif %}>Video</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Deskripsi</label>
+      <textarea name="deskripsi" rows="3" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">{{ sumber.deskripsi }}</textarea>
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Cover</label>
+      {% if sumber.cover %}
+      <img src="{{ sumber.cover.url }}" alt="cover" style="max-height:100px; border-radius:8px; margin-bottom:6px;">
+      <label style="font-size:12px; color:#6b7280; display:block; margin-bottom:6px;"><input type="checkbox" name="hapus_cover" value="1"> Hapus cover saat ini</label>
+      {% endif %}
+      <input type="file" name="cover" accept="image/*" class="w-full text-sm">
+      <p style="font-size:11px; color:#9ca3af; margin-top:4px;">Kosongkan jika tidak ingin mengganti.</p>
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">File (PDF/audio/video)</label>
+      {% if sumber.file %}<p style="font-size:12px; color:#6b7280; margin:0 0 6px;">Saat ini: {{ sumber.file.name }}</p>{% endif %}
+      <input type="file" name="file" class="w-full text-sm">
+      <p style="font-size:11px; color:#9ca3af; margin-top:4px;">Kosongkan jika tidak ingin mengganti.</p>
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Link Video/Audio (opsional)</label>
+      <input type="url" name="link_url" value="{{ sumber.link_url|default:'' }}" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Lencana Hadiah</label>
+      <select name="lencana_hadiah" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+        <option value="">Tidak ada</option>
+        {% for l in lencana_list %}<option value="{{ l.id }}" {% if l.id == sumber.lencana_hadiah_id %}selected{% endif %}>{{ l.ikon }} {{ l.nama }}</option>{% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Teks untuk Dibacakan (Audiobook, opsional)</label>
+      <textarea name="teks_baca" rows="8" placeholder="Tempel atau ketik isi cerita di sini. Suara akan membacakannya untuk anak." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">{{ sumber.teks_baca }}</textarea>
+      <button type="submit" formaction="{% url 'perpustakaan:ekstrak_teks' sumber.id %}" formnovalidate class="btn-secondary" style="margin-top:8px;">Ambil teks otomatis dari PDF</button>
+      <p style="font-size:11px; color:#9ca3af; margin-top:4px;">Untuk PDF berisi teks. PDF hasil scan (gambar) tidak bisa dibaca otomatis. Simpan perubahan dulu sebelum mengambil teks.</p>
+    </div>
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="btn-primary">Simpan Perubahan</button>
+      <a href="{% url 'perpustakaan:detail_sumber' sumber.id %}" class="btn-secondary">Batal</a>
+    </div>
+  </form>
+</div>
+</div>
+{% endblock %}

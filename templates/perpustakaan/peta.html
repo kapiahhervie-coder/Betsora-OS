@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Perpustakaan{% endblock %}
+{% block page_title %}Perpustakaan Digital{% endblock %}
+{% block content %}
+
+<style>
+  .laut { position:relative; border-radius:20px; padding:36px 24px 48px; overflow:hidden;
+          background:linear-gradient(180deg,#d8f0f7 0%,#bfe6ef 55%,#a9dbe8 100%); }
+  .awan { position:absolute; font-size:44px; opacity:.7; animation:geser 40s linear infinite; pointer-events:none; }
+  .awan.a1 { top:12px; left:-60px; }
+  .awan.a2 { top:90px; left:-60px; animation-duration:55s; animation-delay:-20s; font-size:34px; }
+  @keyframes geser { from { transform:translateX(0); } to { transform:translateX(calc(100vw + 120px)); } }
+
+  .pulau-grid { position:relative; display:grid; grid-template-columns:repeat(auto-fill, 230px); justify-content:center; gap:28px 40px; }
+  .pulau-slot { position:relative; }
+  .pulau-slot:nth-child(even) { margin-top:36px; }
+  .pulau-slot::after { content:''; position:absolute; top:50%; left:100%; width:40px; border-top:3px dashed rgba(255,255,255,.85); }
+  .pulau-slot:last-child::after { display:none; }
+
+  .pulau { display:block; text-decoration:none; color:white; text-align:center; padding:30px 18px 26px;
+           min-height:170px; box-shadow:0 10px 0 rgba(0,0,0,.12), 0 14px 24px rgba(0,0,0,.18);
+           transition:transform .2s; animation:apung 5s ease-in-out infinite; }
+  .pulau:hover { transform:scale(1.06) rotate(-1deg); }
+  .b1 { border-radius:58% 42% 55% 45% / 52% 60% 40% 48%; }
+  .b2 { border-radius:45% 55% 40% 60% / 58% 42% 58% 42%; }
+  .b3 { border-radius:52% 48% 60% 40% / 45% 55% 45% 55%; }
+  .b4 { border-radius:40% 60% 48% 52% / 55% 45% 55% 45%; }
+  .pulau-slot:nth-child(2n) .pulau { animation-delay:-2s; }
+  .pulau-slot:nth-child(3n) .pulau { animation-delay:-3.5s; }
+  @keyframes apung { 0%,100% { translate:0 0; } 50% { translate:0 -8px; } }
+
+  .pulau-ikon { font-size:46px; display:block; margin-bottom:6px; }
+  .pulau-nama { font-size:15px; font-weight:700; margin:0 0 4px; font-family:serif; line-height:1.25; }
+  .pulau-jumlah { display:inline-block; font-size:11px; background:rgba(255,255,255,.25); padding:2px 10px; border-radius:99px; margin:0; }
+  .pulau-hapus { position:absolute; top:-6px; right:-6px; z-index:2; font-size:10px; background:#dc2626; color:white; border:none; padding:4px 8px; border-radius:6px; cursor:pointer; }
+
+  .paspor { background:#FBF3E3; border:1px dashed #D9B860; border-radius:14px; padding:12px 14px; margin-bottom:18px; }
+  .paspor-judul { font-size:11px; font-weight:700; color:#92702E; letter-spacing:.06em; text-transform:uppercase; margin:0 0 8px; }
+  .lencana-strip { display:flex; gap:8px; flex-wrap:wrap; }
+  .lencana-item { background:white; color:#92702E; border-radius:10px; padding:6px 12px; font-size:12px; display:flex; align-items:center; gap:6px; border:1px solid #F0DDA8; }
+
+  @media (max-width:640px) { .pulau-slot::after { display:none; } .pulau-slot:nth-child(even) { margin-top:0; } }
+</style>
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:8px;">
+  <p class="text-sm text-gray-500">Pilih pulau, lalu baca, dengarkan, dan kumpulkan lencana</p>
+  <div style="display:flex; gap:8px;">
+    <a href="{% url 'perpustakaan:galeri_karya' %}" style="font-size:12px; background:#f3f4f6; color:#374151; padding:8px 14px; border-radius:8px; text-decoration:none; font-weight:500;">Galeri Karya</a>
+    {% if request.user.role in "guru,kepsek,admin" %}
+    <a href="{% url 'perpustakaan:tambah_zona' %}" class="btn-primary">+ Zona Baru</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if lencana_saya %}
+<div class="paspor">
+  <p class="paspor-judul">&#127894; Paspor Lencanaku</p>
+  <div class="lencana-strip">
+    {% for l in lencana_saya %}
+    <div class="lencana-item"><span>{{ l.lencana.ikon }}</span> {{ l.lencana.nama }}</div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="laut">
+  <span class="awan a1">&#9729;&#65039;</span>
+  <span class="awan a2">&#9729;&#65039;</span>
+
+  <div class="pulau-grid">
+    {% for zona in zona_list %}
+    <div class="pulau-slot">
+      {% if request.user.role in "guru,kepsek,admin" %}
+      <form method="POST" action="{% url 'perpustakaan:hapus_zona' zona.id %}" onsubmit="return confirm('Hapus zona {{ zona.nama|escapejs }}? Semua koleksi di dalamnya ikut terhapus.')" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" class="pulau-hapus">Hapus</button>
+      </form>
+      {% endif %}
+      <a href="{% url 'perpustakaan:detail_zona' zona.id %}" class="pulau {% cycle 'b1' 'b2' 'b3' 'b4' %}" style="background:{{ zona.warna }};">
+        <span class="pulau-ikon">{% if zona.ikon %}{{ zona.ikon }}{% else %}&#127965;&#65039;{% endif %}</span>
+        <p class="pulau-nama">{{ zona.nama }}</p>
+        <p class="pulau-jumlah">{{ zona.jumlah }} koleksi</p>
+      </a>
+    </div>
+    {% empty %}
+    <div style="grid-column:1/-1; text-align:center; padding:60px 20px; color:#4b6b75;">
+      Belum ada pulau. {% if request.user.role in "guru,kepsek,admin" %}Klik "+ Zona Baru" untuk membuat pulau pertama.{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

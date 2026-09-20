@@ -1,0 +1,14 @@
+<div class="card p-5 mb-5" style="background:#FBF3E3; border:1px dashed #D9B860;">
+  <h3 style="font-size:12px; font-weight:700; color:#92702E; letter-spacing:.06em; text-transform:uppercase; margin:0 0 10px;">&#127894; Lencana Perpustakaan</h3>
+  {% if lencana_list %}
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    {% for l in lencana_list %}
+    <div style="background:white; border:1px solid #F0DDA8; border-radius:10px; padding:6px 12px; font-size:12px; color:#92702E;" title="{{ l.sumber.judul|default:'' }}">
+      {{ l.lencana.ikon }} {{ l.lencana.nama }}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="font-size:13px; color:#9ca3af; margin:0;">Belum ada lencana. Baca, dengarkan, dan kirim refleksi di perpustakaan untuk mendapatkannya.</p>
+  {% endif %}
+</div>
