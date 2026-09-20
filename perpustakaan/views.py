@@ -90,12 +90,17 @@ def get_siswa_obj(user):
 def peta_perpustakaan(request):
     zona_list = Zona.objects.annotate(jumlah=Count('sumber_list'))
     siswa_obj = get_siswa_obj(request.user) if request.user.role == 'siswa' else None
-    lencana_saya = []
+    semua_lencana = []
+    lencana_didapat_ids = set()
     if siswa_obj:
-        lencana_saya = LencanaDiperoleh.objects.filter(siswa=siswa_obj).select_related('lencana')
+        semua_lencana = Lencana.objects.all()
+        lencana_didapat_ids = set(
+            LencanaDiperoleh.objects.filter(siswa=siswa_obj).values_list('lencana_id', flat=True)
+        )
     return render(request, 'perpustakaan/peta.html', {
         'zona_list': zona_list,
-        'lencana_saya': lencana_saya,
+        'semua_lencana': semua_lencana,
+        'lencana_didapat_ids': lencana_didapat_ids,
     })
 
 
@@ -244,7 +249,8 @@ def detail_sumber(request, sumber_id):
             siswa=siswa_obj, sumber=sumber, jenis=jenis,
             teks=teks, file=berkas,
         )
-        if request.POST.get('simpan_portofolio') and jenis in ('AUDIO', 'FOTO') and refleksi.file:
+        baru_penjelajah = False
+        if jenis in ('AUDIO', 'FOTO') and refleksi.file:
             try:
                 from portofolio.models import KaryaSiswa
                 KaryaSiswa.objects.create(
@@ -259,6 +265,14 @@ def detail_sumber(request, sumber_id):
                 messages.info(request, 'Karya juga tersimpan di Portofolio kamu.')
             except Exception:
                 messages.warning(request, 'Refleksi terkirim, tetapi belum bisa disimpan ke Portofolio.')
+        if jenis == 'FOTO':
+            lencana_penjelajah, _ = Lencana.objects.get_or_create(
+                nama='Lencana Penjelajah',
+                defaults={'ikon': '\U0001F9ED', 'deskripsi': 'Diberikan saat mengunggah karya ke Perpustakaan Digital.'}
+            )
+            _, baru_penjelajah = LencanaDiperoleh.objects.get_or_create(
+                siswa=siswa_obj, lencana=lencana_penjelajah, sumber=None
+            )
         if sumber.lencana_hadiah:
             _, baru = LencanaDiperoleh.objects.get_or_create(
                 siswa=siswa_obj, lencana=sumber.lencana_hadiah, sumber=sumber
@@ -269,6 +283,9 @@ def detail_sumber(request, sumber_id):
                 messages.success(request, 'Refleksi terkirim, terima kasih!')
         else:
             messages.success(request, 'Refleksi terkirim, terima kasih!')
+        if baru_penjelajah:
+            from django.urls import reverse
+            return redirect(reverse('perpustakaan:detail_sumber', args=[sumber.id]) + '?lencana_baru=1')
         return redirect('perpustakaan:detail_sumber', sumber_id=sumber.id)
 
     refleksi_list = batasi_kelas(request.user, sumber.refleksi_list.select_related('siswa'))[:20]
@@ -276,11 +293,13 @@ def detail_sumber(request, sumber_id):
         {'gambar': h.gambar.url, 'teks': h.teks}
         for h in sumber.halaman_list.all()
     ]
+    suara_teman = [r for r in refleksi_list if r.jenis == 'AUDIO' and r.file]
     return render(request, 'perpustakaan/detail_sumber.html', {
         'sumber': sumber,
         'siswa_obj': siswa_obj,
         'refleksi_list': refleksi_list,
         'halaman_data': halaman_data,
+        'suara_teman': suara_teman,
     })
 
 
@@ -462,3 +481,15 @@ def ekstrak_halaman(request, sumber_id):
     except Exception as e:
         messages.error(request, 'Gagal mengekstrak halaman PDF: ' + str(e))
     return kembali
+
+
+@login_required
+def catat_selesai_baca(request, sumber_id):
+    from django.http import JsonResponse
+    from .models import RiwayatBaca
+    sumber = SumberDigital.objects.filter(id=sumber_id).first()
+    siswa_obj = get_siswa_obj(request.user) if request.user.role == 'siswa' else None
+    if sumber and siswa_obj and request.method == 'POST':
+        RiwayatBaca.objects.update_or_create(siswa=siswa_obj, sumber=sumber)
+        return JsonResponse({'ok': True})
+    return JsonResponse({'ok': False}, status=400)

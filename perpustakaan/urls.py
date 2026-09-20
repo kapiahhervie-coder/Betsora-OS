@@ -20,5 +20,6 @@ urlpatterns = [
     path('sumber/<int:sumber_id>/edit/', views.edit_sumber, name='edit_sumber'),
     path('sumber/<int:sumber_id>/ekstrak-teks/', views.ekstrak_teks, name='ekstrak_teks'),
     path('sumber/<int:sumber_id>/ekstrak-halaman/', views.ekstrak_halaman, name='ekstrak_halaman'),
+    path('sumber/<int:sumber_id>/selesai-baca/', views.catat_selesai_baca, name='catat_selesai_baca'),
     path('galeri-karya/', views.galeri_karya, name='galeri_karya'),
 ]

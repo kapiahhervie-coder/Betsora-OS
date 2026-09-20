@@ -137,3 +137,16 @@ class HalamanSumber(models.Model):
 
     def __str__(self):
         return self.sumber.judul + ' - hal ' + str(self.nomor)
+
+
+class RiwayatBaca(models.Model):
+    siswa = models.ForeignKey('accounts.Siswa', on_delete=models.CASCADE, related_name='riwayat_baca')
+    sumber = models.ForeignKey(SumberDigital, on_delete=models.CASCADE, related_name='riwayat_baca')
+    selesai_pada = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('siswa', 'sumber')
+        ordering = ['-selesai_pada']
+
+    def __str__(self):
+        return self.siswa.nama + ' selesai baca ' + self.sumber.judul

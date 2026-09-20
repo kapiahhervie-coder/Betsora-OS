@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% block title %}Perpustakaan{% endblock %}
 {% block page_title %}Perpustakaan Digital{% endblock %}
 {% block content %}
@@ -38,6 +38,7 @@
   .paspor-judul { font-size:11px; font-weight:700; color:#92702E; letter-spacing:.06em; text-transform:uppercase; margin:0 0 8px; }
   .lencana-strip { display:flex; gap:8px; flex-wrap:wrap; }
   .lencana-item { background:white; color:#92702E; border-radius:10px; padding:6px 12px; font-size:12px; display:flex; align-items:center; gap:6px; border:1px solid #F0DDA8; }
+  .lencana-terkunci { opacity:.55; filter:grayscale(1); }
 
   @media (max-width:640px) { .pulau-slot::after { display:none; } .pulau-slot:nth-child(even) { margin-top:0; } }
 </style>
@@ -52,12 +53,16 @@
   </div>
 </div>
 
-{% if lencana_saya %}
+{% if semua_lencana %}
 <div class="paspor">
-  <p class="paspor-judul">&#127894; Paspor Lencanaku</p>
+  <p class="paspor-judul">&#127894; Paspor Lencanaku <span style="font-weight:400; text-transform:none; letter-spacing:0;">({{ lencana_didapat_ids|length }} dari {{ semua_lencana|length }} terkumpul)</span></p>
   <div class="lencana-strip">
-    {% for l in lencana_saya %}
-    <div class="lencana-item"><span>{{ l.lencana.ikon }}</span> {{ l.lencana.nama }}</div>
+    {% for l in semua_lencana %}
+    {% if l.id in lencana_didapat_ids %}
+    <div class="lencana-item"><span>{{ l.ikon }}</span> {{ l.nama }}</div>
+    {% else %}
+    <div class="lencana-item lencana-terkunci"><span>&#128274;</span> {{ l.nama }}</div>
+    {% endif %}
     {% endfor %}
   </div>
 </div>
