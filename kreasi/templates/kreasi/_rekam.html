@@ -1,0 +1,16 @@
+{# Perekam suara. Variabel: nama (nama field), batas (detik), wajib (opsional), label #}
+<div data-rekam="rk_{{ nama }}" data-batas="{{ batas }}" class="rounded-lg border border-gray-200 p-3">
+  <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
+    <button type="button" data-aksi="mulai" class="btn-primary text-xs py-2">🎙️ Mulai rekam</button>
+    <button type="button" data-aksi="berhenti" style="display:none; background:#dc2626; color:white; border:0; border-radius:8px; padding:8px 14px; font-size:12px; cursor:pointer;">⏹ Selesai</button>
+    <button type="button" data-aksi="ulang" style="display:none; background:white; color:#374151; border:1px solid #d1d5db; border-radius:8px; padding:8px 14px; font-size:12px; cursor:pointer;">↺ Ulangi</button>
+    <span data-aksi="waktu" class="text-xs text-gray-500"></span>
+  </div>
+  <audio controls style="display:none; width:100%; margin-top:8px;"></audio>
+  <p data-aksi="pesan" class="text-xs mt-2" style="color:#92400e;"></p>
+  <details class="mt-2">
+    <summary class="text-xs text-gray-500" style="cursor:pointer;">Atau pilih berkas suara dari perangkat</summary>
+    <input type="file" id="rk_{{ nama }}" name="{{ nama }}" accept="audio/*" class="mt-1 text-sm"
+           data-label="{{ label }}"{% if wajib %} data-wajib="1"{% endif %}>
+  </details>
+</div>

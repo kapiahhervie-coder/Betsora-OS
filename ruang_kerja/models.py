@@ -1,5 +1,6 @@
 ﻿from django.db import models
 from accounts.models import User, Siswa
+from kreasi.fase_config import JENJANG_CHOICES, deteksi_jenjang
 
 
 class RuangKerja(models.Model):
@@ -8,6 +9,7 @@ class RuangKerja(models.Model):
     deskripsi = models.TextField(blank=True)
     guru = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='ruang_kerja_dikelola')
     dibuat_pada = models.DateTimeField(auto_now_add=True)
+    jenjang = models.CharField(max_length=10, choices=JENJANG_CHOICES, blank=True, help_text='Kosongkan agar dideteksi otomatis dari nama kelas')
 
     class Meta:
         ordering = ['kelas', 'mapel']
@@ -15,6 +17,10 @@ class RuangKerja(models.Model):
 
     def __str__(self):
         return f"{self.mapel} - Kelas {self.kelas}"
+
+    def get_jenjang(self):
+        """Jenjang pilihan guru, atau tebakan dari nama kelas ('3', 'Kelas III', 'X-1')."""
+        return self.jenjang or deteksi_jenjang(self.kelas)
 
 
 class Materi(models.Model):
@@ -146,6 +152,7 @@ class Tugas(models.Model):
     JENIS_CHOICES = [
         ('esai', 'Esai / Upload File'),
         ('pilihan_ganda', 'Pilihan Ganda'),
+        ('kreasi', 'Tugas Kreasi (Portofolio)'),
     ]
     ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name='tugas')
     jenis = models.CharField(max_length=20, choices=JENIS_CHOICES, default='esai')

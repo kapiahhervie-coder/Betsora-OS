@@ -195,6 +195,9 @@ def detail_tugas(request, tugas_id):
             messages.error(request, 'Anda tidak memiliki akses.')
             return redirect('ruang_kerja:daftar')
         submisi = tugas.get_submisi(siswa_obj)
+        if tugas.jenis == 'kreasi':
+            from kreasi.views import kerjakan_kreasi
+            return kerjakan_kreasi(request, tugas, ruang, siswa_obj, submisi)
 
         if tugas.jenis == 'pilihan_ganda':
             soal_list = tugas.soal_pg.prefetch_related('opsi').all()
@@ -236,6 +239,10 @@ def detail_tugas(request, tugas_id):
         return render(request, 'ruang_kerja/detail_tugas_siswa.html', {
             'tugas': tugas, 'ruang': ruang, 'submisi': submisi,
         })
+
+    if tugas.jenis == 'kreasi':
+        from kreasi.views import daftar_karya_guru
+        return daftar_karya_guru(request, tugas, ruang)
 
     # Guru - lihat semua submisi
     submisi_list = tugas.submisi.select_related('siswa').all()

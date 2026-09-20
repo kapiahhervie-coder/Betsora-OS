@@ -1,0 +1,308 @@
+{% extends 'base.html' %}
+{% block title %}{{ tugas.judul }}{% endblock %}
+{% block page_title %}{{ tugas.judul }}{% endblock %}
+{% block content %}
+<style>
+  .emo { position:relative; display:inline-block; }
+  .emo input { position:absolute; opacity:0; inset:0; cursor:pointer; }
+  .emo span { display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 14px; min-width:88px;
+              border:2px solid #e5e7eb; border-radius:14px; font-size:13px; color:#374151; background:white; }
+  .emo span b { font-size:40px; font-weight:400; line-height:1; }
+  .emo input:checked + span { border-color:#3C8C1F; background:#EAF7DE; color:#2f6f18; }
+  .emo input:focus-visible + span { outline:3px solid #3C8C1F; outline-offset:2px; }
+  .skala label { display:inline-flex; align-items:center; gap:4px; margin-right:12px; font-size:13px; color:#374151; }
+</style>
+
+<div class="mb-4"><a href="{% url 'ruang_kerja:detail' ruang.id %}" class="text-sm text-[#3C8C1F] hover:underline">← Kembali ke {{ ruang.mapel }}</a></div>
+
+<div class="grid grid-cols-3 gap-5">
+  <div class="col-span-1">
+    <div class="card p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="bg-[#EAF7DE] text-[#4FA82E] text-xs font-medium px-2 py-0.5 rounded-full">Tugas Kreasi</span>
+        <span class="text-xs text-gray-400">{{ cfg.label }}</span>
+      </div>
+      <h2 class="font-serif text-lg text-gray-800 mb-3">{{ tugas.judul }}</h2>
+      <p class="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{{ tugas.instruksi }}</p>
+      {% if tugas.lampiran %}<a href="{{ tugas.lampiran.url }}" target="_blank" class="mt-3 inline-flex items-center gap-1 text-sm text-[#3C8C1F] underline">📎 Lampiran soal</a>{% endif %}
+      {% if tugas.deadline %}<p class="text-xs mt-3" style="color:#dc2626;">⏰ Batas: {{ tugas.deadline|date:"d M Y, H:i" }}</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="col-span-2">
+    <form method="POST" enctype="multipart/form-data" id="form-karya" class="space-y-4">
+      {% csrf_token %}
+
+      <div id="kotak-galat" class="card p-4" role="alert" style="border:1px solid #fecaca; background:#fef2f2;{% if not galat %} display:none;{% endif %}">
+        <p class="text-sm font-semibold" style="color:#b91c1c;">Ada yang perlu dilengkapi:</p>
+        <ul id="daftar-galat" class="text-sm mt-1" style="color:#b91c1c; list-style:disc; margin-left:20px;">
+          {% for g in galat %}<li>{{ g }}</li>{% endfor %}
+        </ul>
+        {% if galat %}<p class="text-xs text-gray-500 mt-2">Pilih ulang berkas karyamu, karena browser tidak menyimpan pilihan berkas.</p>{% endif %}
+      </div>
+
+      <div class="card p-5">
+        <h3 class="font-semibold text-gray-800 text-sm mb-3">1. Karyamu</h3>
+
+        {% for k in kolom %}
+        <div class="mb-4">
+          <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">{{ k.label }}{% if k.wajib %} <span style="color:#dc2626;">*</span>{% endif %}</label>
+          {% if k.rekam %}
+            {% include 'kreasi/_rekam.html' with nama=k.nama batas=batas_audio wajib=k.wajib label=k.label %}
+          {% else %}
+            <input type="file" name="{{ k.nama }}" accept="{{ k.accept }}" {% if k.multiple %}multiple{% endif %} data-label="{{ k.label }}"{% if k.wajib %} data-wajib="1"{% endif %}
+                   class="w-full text-sm text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:bg-[#EAF7DE] file:text-[#3C8C1F]">
+            <p class="text-xs text-gray-400 mt-1">Maksimal {{ k.batas_mb }} MB per berkas.</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        {% if pakai_link %}
+        <div class="mb-4">
+          <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Tautan proyek (opsional)</label>
+          <p class="text-xs text-gray-400 mb-1">Mis. Canva, Google Drive, GitHub, atau YouTube. Harus diawali https://</p>
+          <input type="url" name="lampiran_link" placeholder="https://..." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2">
+          <input type="url" name="lampiran_link" placeholder="https://..." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+        </div>
+        {% endif %}
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">{% if cfg.butuh_ringkasan %}Rangkuman karya <span style="color:#dc2626;">*</span>{% else %}Ceritakan karyamu (opsional){% endif %}</label>
+          <textarea name="ringkasan" rows="4" maxlength="3000" {% if cfg.butuh_ringkasan %}required{% endif %}
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3C8C1F]"
+                    placeholder="Tulis singkat tentang karyamu...">{{ isian.ringkasan }}</textarea>
+        </div>
+      </div>
+
+      <div class="card p-5">
+        <h3 class="font-semibold text-gray-800 text-sm mb-1">2. Refleksi</h3>
+        <p class="text-sm text-gray-500 mb-4">{{ refleksi_cfg.petunjuk }}</p>
+
+        {% if refleksi_cfg.tipe == 'emoji_suara' %}
+          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+            {% for kunci, glyph, label in refleksi_cfg.emoji %}
+            <label class="emo">
+              <input type="radio" name="refleksi_emoji" value="{{ kunci }}" {% if isian.refleksi_emoji == kunci %}checked{% endif %}>
+              <span><b>{{ glyph }}</b>{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Ceritakan dengan suaramu (opsional)</label>
+          {% include 'kreasi/_rekam.html' with nama='refleksi_audio' batas=batas_audio label='Rekaman suara refleksi' %}
+
+        {% elif refleksi_cfg.tipe == 'teks_terbimbing' or refleksi_cfg.tipe == 'metakognitif' %}
+          {% for r in baris_refleksi %}
+          <div class="mb-3">
+            <label class="block text-sm text-gray-700 mb-1">{{ forloop.counter }}. {{ r.label }}</label>
+            <textarea name="refleksi_{{ r.kode }}" rows="3" maxlength="2000" required
+                      class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#3C8C1F]">{{ r.isi }}</textarea>
+          </div>
+          {% endfor %}
+
+        {% elif refleksi_cfg.tipe == 'matriks' %}
+          {% for r in baris_refleksi %}
+          <div class="mb-4">
+            <p class="text-sm font-medium text-gray-700 mb-1">{{ r.label }}</p>
+            <div class="skala mb-1">
+              {% for n in skala %}
+              <label><input type="radio" name="refleksi_{{ r.kode }}_skor" value="{{ n }}" {% if r.skor == n|stringformat:"s" %}checked{% endif %} required> {{ n }}</label>
+              {% endfor %}
+              <span class="text-xs text-gray-400">(1 = perlu banyak perbaikan, 4 = sangat baik)</span>
+            </div>
+            <textarea name="refleksi_{{ r.kode }}_alasan" rows="2" maxlength="2000" placeholder="Alasanmu..."
+                      class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">{{ r.alasan }}</textarea>
+          </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+
+      <div>
+        <button type="submit" id="btn-kirim" class="btn-primary w-full justify-center">Kumpulkan Karya</button>
+        <div id="progres" style="display:none; margin-top:10px;">
+          <div style="background:#e5e7eb; border-radius:9999px; height:8px; overflow:hidden;"><div id="bar-unggah" style="background:#3C8C1F; height:8px; width:0; transition:width .2s;"></div></div>
+          <p id="teks-progres" class="text-xs text-gray-500 mt-1"></p>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  var sedangMerekam = 0;   // jumlah perekam yang sedang aktif (harus 0 atau 1)
+  var sedangKirim = false;
+
+  function ekstensi(jenis) {
+    if (jenis.indexOf('webm') > -1) return 'webm';
+    if (jenis.indexOf('mp4') > -1 || jenis.indexOf('aac') > -1) return 'm4a';
+    if (jenis.indexOf('ogg') > -1) return 'ogg';
+    return 'webm';
+  }
+  function tampil(el, ya) { el.style.display = ya ? '' : 'none'; }
+
+  /* ------------------------------------------------------------ perekam suara */
+  document.querySelectorAll('[data-rekam]').forEach(function (kotak) {
+    var input = document.getElementById(kotak.getAttribute('data-rekam'));
+    var batas = parseInt(kotak.getAttribute('data-batas') || '60', 10);
+    var btnMulai = kotak.querySelector('[data-aksi=mulai]');
+    var btnStop = kotak.querySelector('[data-aksi=berhenti]');
+    var btnUlang = kotak.querySelector('[data-aksi=ulang]');
+    var waktu = kotak.querySelector('[data-aksi=waktu]');
+    var pesan = kotak.querySelector('[data-aksi=pesan]');
+    var pemutar = kotak.querySelector('audio');
+    var sesi = null;         // sesi rekaman yang sedang berjalan (satu saja)
+    var meminta = false;     // sedang menunggu izin mikrofon
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+      pesan.textContent = 'Perekaman suara tidak tersedia di perangkat atau alamat ini. ' +
+                          'Buka "Atau pilih berkas suara dari perangkat" di bawah.';
+      btnMulai.disabled = true;
+      return;
+    }
+
+    btnMulai.addEventListener('click', function () {
+      // Cegah klik ganda: klik kedua sebelum mikrofon siap dulu membuat perekam yatim
+      // yang tidak pernah berhenti (timer terus jalan, mikrofon tetap terbuka).
+      if (sesi || meminta) return;
+      if (sedangMerekam > 0) { pesan.textContent = 'Selesaikan dulu rekaman yang lain ya.'; return; }
+      pesan.textContent = '';
+      meminta = true; btnMulai.disabled = true;
+
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (aliran) {
+        meminta = false; btnMulai.disabled = false;
+        var opsi = {};
+        ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'].some(function (t) {
+          if (MediaRecorder.isTypeSupported(t)) { opsi.mimeType = t; return true; }
+          return false;
+        });
+        var potongan = [], detik = 0;
+        var perekam = new MediaRecorder(aliran, opsi);
+        var ini = { perekam: perekam, aliran: aliran, timer: null };
+        sesi = ini;
+
+        function selesai() {   // satu-satunya jalan keluar: hentikan timer, lepas mikrofon, simpan hasil
+          clearInterval(ini.timer);
+          aliran.getTracks().forEach(function (t) { t.stop(); });
+          if (sesi === ini) { sesi = null; sedangMerekam = Math.max(0, sedangMerekam - 1); }
+        }
+
+        perekam.ondataavailable = function (e) { if (e.data && e.data.size) potongan.push(e.data); };
+        perekam.onstop = function () {
+          selesai();
+          var jenis = perekam.mimeType || 'audio/webm';
+          var blob = new Blob(potongan, { type: jenis });
+          var berkas = new File([blob], 'rekaman.' + ekstensi(jenis), { type: jenis });
+          var dt = new DataTransfer(); dt.items.add(berkas); input.files = dt.files;
+          if (pemutar.getAttribute('src')) URL.revokeObjectURL(pemutar.getAttribute('src'));
+          pemutar.src = URL.createObjectURL(blob);
+          tampil(pemutar, true); tampil(btnStop, false); tampil(btnUlang, true); tampil(btnMulai, false);
+          waktu.textContent = 'Tersimpan (' + detik + ' detik)';
+        };
+        perekam.onerror = function () {
+          pesan.textContent = 'Rekaman terganggu. Coba rekam lagi, atau pilih berkas suara dari perangkat.';
+          if (perekam.state !== 'inactive') perekam.stop(); else selesai();
+        };
+        // mikrofon dicabut / izin dicabut / tab ditutup paksa: hentikan dengan rapi
+        aliran.getTracks().forEach(function (t) {
+          t.onended = function () { if (perekam.state !== 'inactive') perekam.stop(); };
+        });
+
+        perekam.start();
+        sedangMerekam += 1;
+        tampil(btnMulai, false); tampil(btnStop, true); tampil(btnUlang, false); tampil(pemutar, false);
+        waktu.textContent = '0 / ' + batas + ' detik';
+        ini.timer = setInterval(function () {
+          detik += 1;
+          waktu.textContent = detik + ' / ' + batas + ' detik';
+          if (detik >= batas && perekam.state !== 'inactive') perekam.stop();
+        }, 1000);
+      }).catch(function () {
+        meminta = false; btnMulai.disabled = false;
+        pesan.textContent = 'Mikrofon tidak bisa dipakai. Izinkan akses mikrofon, atau pilih berkas suara dari perangkat.';
+      });
+    });
+
+    btnStop.addEventListener('click', function () {
+      if (sesi && sesi.perekam.state !== 'inactive') sesi.perekam.stop();
+    });
+    btnUlang.addEventListener('click', function () {
+      input.value = ''; pemutar.removeAttribute('src'); tampil(pemutar, false);
+      tampil(btnUlang, false); tampil(btnMulai, true); waktu.textContent = '';
+    });
+  });
+
+  /* ------------------------------------------------------------ pengiriman formulir */
+  var form = document.getElementById('form-karya');
+  var kotakGalat = document.getElementById('kotak-galat');
+  var daftarGalat = document.getElementById('daftar-galat');
+  var btnKirim = document.getElementById('btn-kirim');
+  var progres = document.getElementById('progres');
+  var bar = document.getElementById('bar-unggah');
+  var teksProgres = document.getElementById('teks-progres');
+  var labelKirim = btnKirim.textContent;
+
+  function tampilkanGalat(daftar) {
+    daftarGalat.innerHTML = '';
+    daftar.forEach(function (g) {
+      var li = document.createElement('li');
+      li.textContent = g;                    // textContent: nama berkas di pesan tidak boleh dianggap HTML
+      daftarGalat.appendChild(li);
+    });
+    var hint = kotakGalat.querySelector('p.text-xs');
+    if (hint) hint.style.display = 'none';   // hint "pilih ulang berkas" hanya untuk muat-ulang halaman
+    tampil(kotakGalat, true);
+    kotakGalat.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function periksaSebelumKirim() {
+    var galat = [];
+    form.querySelectorAll('input[type=file][data-wajib]').forEach(function (inp) {
+      if (!inp.files || inp.files.length === 0) {
+        galat.push('Karya harus menyertakan ' + inp.getAttribute('data-label').toLowerCase() + '.');
+      }
+    });
+    if (form.querySelector('input[name=refleksi_emoji]') && !form.querySelector('input[name=refleksi_emoji]:checked')) {
+      galat.push('Pilih dulu perasaanmu setelah membuat karya.');
+    }
+    return galat;
+  }
+  function akhiriKirim() {
+    sedangKirim = false; btnKirim.disabled = false; btnKirim.textContent = labelKirim; tampil(progres, false);
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (sedangMerekam > 0) { alert('Tekan "Selesai" dulu untuk mengakhiri rekaman ya.'); return; }
+    if (sedangKirim) return;                  // cegah kirim ganda
+    var galat = periksaSebelumKirim();
+    if (galat.length) { tampilkanGalat(galat); return; }   // tidak ada yang diunggah, tidak ada isian yang hilang
+
+    sedangKirim = true; btnKirim.disabled = true; btnKirim.textContent = 'Mengirim...';
+    bar.style.width = '0'; teksProgres.textContent = 'Mulai mengunggah...'; tampil(progres, true);
+    tampil(kotakGalat, false);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', form.getAttribute('action') || window.location.href);
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.upload.onprogress = function (ev) {
+      if (!ev.lengthComputable) return;
+      var p = Math.round(ev.loaded / ev.total * 100);
+      bar.style.width = p + '%';
+      teksProgres.textContent = p < 100 ? 'Mengunggah... ' + p + '%' : 'Memproses...';
+    };
+    xhr.onload = function () {
+      var data = null;
+      try { data = JSON.parse(xhr.responseText); } catch (err) { data = null; }
+      if (data && data.ok) { window.location.href = data.url; return; }   // berhasil: tombol tetap terkunci
+      akhiriKirim();
+      if (data && data.galat) { tampilkanGalat(data.galat); return; }
+      tampilkanGalat(['Karya belum terkirim (kode ' + xhr.status + '). Coba kurangi ukuran berkas atau coba lagi.']);
+    };
+    xhr.onerror = function () {
+      akhiriKirim();
+      tampilkanGalat(['Karya belum terkirim. Periksa koneksi internet, lalu tekan Kumpulkan Karya lagi. Pilihanmu masih tersimpan di halaman ini.']);
+    };
+    xhr.send(new FormData(form));
+  });
+})();
+</script>
+{% endblock %}

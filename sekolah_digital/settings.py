@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'pengaturan',
     'pesan',
     'perpustakaan',
+    'kreasi'
 ]
 
 MIDDLEWARE = [
@@ -38,7 +39,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'sekolah_digital.urls'
-
+PRIVATE_MEDIA_ROOT = Path(config('PRIVATE_MEDIA_ROOT', default=str(BASE_DIR / 'private_media')))
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',

@@ -13,4 +13,5 @@ urlpatterns = [
     path('ruang-kerja/', include('ruang_kerja.urls', namespace='ruang_kerja')),
     path('pesan/', include('pesan.urls', namespace='pesan')),
     path('perpustakaan/', include('perpustakaan.urls', namespace='perpustakaan')),
+    path('kreasi/', include('kreasi.urls', namespace='kreasi')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

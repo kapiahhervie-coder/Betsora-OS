@@ -19,7 +19,10 @@ class BatasiAksesOrangTuaMiddleware:
                 reverse('accounts:dashboard_orangtua'),
                 reverse('accounts:logout'),
             }
-            is_media_or_static = request.path.startswith('/media/') or request.path.startswith('/static/')
+            is_media_or_static = (
+                request.path.startswith('/media/') or request.path.startswith('/static/')
+                or request.path.startswith('/kreasi/media/')  # berkas privat; izin per-anak dicek di view
+            )
             if request.path not in allowed_paths and not is_media_or_static:
                 return redirect('accounts:dashboard_orangtua')
         return self.get_response(request)
