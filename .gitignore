@@ -10,4 +10,7 @@ staticfiles/
 fix_*.ps1
 add_edit_*.ps1
 cek_*.py
-
+private_media/
+*.bak_kreasi*
+kreasi_*.zip
+kirim_ke_claude.zip
