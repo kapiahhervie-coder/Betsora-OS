@@ -1,4 +1,5 @@
-﻿from django.shortcuts import render, redirect
+from accounts.permissions import hanya_staf
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Avg, Sum
@@ -10,6 +11,11 @@ import datetime
 
 @login_required
 def dashboard(request):
+    from django.shortcuts import redirect as _redirect
+    if request.user.role == 'siswa':
+        return _redirect('accounts:dashboard_siswa')
+    if request.user.role == 'orangtua':
+        return _redirect('accounts:dashboard_orangtua')
     hari_ini = datetime.date.today()
     total_siswa = Siswa.objects.filter(aktif=True).count()
     hadir_hari_ini = Absensi.objects.filter(tanggal=hari_ini, status='hadir').count()
@@ -78,6 +84,7 @@ def dashboard(request):
 
 
 @login_required
+@hanya_staf
 def absensi(request):
     kelas = request.GET.get('kelas', '')
     tanggal_str = request.GET.get('tanggal', '')
@@ -98,6 +105,7 @@ def absensi(request):
 
 
 @login_required
+@hanya_staf
 def keaktifan(request):
     kelas = request.GET.get('kelas', '')
     tanggal = datetime.date.today()

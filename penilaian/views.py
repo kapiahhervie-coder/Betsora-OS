@@ -1,3 +1,4 @@
+from accounts.permissions import hanya_staf
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -6,6 +7,7 @@ from .models import SesiPenilaian, Nilai
 
 
 @login_required
+@hanya_staf
 def penilaian_home(request):
     sesi_list = SesiPenilaian.objects.select_related('guru').all()[:20]
     kelas_list = Siswa.objects.values_list('kelas', flat=True).distinct().order_by('kelas')
@@ -13,6 +15,7 @@ def penilaian_home(request):
 
 
 @login_required
+@hanya_staf
 def input_nilai(request):
     kelas_list = Siswa.objects.values_list('kelas', flat=True).distinct().order_by('kelas')
     if request.method == 'POST':
@@ -34,6 +37,7 @@ def input_nilai(request):
 
 
 @login_required
+@hanya_staf
 def detail_sesi(request, sesi_id):
     sesi = get_object_or_404(SesiPenilaian, id=sesi_id)
     nilai_list = sesi.nilai_set.select_related('siswa').order_by('siswa__nama')
