@@ -1,0 +1,60 @@
+{# Bagian karya & catatan guru pada dashboard orang tua. Variabel: bagian (lihat kreasi/orangtua.py) #}
+{% if bagian %}
+<div id="karya-anak" class="card p-5 mb-5">
+  <h3 class="font-semibold text-gray-800 mb-1">🎨 Karya &amp; Perkembangan {{ bagian.nama_depan }}</h3>
+  <p class="text-xs text-gray-400 mb-4">Hasil karya {{ bagian.nama_depan }} dan catatan dari guru. Hanya Anda dan guru yang dapat melihat ini.</p>
+
+  {% for r in bagian.ruang_list %}
+  <div class="mb-6 pb-6 border-b border-gray-100">
+    <p class="text-sm font-semibold text-gray-800 mb-3">{{ r.ruang.mapel }}</p>
+
+    {% for k in r.karya %}
+    <div class="mb-5 p-4 rounded-lg" style="background:#FAF9F5; border:1px solid #ECEAE0;">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-sm font-medium text-gray-700">{{ k.tugas.judul }}</p>
+        <p class="text-xs text-gray-400">{{ k.submisi.dikirim_pada|date:"d M Y" }}</p>
+      </div>
+      {% include 'kreasi/_karya.html' with submisi=k.submisi lampiran_list=k.lampiran_list refleksi=k.refleksi %}
+
+      {% if k.skor_rows %}
+      <div class="mt-4 p-4 rounded-lg bg-[#EAF7DE]">
+        <p class="text-xs font-semibold text-[#3C8C1F] uppercase tracking-wide mb-2">Penilaian guru</p>
+        {% for s in k.skor_rows %}
+        <div class="mb-2">
+          <p class="text-sm font-semibold text-gray-800">{{ s.nama }} <span class="text-xs font-normal text-[#3C8C1F]">· {{ s.label }} ({{ s.level }}/4)</span></p>
+          {% if s.kalimat %}<p class="text-sm text-gray-700">{{ s.kalimat }}</p>{% endif %}
+          {% if s.catatan %}<p class="text-xs text-gray-500">Catatan guru: {{ s.catatan }}</p>{% endif %}
+        </div>
+        {% endfor %}
+        {% if k.feedback %}<p class="text-sm text-gray-700 mt-3 pt-3 border-t border-[#C5DBC5] whitespace-pre-line"><b>Pesan dari guru:</b> {{ k.feedback }}</p>{% endif %}
+      </div>
+      {% else %}
+      <p class="text-xs text-gray-400 mt-3">Belum dinilai oleh guru.</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if r.catatan %}
+    <div class="p-4 rounded-lg" style="background:#FBF3E3;">
+      <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color:#92702E;">Catatan guru · {{ r.ruang.mapel }}</p>
+      {% for judul, teks in r.catatan %}
+      <div class="mb-2">
+        <p class="text-xs font-semibold text-gray-500">{{ judul }}</p>
+        <p class="text-sm text-gray-700 whitespace-pre-line">{{ teks }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% empty %}
+  <p class="text-sm text-gray-400 text-center py-4">Belum ada karya kreasi atau catatan dari guru.</p>
+  {% endfor %}
+
+  {% if bagian.ada_tautan %}<p class="text-xs text-gray-400 mb-2">Tautan pada karya ditambahkan oleh siswa. Buka dengan hati-hati.</p>{% endif %}
+  {% if bagian.ada_lebih %}
+  <p class="text-sm text-center"><a href="?semua_karya=1#karya-anak" class="text-[#3C8C1F] underline">Tampilkan semua karya ({{ bagian.total_karya }})</a></p>
+  {% elif bagian.bisa_diringkas %}
+  <p class="text-sm text-center"><a href="?#karya-anak" class="text-[#3C8C1F] underline">Tampilkan karya terbaru saja</a></p>
+  {% endif %}
+</div>
+{% endif %}
