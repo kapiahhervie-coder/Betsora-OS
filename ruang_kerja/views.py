@@ -693,7 +693,7 @@ def hitung_rata_rata_nilai(ruang, siswa):
     return round(avg, 1) if avg is not None else None
 
 
-def generate_draft_komentar(ruang, siswa, rata2):
+def _draft_akademik(ruang, siswa, rata2):
     nama_depan = siswa.nama.split()[0] if siswa.nama else siswa.nama
     mastery_values = []
     jumlah_mastered = 0
@@ -729,6 +729,19 @@ def generate_draft_komentar(ruang, siswa, rata2):
         kalimat += f' Harapannya, {nama_depan} terus berkomitmen memperkuat pemahaman melalui latihan dan pendampingan yang konsisten.'
 
     return kalimat
+
+def generate_draft_komentar(ruang, siswa, rata2):
+    """Draf narasi rapor: bagian akademik (mastery topik) + bagian Tugas Kreasi (skor rubrik)."""
+    from kreasi.narasi import susun_narasi_kreasi
+    akademik = _draft_akademik(ruang, siswa, rata2)
+    kreasi = susun_narasi_kreasi(ruang, siswa)
+    if not kreasi:
+        return akademik
+    ada_topik = any(t.hitung_mastery(siswa) is not None for t in ruang.materi.all())
+    if not ada_topik:          # kelas yang hanya memakai Tugas Kreasi
+        return kreasi
+    return akademik + '\n\n' + kreasi
+
 
 @login_required
 def rapor_ruang_kerja(request, ruang_id):
