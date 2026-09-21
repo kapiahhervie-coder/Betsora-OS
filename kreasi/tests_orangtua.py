@@ -127,7 +127,7 @@ class TampilanOrangTuaTest(DasarOrangTua):
         self.buat_karya(judul='Karya seni lama', hari=1)
         self.buat_karya(judul='Karya prakarya baru', ruang=smp, emoji='', hari=5)
         html = self.dashboard(self.ortu_a).content.decode()
-        self.assertLess(html.index('Prakarya'), html.index('Seni'))
+        self.assertLess(html.index('Karya prakarya baru'), html.index('Karya seni lama'))
         self.assertIn('Karya prakarya baru', html)
         self.assertIn('Karya seni lama', html)
 
