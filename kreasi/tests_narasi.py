@@ -7,10 +7,12 @@ from django.test import TestCase
 from django.utils import timezone
 
 from accounts.models import Siswa, User
-from ruang_kerja.models import Materi, RuangKerja, SubmisiTugas, Tugas
+from django.urls import reverse
+
+from ruang_kerja.models import AnggotaRuangKerja, CatatanRapor, Materi, RuangKerja, SubmisiTugas, Tugas
 
 from .models import DeskriptorLevel, DimensiPenilaian, RefleksiKarya, SkorDimensi
-from .narasi import _level_rata, susun_narasi_kreasi
+from .narasi import _level_rata, susun_narasi_bidang, susun_narasi_kreasi
 
 KEB, MOT, LIS = 'keberanian_berekspresi', 'motorik_halus', 'kelancaran_lisan'
 
@@ -57,8 +59,8 @@ class AturanNarasiTest(DasarNarasi):
         t = susun_narasi_kreasi(self.ruang, self.siswa)
         self.assertTrue(t.startswith('Ani telah menyelesaikan 1 karya kreasi yang dinilai pada periode ini.'))
         self.assertIn('Ani sangat berani dan percaya diri', t)
-        self.assertIn('Selain itu, Ani cukup terampil', t)              # motorik: level sama dengan lisan, urutan lebih awal
-        self.assertNotIn('menceritakan karyanya secara runtut', t)      # maksimal dua kekuatan
+        self.assertIn('Selain itu, Ani mampu menceritakan karyanya secara runtut', t)
+        self.assertNotIn('cukup terampil', t)              # motorik halus pindah ke kolom Fisik & Motorik
         self.assertNotIn('Pada aspek lain', t)
         self.assertTrue(t.endswith('terus mempertahankan semangat berkarya dan berani menerima tantangan yang lebih besar.'))
 
@@ -66,18 +68,19 @@ class AturanNarasiTest(DasarNarasi):
         self.karya({KEB: 4, MOT: 1, LIS: 2})
         t = susun_narasi_kreasi(self.ruang, self.siswa)
         self.assertIn('Ani sangat berani dan percaya diri', t)
-        self.assertIn('Pada aspek lain, kemampuan Ani dalam menggunting', t)   # huruf pertama dikecilkan, nama tetap kapital
-        self.assertIn('Selain itu, Ani mulai mampu menceritakan karyanya', t)
+        self.assertIn('Pada aspek lain, Ani mulai mampu menceritakan karyanya', t)   # nama tetap kapital
+        self.assertNotIn('menggunting', t)                                            # motorik ada di kolom lain
         self.assertTrue(t.endswith('dengan dukungan guru dan orang tua di rumah.'))
         self.assertLess(t.index('sangat berani'), t.index('Pada aspek lain'))
 
-    def test_semua_rendah_tanpa_awalan_di_sisi_lain(self):
+    def test_semua_rendah_tanpa_awalan_pada_aspek_lain(self):
         self.karya({KEB: 2, MOT: 1, LIS: 2})
         t = susun_narasi_kreasi(self.ruang, self.siswa)
-        self.assertIn('Kemampuan Ani dalam menggunting', t)     # kalimat pertama: huruf besar dipertahankan
-        self.assertIn('Selain itu, Ani mulai berani menunjukkan karyanya', t)
+        self.assertIn('Ani mulai berani menunjukkan karyanya', t)          # kalimat pertama: tanpa penyambung
+        self.assertIn('Selain itu, Ani mulai mampu menceritakan karyanya', t)
         self.assertNotIn('Pada aspek lain', t)
         self.assertNotIn('mempertahankan semangat', t)
+        self.assertTrue(t.endswith('dengan dukungan guru dan orang tua di rumah.'))
 
     def test_pembulatan_setengah_ke_atas(self):
         for levels, harapan in [([3, 4], 4), ([2, 3], 3), ([1, 2, 2], 2), ([4, 3, 3], 3),
@@ -92,10 +95,11 @@ class AturanNarasiTest(DasarNarasi):
         self.assertIn('Ani berani menunjukkan karyanya dan menyampaikan idenya kepada guru dan teman.', t)   # rata-rata 3
 
     def test_perkembangan_disebut_bila_naik(self):
-        self.karya({KEB: 1, MOT: 2, LIS: 3})
+        self.karya({KEB: 1, MOT: 2, LIS: 1})
         self.karya({KEB: 3, MOT: 4, LIS: 3})
         t = susun_narasi_kreasi(self.ruang, self.siswa)
-        self.assertIn('Perkembangan yang menggembirakan terlihat pada aspek keberanian berekspresi dan motorik halus.', t)
+        self.assertIn('Perkembangan yang menggembirakan terlihat pada aspek keberanian berekspresi dan kelancaran menyampaikan gagasan lisan.', t)
+        self.assertNotIn('motorik', t)         # perkembangan motorik disebut di kolom Fisik & Motorik
 
     def test_tidak_ada_kalimat_perkembangan_bila_turun_atau_datar(self):
         self.karya({KEB: 4, MOT: 3, LIS: 3})
@@ -140,7 +144,7 @@ class SumberDataNarasiTest(DasarNarasi):
         t = susun_narasi_kreasi(self.ruang, self.siswa)
         self.assertNotIn('sangat berani dan percaya diri', t)
         DimensiPenilaian.objects.update(aktif=False)
-        self.assertEqual(susun_narasi_kreasi(self.ruang, self.siswa), '')
+        self.assertEqual(susun_narasi_bidang(self.ruang, self.siswa), {'akademik': '', 'fisik_motorik': ''})
 
     def test_hanya_karya_di_ruang_kerja_ini(self):
         lain = RuangKerja.objects.create(mapel='Bahasa', kelas='3', guru=self.guru)
@@ -163,9 +167,9 @@ class SumberDataNarasiTest(DasarNarasi):
         DeskriptorLevel.objects.filter(dimensi__kode=KEB, level=4).delete()
         t = susun_narasi_kreasi(self.ruang, self.siswa)
         self.assertNotIn('sangat berani', t)
-        self.assertIn('Ani cukup terampil', t)
+        self.assertIn('Ani mampu menceritakan karyanya secara runtut', t)
         DeskriptorLevel.objects.all().delete()
-        self.assertEqual(susun_narasi_kreasi(self.ruang, self.siswa), '')
+        self.assertEqual(susun_narasi_bidang(self.ruang, self.siswa), {'akademik': '', 'fisik_motorik': ''})
 
     def test_edit_deskriptor_di_admin_langsung_terpakai(self):
         self.karya({KEB: 4, MOT: 3, LIS: 3})
@@ -218,3 +222,165 @@ class DraftKomentarTerpaduTest(DasarNarasi):
         with mock.patch('ruang_kerja.views._draft_akademik', return_value='AKADEMIK.'), \
              mock.patch.object(Materi, 'hitung_mastery', return_value=80.0):
             self.assertEqual(self.draf(), 'AKADEMIK.')
+
+
+class BidangFisikMotorikTest(DasarNarasi):
+    """Dimensi Motorik Halus diarahkan ke kolom Fisik & Motorik, terpisah dari Catatan Akademik."""
+
+    def bidang(self):
+        return susun_narasi_bidang(self.ruang, self.siswa)
+
+    def test_motorik_ke_kolom_fisik_bukan_akademik(self):
+        self.karya({KEB: 4, MOT: 3, LIS: 3})
+        b = self.bidang()
+        self.assertEqual(b['fisik_motorik'], 'Ani cukup terampil mengendalikan alat kerja sehingga karyanya tersusun dengan rapi.')
+        self.assertNotIn('terampil', b['akademik'])
+        self.assertEqual(susun_narasi_kreasi(self.ruang, self.siswa), b['akademik'])
+
+    def test_fisik_apa_adanya_tanpa_pembuka_dan_penutup(self):
+        self.karya({KEB: 3, MOT: 1, LIS: 3})
+        f = self.bidang()['fisik_motorik']
+        self.assertEqual(f, 'Kemampuan Ani dalam menggunting, menempel, mewarnai, dan memegang alat tulis '
+                            'masih memerlukan banyak latihan dan pendampingan.')       # huruf kapital utuh, tanpa 'Harapannya'
+        self.assertNotIn('Harapannya', f)
+        self.assertNotIn('telah menyelesaikan', f)
+
+    def test_perkembangan_motorik_disebut_di_kolom_fisik(self):
+        self.karya({KEB: 3, MOT: 2, LIS: 3})
+        self.karya({KEB: 3, MOT: 4, LIS: 3})
+        b = self.bidang()
+        self.assertTrue(b['fisik_motorik'].endswith('Perkembangan yang menggembirakan terlihat pada aspek motorik halus.'))
+        self.assertNotIn('Perkembangan', b['akademik'])
+
+    def test_hanya_motorik_yang_dinilai_akademik_kosong(self):
+        self.karya({MOT: 4})
+        b = self.bidang()
+        self.assertEqual(b['akademik'], '')
+        self.assertIn('sangat terampil', b['fisik_motorik'])
+
+    def test_tanpa_motorik_kolom_fisik_kosong(self):
+        self.karya({KEB: 3, LIS: 3})
+        b = self.bidang()
+        self.assertEqual(b['fisik_motorik'], '')
+        self.assertNotEqual(b['akademik'], '')
+
+    def test_motorik_nonaktif_kolom_fisik_kosong(self):
+        self.karya({KEB: 3, MOT: 4, LIS: 3})
+        DimensiPenilaian.objects.filter(kode=MOT).update(aktif=False)
+        self.assertEqual(self.bidang()['fisik_motorik'], '')
+
+    def test_jumlah_query_tetap_tiga(self):
+        self.karya({KEB: 1, MOT: 2, LIS: 3}, emoji='senang')
+        self.karya({KEB: 3, MOT: 4, LIS: 3}, emoji='bangga')
+        with self.assertNumQueries(3):
+            self.bidang()
+
+    def test_jenjang_tanpa_dimensi_motorik_kolom_fisik_kosong(self):
+        ruang = RuangKerja.objects.create(mapel='IPA', kelas='5', guru=self.guru)          # SD 4-6
+        self.karya({'sebab_akibat': 4, 'kreativitas_media': 3, 'pemahaman_konsep': 3}, ruang=ruang)
+        b = susun_narasi_bidang(ruang, self.siswa)
+        self.assertEqual(b['fisik_motorik'], '')
+        self.assertIn('bernalar sebab-akibat', b['akademik'])
+
+
+class BatasKekuatanDanTumbuhTest(DasarNarasi):
+    """Batas maksimal dua kekuatan / dua area berkembang, diuji di jenjang yang punya 3 dimensi akademik."""
+    kelas = '5'
+    jenjang = 'sd_akhir'
+
+    def test_maksimal_dua_kekuatan(self):
+        self.karya({'sebab_akibat': 4, 'kreativitas_media': 3, 'pemahaman_konsep': 3})
+        t = susun_narasi_kreasi(self.ruang, self.siswa)
+        self.assertIn('sangat baik dalam bernalar sebab-akibat', t)
+        self.assertIn('Selain itu, Ani mampu memilih media yang sesuai', t)
+        self.assertNotIn('memahami konsep dasar dan menerapkannya', t)      # kekuatan ketiga tidak ditampilkan
+
+    def test_maksimal_dua_area_berkembang_yang_terendah_dulu(self):
+        self.karya({'sebab_akibat': 2, 'kreativitas_media': 1, 'pemahaman_konsep': 2})
+        t = susun_narasi_kreasi(self.ruang, self.siswa)
+        self.assertLess(t.index('meniru contoh'), t.index('menjelaskan hubungan sederhana'))   # level 1 lebih dulu dari level 2
+        self.assertNotIn('memahami sebagian konsep dasar', t)                               # area ketiga tidak ditampilkan
+
+
+class HalamanRaporTest(DasarNarasi):
+    """Halaman rapor guru (template asli) dan halaman rapor siswa, setelah pemasangan tahap 4."""
+
+    def setUp(self):
+        AnggotaRuangKerja.objects.create(ruang_kerja=self.ruang, siswa=self.siswa)
+
+    def rapor_guru(self):
+        self.client.force_login(self.guru)
+        return self.client.get(reverse('ruang_kerja:rapor_ruang_kerja', args=[self.ruang.id]))
+
+    def baris(self, r, siswa=None):
+        return next(b for b in r.context['data'] if b['siswa'] == (siswa or self.siswa))
+
+    def test_kolom_fisik_terisi_draf_dan_ada_keterangan(self):
+        self.karya({KEB: 4, MOT: 3, LIS: 3})
+        r = self.rapor_guru()
+        self.assertEqual(r.status_code, 200)
+        b = self.baris(r)
+        self.assertEqual(b['catatan_fisik_motorik'], 'Ani cukup terampil mengendalikan alat kerja sehingga karyanya tersusun dengan rapi.')
+        self.assertTrue(b['draft_fisik'])
+        self.assertContains(r, 'Ani cukup terampil mengendalikan alat kerja sehingga karyanya tersusun dengan rapi.')
+        self.assertContains(r, 'Draft dari rubrik kreasi')
+
+    def test_kolom_akademik_tidak_memuat_kalimat_motorik(self):
+        self.karya({KEB: 4, MOT: 3, LIS: 3})
+        b = self.baris(self.rapor_guru())
+        self.assertIn('Ani telah menyelesaikan 1 karya kreasi', b['draft_komentar'])
+        self.assertNotIn('terampil', b['draft_komentar'])
+
+    def test_siswa_tanpa_karya_tanpa_draf_dan_tanpa_keterangan(self):
+        r = self.rapor_guru()
+        b = self.baris(r)
+        self.assertEqual(b['catatan_fisik_motorik'], '')
+        self.assertFalse(b['draft_fisik'])
+        self.assertNotContains(r, 'Draft dari rubrik kreasi')
+
+    def test_catatan_fisik_tersimpan_tidak_ditimpa_draf(self):
+        self.karya({KEB: 4, MOT: 3, LIS: 3})
+        CatatanRapor.objects.create(ruang_kerja=self.ruang, siswa=self.siswa, catatan_fisik_motorik='Tulisan guru sendiri.')
+        r = self.rapor_guru()
+        b = self.baris(r)
+        self.assertEqual(b['catatan_fisik_motorik'], 'Tulisan guru sendiri.')
+        self.assertFalse(b['draft_fisik'])
+        self.assertNotContains(r, 'Draft dari rubrik kreasi')
+
+    def test_simpan_lalu_muat_ulang_memakai_yang_tersimpan(self):
+        self.karya({KEB: 4, MOT: 3, LIS: 3})
+        b = self.baris(self.rapor_guru())
+        self.client.post(reverse('ruang_kerja:simpan_catatan_rapor', args=[self.ruang.id, self.siswa.id]), {
+            'catatan': b['draft_komentar'], 'catatan_disiplin': '',
+            'catatan_fisik_motorik': b['catatan_fisik_motorik'] + ' Ditambah catatan guru.'})
+        b2 = self.baris(self.rapor_guru())
+        self.assertTrue(b2['catatan_fisik_motorik'].endswith('Ditambah catatan guru.'))
+        self.assertFalse(b2['draft_fisik'])
+
+    def test_rapor_siswa_hanya_menampilkan_yang_sudah_disimpan_guru(self):
+        self.karya({KEB: 4, MOT: 3, LIS: 3})
+        self.client.force_login(self.siswa.user)
+        r = self.client.get(reverse('ruang_kerja:rapor_siswa', args=[self.ruang.id, self.siswa.id]))
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.context['catatan'], '')                 # draf otomatis tidak bocor ke siswa/orang tua
+        self.assertEqual(r.context['catatan_fisik_motorik'], '')
+        CatatanRapor.objects.create(ruang_kerja=self.ruang, siswa=self.siswa, catatan='Disimpan guru.', catatan_fisik_motorik='Motorik disimpan guru.')
+        r = self.client.get(reverse('ruang_kerja:rapor_siswa', args=[self.ruang.id, self.siswa.id]))
+        self.assertEqual((r.context['catatan'], r.context['catatan_fisik_motorik']), ('Disimpan guru.', 'Motorik disimpan guru.'))
+
+    def test_tambahan_query_per_siswa_terkendali(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        def jumlah():
+            with CaptureQueriesContext(connection) as q:
+                self.rapor_guru()
+            return len(q)
+        satu = jumlah()
+        for i in range(3):
+            u = User.objects.create_user(f'x{i}', password='x', role='siswa')
+            s = Siswa.objects.create(user=u, nama=f'Siswa {i}', nis=f'9{i}', kelas='3')
+            AnggotaRuangKerja.objects.create(ruang_kerja=self.ruang, siswa=s)
+            self.karya({KEB: 3, MOT: 3, LIS: 3}, siswa=s)
+        empat = jumlah()
+        self.assertLessEqual((empat - satu) / 3, 20, f'{satu} query untuk 1 siswa, {empat} untuk 4')

@@ -287,3 +287,14 @@ MAKS_LAMPIRAN_PER_TIPE = 10
 MAKS_LINK = 5
 BATAS_TEKS = 2000        # jawaban refleksi
 BATAS_RINGKASAN = 3000   # ringkasan karya
+
+
+# ---------------------------------------------------------------- bidang rapor
+
+# Dimensi yang bukan "akademik" diarahkan ke kolom rapor lain. Kunci = KODE dimensi.
+# Dimensi yang tidak tercantum di sini masuk ke "Catatan Akademik".
+BIDANG_AKADEMIK = 'akademik'
+BIDANG_FISIK_MOTORIK = 'fisik_motorik'
+BIDANG_DIMENSI = {
+    'motorik_halus': BIDANG_FISIK_MOTORIK,
+}

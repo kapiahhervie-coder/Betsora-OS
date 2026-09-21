@@ -743,6 +743,12 @@ def generate_draft_komentar(ruang, siswa, rata2):
     return akademik + '\n\n' + kreasi
 
 
+def generate_draft_fisik_motorik(ruang, siswa):
+    """Draf kolom Fisik & Motorik dari skor rubrik Tugas Kreasi (dimensi Motorik Halus). '' bila belum ada."""
+    from kreasi.narasi import susun_narasi_bidang
+    return susun_narasi_bidang(ruang, siswa)['fisik_motorik']
+
+
 @login_required
 def rapor_ruang_kerja(request, ruang_id):
     ruang = get_object_or_404(RuangKerja, id=ruang_id)
@@ -761,12 +767,15 @@ def rapor_ruang_kerja(request, ruang_id):
         rata2 = hitung_rata_rata_nilai(ruang, a.siswa)
         catatan_obj = catatan_map.get(a.siswa_id)
         catatan_ada = catatan_obj.catatan if catatan_obj else ''
+        catatan_fisik_ada = catatan_obj.catatan_fisik_motorik if catatan_obj else ''
+        draft_fisik = '' if catatan_fisik_ada else generate_draft_fisik_motorik(ruang, a.siswa)
         data.append({
             'siswa': a.siswa,
             'rata2': rata2,
             'catatan': catatan_ada,
             'catatan_disiplin': catatan_obj.catatan_disiplin if catatan_obj else '',
-            'catatan_fisik_motorik': catatan_obj.catatan_fisik_motorik if catatan_obj else '',
+            'catatan_fisik_motorik': catatan_fisik_ada or draft_fisik,
+            'draft_fisik': bool(draft_fisik),
             'draft_komentar': catatan_ada or generate_draft_komentar(ruang, a.siswa, rata2),
         })
 
