@@ -1,0 +1,23 @@
+{# Bagian absensi pada dashboard orang tua. Variabel: bagian (lihat kreasi/orangtua_lain.py) #}
+{% if bagian %}
+<div class="card p-5 mb-5">
+  <h3 class="font-semibold text-gray-800 mb-1">📅 Absensi</h3>
+  {% if bagian.total %}
+  <div class="flex items-center gap-6 mb-4 mt-3">
+    <div><p class="text-2xl font-bold text-[#3C8C1F]">{{ bagian.persen_hadir }}%</p><p class="text-xs text-gray-400">Hadir</p></div>
+    <div><p class="text-sm text-gray-600">{{ bagian.hitung.hadir }} hadir &middot; {{ bagian.hitung.izin }} izin &middot; {{ bagian.hitung.sakit }} sakit &middot; {{ bagian.hitung.alpha }} alpha{% if bagian.hitung.kosong %} &middot; {{ bagian.hitung.kosong }} belum diisi{% endif %}</p><p class="text-xs text-gray-400">dari {{ bagian.total }} hari tercatat</p></div>
+  </div>
+  <div class="space-y-2">
+    {% for a in bagian.daftar %}
+    <div class="flex items-center justify-between text-sm">
+      <span class="text-gray-600">{{ a.tanggal|date:"d M Y" }}</span>
+      {% if a.kosong %}<span class="text-xs text-gray-400 italic">Belum diisi</span>{% else %}<span class="badge-{{ a.status }}">{{ a.label }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% if bagian.ada_lebih %}<p class="text-xs text-gray-400 mt-2">Menampilkan {{ bagian.daftar|length }} hari terakhir dari {{ bagian.total }} data.</p>{% endif %}
+  {% else %}
+  <p class="text-sm text-gray-400 text-center py-4 mt-2">Belum ada data kehadiran</p>
+  {% endif %}
+</div>
+{% endif %}

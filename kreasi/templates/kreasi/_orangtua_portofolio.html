@@ -1,0 +1,33 @@
+{# Bagian portofolio/galeri pada dashboard orang tua. Variabel: bagian #}
+{% if bagian %}
+<div id="portofolio-anak" class="card p-5 mb-5">
+  <h3 class="font-semibold text-gray-800 mb-1">🖼️ Portofolio &amp; Galeri</h3>
+  <p class="text-xs text-gray-400 mb-4">Karya yang diunggah sendiri oleh anak Anda ke portofolionya.</p>
+  {% if bagian.daftar %}
+  <div class="grid grid-cols-2 gap-4">
+    {% for k in bagian.daftar %}
+    <div class="rounded-lg border border-gray-200 p-3">
+      <p class="text-sm font-medium text-gray-800 mb-1">{{ k.karya.judul }}</p>
+      <p class="text-xs text-gray-400 mb-2">{{ k.karya.diunggah_pada|date:"d M Y" }}</p>
+      {% if k.karya.file and k.is_image %}
+      <img src="{{ k.karya.file.url }}" alt="{{ k.karya.judul }}" loading="lazy" class="max-w-full max-h-56 rounded-lg border border-gray-100 object-contain mb-2">
+      {% elif k.karya.file %}
+      <a href="{{ k.karya.file.url }}" target="_blank" class="inline-flex items-center gap-1 text-sm text-[#3C8C1F] underline mb-2">📄 Lihat berkas</a>
+      {% endif %}
+      {% if k.embed_aman %}
+      <iframe src="{{ k.embed_aman }}" style="width:100%; aspect-ratio:16/9; border:0; border-radius:8px;" allowfullscreen loading="lazy"></iframe>
+      {% elif k.video_url_mentah %}
+      <a href="{{ k.video_url_mentah }}" target="_blank" rel="noopener noreferrer nofollow" class="inline-flex items-center gap-1 text-sm text-[#3C8C1F] underline" style="word-break:break-all;">🔗 {{ k.video_url_mentah }}</a>
+      {% endif %}
+      {% if k.karya.deskripsi %}<p class="text-sm text-gray-600 mt-2 whitespace-pre-line">{{ k.karya.deskripsi }}</p>{% endif %}
+      {% if k.karya.refleksi %}<p class="text-xs text-gray-500 mt-2 whitespace-pre-line"><b>Refleksi:</b> {{ k.karya.refleksi }}</p>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% if bagian.ada_lebih %}<p class="text-sm text-center mt-3"><a href="?semua_portofolio=1#portofolio-anak" class="text-[#3C8C1F] underline">Tampilkan semua karya ({{ bagian.total }})</a></p>
+  {% elif bagian.semua and bagian.total > 12 %}<p class="text-sm text-center mt-3"><a href="?#portofolio-anak" class="text-[#3C8C1F] underline">Tampilkan yang terbaru saja</a></p>{% endif %}
+  {% else %}
+  <p class="text-sm text-gray-400 text-center py-4">Belum ada karya yang diunggah ke portofolio.</p>
+  {% endif %}
+</div>
+{% endif %}
