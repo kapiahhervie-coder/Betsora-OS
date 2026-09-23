@@ -18,6 +18,7 @@ class BatasiAksesOrangTuaMiddleware:
             allowed_paths = {
                 reverse('accounts:dashboard_orangtua'),
                 reverse('accounts:logout'),
+                reverse('accounts:ganti_password'),
             }
             is_media_or_static = (
                 request.path.startswith('/media/') or request.path.startswith('/static/')

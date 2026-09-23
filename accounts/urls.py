@@ -12,4 +12,5 @@ urlpatterns = [
     path('siswa/<int:siswa_id>/buat-akun-orangtua/', views.buat_akun_orangtua, name='buat_akun_orangtua'),
     path('dashboard-siswa/', views.dashboard_siswa, name='dashboard_siswa'),
     path('dashboard-orangtua/', views.dashboard_orangtua, name='dashboard_orangtua'),
+    path('ganti-password/', views.ganti_password, name='ganti_password'),
 ]

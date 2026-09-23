@@ -125,6 +125,9 @@ tailwind.config = {
       </div>
       <p class="text-[#DCE8E0] text-[13px] truncate">{{ user.get_full_name|default:user.username }}</p>
     </div>
+    <a href="{% url 'accounts:ganti_password' %}" class="nav-link text-[#B7DFA0] hover:text-white">
+      <i class="ti ti-key" style="font-size:16px"></i>Ganti Password
+    </a>
     <a href="{% url 'accounts:logout' %}" class="nav-link text-[#B7DFA0] hover:text-white">
       <i class="ti ti-logout" style="font-size:16px"></i>Keluar
     </a>
