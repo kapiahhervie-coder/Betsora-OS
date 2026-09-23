@@ -9,9 +9,44 @@ from .models import SesiPenilaian, Nilai
 @login_required
 @hanya_staf
 def penilaian_home(request):
-    sesi_list = SesiPenilaian.objects.select_related('guru').all()[:20]
-    kelas_list = Siswa.objects.values_list('kelas', flat=True).distinct().order_by('kelas')
-    return render(request, 'penilaian/home.html', {'sesi_list': sesi_list, 'kelas_list': kelas_list})
+    from ruang_kerja.models import Materi, RuangKerja
+    kelas_filter = request.GET.get('kelas', '')
+
+    materi_qs = (Materi.objects
+                 .filter(penilaian__isnull=False)
+                 .select_related('ruang_kerja')
+                 .distinct()
+                 .order_by('-dibuat_pada'))
+    kelas_list = RuangKerja.objects.values_list('kelas', flat=True).distinct().order_by('kelas')
+    if kelas_filter:
+        materi_qs = materi_qs.filter(ruang_kerja__kelas=kelas_filter)
+
+    topik_list = []
+    for materi in materi_qs:
+        siswa_ids = materi.penilaian.values_list('siswa_id', flat=True).distinct()
+        siswa_dinilai = Siswa.objects.filter(id__in=siswa_ids)
+        mastery_list = []
+        tuntas = 0
+        for s in siswa_dinilai:
+            m = materi.hitung_mastery(s)
+            if m is not None:
+                mastery_list.append(m)
+                if materi.is_mastered(s):
+                    tuntas += 1
+        rata2 = round(sum(mastery_list) / len(mastery_list), 1) if mastery_list else None
+        topik_list.append({
+            'materi': materi,
+            'ruang': materi.ruang_kerja,
+            'jumlah_dinilai': siswa_dinilai.count(),
+            'tuntas': tuntas,
+            'rata2': rata2,
+        })
+
+    return render(request, 'penilaian/home.html', {
+        'topik_list': topik_list,
+        'kelas_list': kelas_list,
+        'kelas_filter': kelas_filter,
+    })
 
 
 @login_required

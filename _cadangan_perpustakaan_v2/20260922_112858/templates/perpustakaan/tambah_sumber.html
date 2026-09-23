@@ -46,21 +46,6 @@
       <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Teks untuk Dibacakan (Audiobook, opsional)</label>
       <textarea name="teks_baca" rows="8" placeholder="Tempel atau ketik isi cerita di sini. Suara akan membacakannya untuk anak." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></textarea>
     </div>
-    <div style="display:flex; gap:12px;">
-      <div style="flex:1;">
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Usia minimal</label>
-        <input type="number" name="usia_min" min="0" max="99" value="0" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-      </div>
-      <div style="flex:1;">
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Usia maksimal</label>
-        <input type="number" name="usia_maks" min="0" max="99" value="0" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-      </div>
-    </div>
-    <p style="font-size:11px; color:#9ca3af; margin:0;">Isi 0 untuk semua umur.</p>
-    <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Topik / minat (opsional)</label>
-      <input type="text" name="topik" maxlength="200" placeholder="Contoh: hewan, antariksa, persahabatan" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-    </div>
     <div class="flex gap-3 pt-2">
       <button type="submit" class="btn-primary">Simpan</button>
       <a href="{% url 'perpustakaan:detail_zona' zona.id %}" class="btn-secondary">Batal</a>

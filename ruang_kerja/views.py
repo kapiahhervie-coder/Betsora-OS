@@ -175,6 +175,35 @@ def tambah_tugas(request, ruang_id):
 
 
 @login_required
+def edit_tugas(request, tugas_id):
+    tugas = get_object_or_404(Tugas, id=tugas_id)
+    ruang = tugas.ruang_kerja
+    if request.user.role == 'siswa':
+        messages.error(request, 'Hanya guru yang dapat mengedit tugas.')
+        return redirect('ruang_kerja:detail_tugas', tugas_id=tugas.id)
+    if request.method == 'POST':
+        judul = request.POST.get('judul', '').strip()
+        if not judul:
+            messages.error(request, 'Judul tidak boleh kosong.')
+            return redirect('ruang_kerja:edit_tugas', tugas_id=tugas.id)
+        tugas.judul = judul[:150]
+        tugas.instruksi = request.POST.get('instruksi', '').strip()
+        tugas.deadline = request.POST.get('deadline') or None
+        try:
+            tugas.nilai_maksimal = int(request.POST.get('nilai_maksimal', 100))
+        except ValueError:
+            tugas.nilai_maksimal = 100
+        if request.FILES.get('lampiran'):
+            tugas.lampiran = request.FILES['lampiran']
+        elif request.POST.get('hapus_lampiran'):
+            tugas.lampiran = None
+        tugas.save()
+        messages.success(request, 'Tugas berhasil diperbarui.')
+        return redirect('ruang_kerja:detail', ruang_id=ruang.id)
+    return render(request, 'ruang_kerja/edit_tugas.html', {'tugas': tugas, 'ruang': ruang})
+
+
+@login_required
 def hapus_tugas(request, tugas_id):
     tugas = get_object_or_404(Tugas, id=tugas_id)
     ruang_id = tugas.ruang_kerja.id

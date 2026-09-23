@@ -1,0 +1,639 @@
+{% extends 'base.html' %}
+{% block title %}Baca: {{ sumber.judul }}{% endblock %}
+{% block page_title %}{{ sumber.judul }}{% endblock %}
+{% block content %}
+<style>
+  #rd { --bg:#ffffff; --fg:#1f2937; --line:#e5e7eb; --btn:#f3f4f6; background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:16px; padding:14px; }
+  #rd.th-sepia { --bg:#F4ECD8; --fg:#5B4636; --line:#E0D3B5; --btn:#EADFC4; }
+  #rd.th-gelap { --bg:#111827; --fg:#E5E7EB; --line:#374151; --btn:#1F2937; }
+  #rd.th-sepia #book canvas { filter:sepia(.45); }
+  #rd.th-gelap #book canvas { filter:invert(.9) hue-rotate(180deg); }
+  .rd-bar { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  .rb { border:1px solid var(--line); background:var(--btn); color:var(--fg); border-radius:8px; padding:7px 12px; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .rb.utama { background:#0B3D26; color:#fff; border-color:#0B3D26; }
+  .rd-bar select, #rd input[type=text] { border:1px solid var(--line); background:var(--btn); color:var(--fg); border-radius:8px; padding:6px 8px; font-size:12.5px; }
+  .rd-main { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  .rd-col { flex:1 1 320px; min-width:0; }
+  #bookwrap { display:flex; justify-content:center; padding:6px 0; }
+  #book { margin:0 auto; }
+  .pg { background:#fff; overflow:hidden; }
+  .pg canvas { width:100%; height:100%; display:block; }
+  #txtview { display:none; max-width:680px; margin:0 auto; font-size:18px; line-height:1.9; min-height:280px; padding:6px 4px; }
+  #txtview h4 { font-size:12px; opacity:.65; margin:0 0 10px; text-transform:uppercase; letter-spacing:.06em; }
+  .kal { cursor:pointer; border-radius:4px; }
+  .kal.on { background:#FDE68A; color:#111827; }
+  .rd-nav { display:flex; justify-content:center; align-items:center; gap:14px; margin-top:12px; }
+  #rd-status, #rd-astat { font-size:12.5px; opacity:.8; margin:0 0 8px; }
+  #rd-selesai { display:none; margin-top:14px; padding:12px 14px; border-radius:12px; background:#FBF3E3; color:#92702E; border:1px dashed #D9B860; font-size:13px; }
+  #rd-panel { flex:0 0 270px; max-width:100%; border:1px solid var(--line); border-radius:12px; padding:12px; }
+  #rd-panel h4 { font-size:12px; font-weight:700; margin:0 0 6px; text-transform:uppercase; letter-spacing:.05em; opacity:.75; }
+  .rd-hasil-item { display:block; width:100%; text-align:left; border:none; background:var(--btn); color:var(--fg); border-radius:8px; padding:6px 8px; margin-top:5px; font-size:12px; cursor:pointer; }
+  .rd-chip { display:inline-block; border:1px solid var(--line); background:var(--btn); color:var(--fg); border-radius:99px; padding:3px 10px; margin:0 4px 4px 0; font-size:12px; cursor:pointer; }
+  .rd-glos-item { padding:6px 0; border-bottom:1px solid var(--line); font-size:12.5px; line-height:1.5; }
+</style>
+
+<div class="mb-3"><a href="{% url 'perpustakaan:detail_sumber' sumber.id %}" class="text-sm text-[#0B3D26] hover:underline">&larr; Kembali ke koleksi</a></div>
+
+<input type="hidden" id="rd-csrf" value="{{ csrf_token }}">
+
+<div id="rd" class="th-terang"
+     data-pdf="{{ sumber.file.url }}"
+     data-progres-url="{% url 'perpustakaan:simpan_progres' sumber.id %}"
+     data-sumber-url="{% url 'perpustakaan:detail_sumber' sumber.id %}"
+     data-simpan="{% if bisa_simpan %}1{% else %}0{% endif %}"
+     data-mulai="{{ halaman_mulai }}">
+  <div class="rd-bar">
+    <button type="button" class="rb" id="b-mode">Mode Teks</button>
+    <button type="button" class="rb utama" id="b-audio">&#127911; Dengarkan</button>
+    <select id="s-rate" title="Kecepatan suara">
+      <option value="0.75">Pelan</option>
+      <option value="0.9" selected>Sedang</option>
+      <option value="1.1">Cepat</option>
+    </select>
+    <button type="button" class="rb" id="b-kecil">A-</button>
+    <button type="button" class="rb" id="b-besar">A+</button>
+    <select id="s-tema" title="Tema">
+      <option value="terang">Terang</option>
+      <option value="sepia">Sepia</option>
+      <option value="gelap">Gelap</option>
+    </select>
+    <button type="button" class="rb" id="b-panel">Insight</button>
+    <button type="button" class="rb" id="b-full">Layar penuh</button>
+  </div>
+
+  <div class="rd-main">
+    <div class="rd-col">
+      <p id="rd-status">Memuat buku...</p>
+      <p id="rd-astat"></p>
+      <div id="bookwrap"><div id="book"></div></div>
+      <div id="txtview"></div>
+      <div class="rd-nav">
+        <button type="button" class="rb" id="b-prev">&larr; Sebelumnya</button>
+        <span id="rd-hal" style="font-size:13px; font-weight:600;"></span>
+        <button type="button" class="rb" id="b-next">Berikutnya &rarr;</button>
+      </div>
+      <div id="rd-selesai">
+        &#127881; Kamu sampai di halaman terakhir! Sekarang ceritakan bagian favoritmu.
+        <a href="{% url 'perpustakaan:detail_sumber' sumber.id %}" style="font-weight:700; color:#92702E;">Kirim refleksi &rarr;</a>
+      </div>
+
+      {% if bisa_simpan %}
+      <div id="vr-bar" style="margin-top:16px; border-top:1px dashed var(--line); padding-top:12px;">
+        <strong style="font-size:13px;">&#127908; Ulasan suara</strong>
+        <p style="font-size:12px; opacity:.75; margin:4px 0 8px;">Ceritakan bagian favoritmu dengan suaramu sendiri.</p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button type="button" class="rb utama" id="vr-rekam">&#127908; Rekam</button>
+          <button type="button" class="rb" id="vr-stop" style="display:none;">&#9209; Berhenti</button>
+          <button type="button" class="rb" id="vr-kirim" style="display:none;">Kirim ulasan</button>
+          <label style="font-size:12px;"><input type="checkbox" id="vr-porto"> Simpan juga ke Portofolio</label>
+        </div>
+        <audio id="vr-preview" controls style="display:none; width:100%; margin-top:8px;"></audio>
+        <p id="vr-status" style="font-size:12px; opacity:.8; margin:6px 0 0;"></p>
+      </div>
+      {% endif %}
+    </div>
+
+    <aside id="rd-panel">
+      <h4>Cari di buku</h4>
+      <input type="text" id="rd-cari" placeholder="Ketik kata..." style="width:100%; box-sizing:border-box;">
+      <div id="rd-hasil"></div>
+      <h4 style="margin-top:14px;">Kata kunci</h4>
+      <div id="rd-kata" style="font-size:12px; opacity:.7;">Menyiapkan...</div>
+      <h4 style="margin-top:14px;">Glosarium</h4>
+      <div id="rd-glos-ini"></div>
+      <details id="rd-glos-semua" style="margin-top:6px; font-size:12.5px;">
+        <summary style="cursor:pointer; opacity:.8;">Semua istilah</summary>
+        <div id="rd-glos-list"></div>
+      </details>
+      <p id="rd-idx" style="font-size:11px; opacity:.6; margin:10px 0 0;"></p>
+    </aside>
+  </div>
+</div>
+
+{{ glosarium|json_script:"glos-data" }}
+
+{% verbatim %}
+<script>
+(function () {
+  var root = document.getElementById('rd');
+  var PDF_URL = root.getAttribute('data-pdf');
+  var URL_PROGRES = root.getAttribute('data-progres-url');
+  var URL_SUMBER = root.getAttribute('data-sumber-url');
+  var SIMPAN = root.getAttribute('data-simpan') === '1';
+  var MULAI = parseInt(root.getAttribute('data-mulai') || '0', 10) || 0;
+  var CSRF = document.getElementById('rd-csrf').value;
+  var CDN_PDF = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+  var CDN_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  var CDN_FLIP = 'https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js';
+  var $ = function (id) { return document.getElementById(id); };
+
+  var GLOS = [];
+  try { GLOS = JSON.parse($('glos-data').textContent) || []; } catch (e) { GLOS = []; }
+
+  var pdf = null, pf = null, n = 0, cur = -1, mode = 'buku', fs = 18, siap = false;
+  var texts = [], teksJanji = [], diGambar = [], canvases = [];
+  var audioOn = false, token = 0, kal = [], si = 0, halAudio = -1;
+  var dilihat = {}, dilihatN = 0, tSimpan = null;
+
+  function muatSkrip(src) {
+    return new Promise(function (res, rej) {
+      var s = document.createElement('script');
+      s.src = src; s.onload = res;
+      s.onerror = function () { rej(new Error('Gagal memuat ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function pecah(teks) {
+    var t = (teks || '').replace(/\s+/g, ' ').trim();
+    if (!t) return [];
+    var m = t.match(/[^.!?\u2026]+[.!?\u2026]*\s*/g) || [t];
+    var out = [];
+    m.forEach(function (k) {
+      while (k.length > 200) {
+        var c = k.lastIndexOf(',', 200);
+        if (c < 60) c = k.lastIndexOf(' ', 200);
+        if (c < 1) c = 200;
+        out.push(k.slice(0, c + 1));
+        k = k.slice(c + 1);
+      }
+      if (k.trim()) out.push(k);
+    });
+    return out;
+  }
+
+  function dapatTeks(i) {
+    if (teksJanji[i]) return teksJanji[i];
+    teksJanji[i] = pdf.getPage(i + 1)
+      .then(function (pg) { return pg.getTextContent(); })
+      .then(function (tc) {
+        var t = tc.items.map(function (it) { return it.str; }).join(' ').replace(/\s+/g, ' ').trim();
+        texts[i] = t;
+        return t;
+      })
+      .catch(function () { texts[i] = ''; return ''; });
+    return teksJanji[i];
+  }
+
+  function gambar(i) {
+    if (i < 0 || i >= n || diGambar[i]) return;
+    diGambar[i] = true;
+    pdf.getPage(i + 1).then(function (page) {
+      var v0 = page.getViewport({ scale: 1 });
+      var sc = Math.min(2, 900 / v0.width);
+      var vp = page.getViewport({ scale: sc });
+      var cv = canvases[i];
+      cv.width = vp.width;
+      cv.height = vp.height;
+      return page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    }).catch(function () { diGambar[i] = false; });
+  }
+  function renderAround(p) {
+    for (var i = Math.max(0, p - 1); i <= Math.min(n - 1, p + 4); i++) gambar(i);
+  }
+
+  // ---------- progres baca ----------
+  function catat(p) {
+    if (!dilihat[p]) { dilihat[p] = 1; dilihatN++; }
+  }
+  function bodyProgres() {
+    var b = new URLSearchParams();
+    b.set('csrfmiddlewaretoken', CSRF);
+    b.set('halaman', String(cur + 1));
+    b.set('total', String(n));
+    b.set('dilihat', String(dilihatN));
+    return b;
+  }
+  function jadwalSimpan() {
+    if (!SIMPAN) return;
+    clearTimeout(tSimpan);
+    tSimpan = setTimeout(kirimProgres, 1200);
+  }
+  function kirimProgres() {
+    if (!SIMPAN || !n || cur < 0) return;
+    fetch(URL_PROGRES, {
+      method: 'POST', body: bodyProgres(), credentials: 'same-origin',
+      headers: { 'X-CSRFToken': CSRF }
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d && d.selesai && d.baru) tampilSelesai(d); })
+      .catch(function () {});
+  }
+  function tampilSelesai(d) {
+    var el = $('rd-selesai');
+    el.textContent = '';
+    var pesan = '\uD83C\uDF89 Selamat! Kamu menyelesaikan buku ini.';
+    if (d.lencana_baru && d.lencana_nama) {
+      pesan += ' Lencana baru: ' + (d.lencana_ikon || '') + ' ' + d.lencana_nama + '.';
+    }
+    el.appendChild(document.createTextNode(pesan + ' '));
+    var a = document.createElement('a');
+    a.href = URL_SUMBER;
+    a.style.fontWeight = '700';
+    a.style.color = '#92702E';
+    a.textContent = 'Kirim refleksi \u2192';
+    el.appendChild(a);
+    el.style.display = 'block';
+  }
+
+  // ---------- halaman aktif ----------
+  function setCur(p) {
+    var ganti = (p !== cur);
+    cur = p;
+    catat(p);
+    $('rd-hal').textContent = 'Halaman ' + (p + 1) + ' / ' + n;
+    $('rd-selesai').style.display = (p === n - 1) ? 'block' : 'none';
+    renderAround(p);
+    if (ganti) { perbaruiTeks(); jadwalSimpan(); }
+  }
+  function pergi(p, animasi) {
+    if (p < 0 || p >= n || p === cur) return;
+    if (pf) {
+      if (animasi && mode === 'buku') { pf.flip(p); }
+      else { pf.turnToPage(p); }
+    }
+    setCur(p);
+  }
+
+  function perbaruiTeks() {
+    var p = cur;
+    return dapatTeks(p).then(function (t) {
+      if (p !== cur) return;
+      var box = $('txtview');
+      box.textContent = '';
+      var h = document.createElement('h4');
+      h.textContent = 'Halaman ' + (p + 1) + ' dari ' + n;
+      box.appendChild(h);
+      var ks = pecah(t);
+      if (!ks.length) {
+        var m = document.createElement('p');
+        m.textContent = 'Halaman ini tidak berisi teks (mungkin berupa gambar).';
+        box.appendChild(m);
+      }
+      ks.forEach(function (k, i) {
+        var s = document.createElement('span');
+        s.className = 'kal';
+        s.textContent = k;
+        s.addEventListener('click', function () { mulaiAudio(p, i); });
+        box.appendChild(s);
+      });
+      perbaruiGlosarium(t);
+      if (audioOn) sorot(si);
+    });
+  }
+
+  function sorot(i) {
+    var els = document.querySelectorAll('#txtview .kal');
+    for (var j = 0; j < els.length; j++) els[j].classList.toggle('on', j === i);
+    if (mode === 'teks' && els[i] && els[i].scrollIntoView) els[i].scrollIntoView({ block: 'nearest' });
+  }
+
+  // ---------- audio ----------
+  function suara() {
+    var l = speechSynthesis.getVoices().filter(function (v) { return /^id/i.test(v.lang); });
+    return l.length ? l[0] : null;
+  }
+  function statusAudio(t) { $('rd-astat').textContent = t; }
+  function labelAudio() { $('b-audio').innerHTML = audioOn ? '&#9208; Jeda' : '&#127911; Dengarkan'; }
+
+  function bacaHalaman(p, mulai) {
+    token++;
+    var my = token;
+    speechSynthesis.cancel();
+    dapatTeks(p).then(function (t) {
+      if (my !== token) return;
+      kal = pecah(t);
+      si = mulai || 0;
+      halAudio = p;
+      if (p !== cur) pergi(p, true);
+      if (!kal.length) {
+        statusAudio('Halaman ' + (p + 1) + ' tidak ada teks, dilewati.');
+        setTimeout(function () { lanjutHalaman(my); }, 700);
+        return;
+      }
+      statusAudio('Membacakan halaman ' + (p + 1) + '...');
+      bicara(my);
+    });
+  }
+  function lanjutHalaman(my) {
+    if (my !== token || !audioOn) return;
+    if (cur + 1 < n) { bacaHalaman(cur + 1, 0); }
+    else { hentikanAudio(); statusAudio('Selesai membaca. Ceritakan bagian favoritmu!'); }
+  }
+  function bicara(my) {
+    if (my !== token || !audioOn) return;
+    if (si >= kal.length) { lanjutHalaman(my); return; }
+    sorot(si);
+    var u = new SpeechSynthesisUtterance(kal[si].trim());
+    u.lang = 'id-ID';
+    var v = suara();
+    if (v) u.voice = v;
+    u.rate = parseFloat($('s-rate').value);
+    var lanjut = function () { if (my === token) { si++; bicara(my); } };
+    u.onend = lanjut;
+    u.onerror = lanjut;
+    speechSynthesis.speak(u);
+  }
+  function mulaiAudio(p, i) {
+    if (!('speechSynthesis' in window)) {
+      statusAudio('Browser ini belum mendukung suara otomatis. Coba Chrome atau Edge.');
+      return;
+    }
+    if (!pdf) { statusAudio('Buku masih dimuat, tunggu sebentar.'); return; }
+    audioOn = true;
+    labelAudio();
+    bacaHalaman(p, i);
+  }
+  function hentikanAudio() {
+    audioOn = false;
+    token++;
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    labelAudio();
+  }
+
+  // ---------- insight ----------
+  var STOP = ('yang dan di ke dari ini itu untuk pada dengan adalah dalam tidak akan juga atau ada saya kamu aku kita mereka dia ia oleh karena sebagai bisa dapat lebih sudah telah para bahwa yaitu saat ketika seperti kami anda pun lagi masih hanya mau ingin harus sangat banyak semua setiap bila jika maka agar supaya sebuah suatu satu dua tiga buku halaman').split(' ');
+  function kataKunci() {
+    var f = {};
+    texts.forEach(function (t) {
+      (t || '').toLowerCase().split(/[^a-z]+/).forEach(function (w) {
+        if (w.length < 4 || STOP.indexOf(w) > -1) return;
+        f[w] = (f[w] || 0) + 1;
+      });
+    });
+    var arr = Object.keys(f).filter(function (w) { return f[w] >= 2; })
+      .sort(function (a, b) { return f[b] - f[a]; }).slice(0, 15);
+    var box = $('rd-kata');
+    box.textContent = '';
+    if (!arr.length) { box.textContent = 'Belum ada kata kunci (buku mungkin berupa gambar).'; return; }
+    arr.forEach(function (w) {
+      var c = document.createElement('span');
+      c.className = 'rd-chip';
+      c.textContent = w;
+      c.addEventListener('click', function () { $('rd-cari').value = w; cari(w); });
+      box.appendChild(c);
+    });
+  }
+  function cari(q) {
+    var out = $('rd-hasil');
+    out.textContent = '';
+    q = (q || '').trim().toLowerCase();
+    if (q.length < 2) return;
+    var c = 0;
+    for (var i = 0; i < n && c < 30; i++) {
+      var t = texts[i] || '';
+      var k = t.toLowerCase().indexOf(q);
+      if (k > -1) {
+        c++;
+        var a = document.createElement('button');
+        a.type = 'button';
+        a.className = 'rd-hasil-item';
+        var s = Math.max(0, k - 30);
+        a.textContent = 'Hal ' + (i + 1) + ': ...' + t.slice(s, k + q.length + 40) + '...';
+        (function (pp) { a.addEventListener('click', function () { pergi(pp, true); }); })(i);
+        out.appendChild(a);
+      }
+    }
+    if (!c) out.textContent = siap ? 'Tidak ditemukan.' : 'Tidak ditemukan (teks masih disiapkan...).';
+  }
+  function indeks() {
+    var i = 0;
+    function langkah() {
+      if (i >= n) {
+        siap = true;
+        $('rd-idx').textContent = 'Teks seluruh buku siap dicari.';
+        kataKunci();
+        return;
+      }
+      dapatTeks(i).then(function () {
+        i++;
+        if (i % 5 === 0) $('rd-idx').textContent = 'Menyiapkan pencarian: ' + i + ' / ' + n;
+        langkah();
+      });
+    }
+    langkah();
+  }
+
+  // ---------- glosarium ----------
+  function itemGlos(g) {
+    var d = document.createElement('div');
+    d.className = 'rd-glos-item';
+    var b = document.createElement('strong');
+    b.textContent = g.istilah;
+    var s = document.createElement('span');
+    s.textContent = ' \u2014 ' + g.arti;
+    d.appendChild(b);
+    d.appendChild(s);
+    return d;
+  }
+  function isiGlosarium() {
+    var list = $('rd-glos-list');
+    list.textContent = '';
+    if (!GLOS.length) {
+      $('rd-glos-semua').style.display = 'none';
+      return;
+    }
+    GLOS.forEach(function (g) { list.appendChild(itemGlos(g)); });
+  }
+  function perbaruiGlosarium(t) {
+    var box = $('rd-glos-ini');
+    box.textContent = '';
+    if (!GLOS.length) {
+      box.style.opacity = '.7';
+      box.style.fontSize = '12px';
+      box.textContent = 'Belum ada glosarium untuk buku ini.';
+      return;
+    }
+    var low = (t || '').toLowerCase();
+    var ada = GLOS.filter(function (g) { return low.indexOf(g.istilah.toLowerCase()) > -1; });
+    if (!ada.length) {
+      box.style.opacity = '.7';
+      box.style.fontSize = '12px';
+      box.textContent = 'Tidak ada istilah khusus di halaman ini.';
+      return;
+    }
+    box.style.opacity = '1';
+    ada.forEach(function (g) { box.appendChild(itemGlos(g)); });
+  }
+
+  // ---------- tampilan ----------
+  function setMode(m) {
+    mode = m;
+    $('bookwrap').style.display = (m === 'buku') ? 'flex' : 'none';
+    $('txtview').style.display = (m === 'teks') ? 'block' : 'none';
+    $('b-mode').textContent = (m === 'buku') ? 'Mode Teks' : 'Mode Buku';
+    if (m === 'buku' && pf && cur > -1) pf.turnToPage(cur);
+    if (cur > -1) perbaruiTeks();
+  }
+
+  // ---------- ulasan suara ----------
+  var recMedia = null, recChunks = [], recBlob = null;
+  function pasangUlasan() {
+    if (!$('vr-rekam')) return;
+    var st = $('vr-status');
+    $('vr-rekam').addEventListener('click', function () {
+      if (!navigator.mediaDevices || !window.MediaRecorder) {
+        st.textContent = 'Perekam suara tidak didukung di browser ini.';
+        return;
+      }
+      hentikanAudio();
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        recChunks = [];
+        recBlob = null;
+        recMedia = new MediaRecorder(stream);
+        recMedia.addEventListener('dataavailable', function (e) {
+          if (e.data && e.data.size) recChunks.push(e.data);
+        });
+        recMedia.addEventListener('stop', function () {
+          stream.getTracks().forEach(function (t) { t.stop(); });
+          recBlob = new Blob(recChunks, { type: recMedia.mimeType || 'audio/webm' });
+          var pv = $('vr-preview');
+          pv.src = URL.createObjectURL(recBlob);
+          pv.style.display = 'block';
+          $('vr-kirim').style.display = 'inline-block';
+          $('vr-rekam').style.display = 'inline-block';
+          $('vr-stop').style.display = 'none';
+          st.textContent = 'Dengarkan dulu, lalu kirim.';
+        });
+        recMedia.start();
+        $('vr-rekam').style.display = 'none';
+        $('vr-stop').style.display = 'inline-block';
+        $('vr-kirim').style.display = 'none';
+        $('vr-preview').style.display = 'none';
+        st.textContent = 'Sedang merekam...';
+      }).catch(function (err) {
+        st.textContent = 'Tidak bisa memakai mikrofon: ' + err.message;
+      });
+    });
+    $('vr-stop').addEventListener('click', function () {
+      if (recMedia && recMedia.state !== 'inactive') recMedia.stop();
+    });
+    $('vr-kirim').addEventListener('click', function () {
+      if (!recBlob) return;
+      st.textContent = 'Mengirim...';
+      var fd = new FormData();
+      fd.append('csrfmiddlewaretoken', CSRF);
+      fd.append('jenis', 'AUDIO');
+      fd.append('teks', '');
+      fd.append('file_audio', new File([recBlob], 'ulasan.webm', { type: recBlob.type || 'audio/webm' }));
+      if ($('vr-porto').checked) fd.append('simpan_portofolio', '1');
+      fetch(URL_SUMBER, { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('status ' + r.status);
+          st.textContent = 'Ulasan suaramu terkirim, terima kasih!';
+          $('vr-kirim').style.display = 'none';
+          recBlob = null;
+        })
+        .catch(function () { st.textContent = 'Gagal mengirim. Coba lagi.'; });
+    });
+  }
+
+  function pasangKontrol() {
+    $('b-prev').addEventListener('click', function () { pergi(cur - 1, true); });
+    $('b-next').addEventListener('click', function () { pergi(cur + 1, true); });
+    $('b-mode').addEventListener('click', function () { setMode(mode === 'buku' ? 'teks' : 'buku'); });
+    $('b-audio').addEventListener('click', function () {
+      if (audioOn) { hentikanAudio(); statusAudio('Dijeda.'); }
+      else { mulaiAudio(cur < 0 ? 0 : cur, (halAudio === cur) ? si : 0); }
+    });
+    $('b-besar').addEventListener('click', function () {
+      fs = Math.min(34, fs + 2); $('txtview').style.fontSize = fs + 'px';
+      if (mode === 'buku') setMode('teks');
+    });
+    $('b-kecil').addEventListener('click', function () {
+      fs = Math.max(13, fs - 2); $('txtview').style.fontSize = fs + 'px';
+      if (mode === 'buku') setMode('teks');
+    });
+    $('s-tema').addEventListener('change', function () { root.className = 'th-' + this.value; });
+    $('b-panel').addEventListener('click', function () {
+      var p = $('rd-panel');
+      p.style.display = (p.style.display === 'none') ? 'block' : 'none';
+    });
+    $('b-full').addEventListener('click', function () {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else if (root.requestFullscreen) root.requestFullscreen();
+    });
+    var timer = null;
+    $('rd-cari').addEventListener('input', function () {
+      var v = this.value;
+      clearTimeout(timer);
+      timer = setTimeout(function () { cari(v); }, 250);
+    });
+    document.addEventListener('keydown', function (e) {
+      var tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+      if (e.key === 'ArrowRight') pergi(cur + 1, true);
+      else if (e.key === 'ArrowLeft') pergi(cur - 1, true);
+    });
+    window.addEventListener('pagehide', function () {
+      if ('speechSynthesis' in window) speechSynthesis.cancel();
+      if (SIMPAN && n && cur > -1 && navigator.sendBeacon) navigator.sendBeacon(URL_PROGRES, bodyProgres());
+    });
+    pasangUlasan();
+  }
+
+  function gagal(e) {
+    var st = $('rd-status');
+    st.textContent = 'Pembaca interaktif gagal dimuat (' + (e && e.message ? e.message : 'kesalahan') + '). Pembaca ini butuh koneksi internet untuk memuat pustakanya. ';
+    var a = document.createElement('a');
+    a.href = PDF_URL; a.target = '_blank';
+    a.textContent = 'Buka PDF biasa';
+    a.style.fontWeight = '700';
+    st.appendChild(a);
+  }
+
+  function mulai() {
+    pasangKontrol();
+    muatSkrip(CDN_PDF)
+      .then(function () { return muatSkrip(CDN_FLIP); })
+      .then(function () { return fetch(CDN_WORKER); })
+      .then(function (r) { return r.blob(); })
+      .then(function (b) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(b);
+        return pdfjsLib.getDocument({ url: PDF_URL }).promise;
+      })
+      .then(function (doc) { pdf = doc; n = doc.numPages; return doc.getPage(1); })
+      .then(function (pg) {
+        var p1 = pg.getViewport({ scale: 1 });
+        var ratio = p1.height / p1.width;
+        var w = Math.max(280, Math.min(460, $('bookwrap').clientWidth || 460));
+        var h = Math.round(w * ratio);
+        var bookEl = $('book');
+        bookEl.style.width = w + 'px';
+        bookEl.style.height = h + 'px';
+        for (var i = 0; i < n; i++) {
+          var d = document.createElement('div');
+          d.className = 'pg';
+          d.setAttribute('data-density', (i === 0 || i === n - 1) ? 'hard' : 'soft');
+          var cv = document.createElement('canvas');
+          d.appendChild(cv);
+          bookEl.appendChild(d);
+          canvases.push(cv);
+        }
+        pf = new St.PageFlip(bookEl, {
+          width: w, height: h, size: 'fixed', showCover: true,
+          maxShadowOpacity: 0.4, mobileScrollSupport: false, flippingTime: 650
+        });
+        pf.loadFromHTML(bookEl.querySelectorAll('.pg'));
+        pf.on('flip', function (e) {
+          var p = e.data;
+          if (p === cur) return;
+          setCur(p);
+          if (audioOn) bacaHalaman(p, 0);
+        });
+
+        var start = Math.min(Math.max(MULAI, 0), n - 1);
+        for (var k = 0; k <= start; k++) catat(k);
+        if (start > 0) pf.turnToPage(start);
+        $('rd-status').textContent = start > 0 ? 'Melanjutkan dari halaman ' + (start + 1) + '.' : '';
+        setCur(start);
+        isiGlosarium();
+        indeks();
+      })
+      .catch(gagal);
+  }
+  mulai();
+})();
+</script>
+{% endverbatim %}
+{% endblock %}

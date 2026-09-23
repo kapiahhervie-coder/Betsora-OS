@@ -38,23 +38,11 @@
   .tab-filter a.on { background:#0B3D26; color:white; border-color:#0B3D26; }
 </style>
 <div class="tab-filter">
-  <a href="?usia={{ usia_aktif }}&q={{ q|urlencode }}" class="{% if not jenis_aktif %}on{% endif %}">Semua</a>
-  <a href="?jenis=TEKS&usia={{ usia_aktif }}&q={{ q|urlencode }}" class="{% if jenis_aktif == 'TEKS' %}on{% endif %}">&#128214; Baca</a>
-  <a href="?jenis=AUDIO&usia={{ usia_aktif }}&q={{ q|urlencode }}" class="{% if jenis_aktif == 'AUDIO' %}on{% endif %}">&#127911; Dengar</a>
-  <a href="?jenis=VIDEO&usia={{ usia_aktif }}&q={{ q|urlencode }}" class="{% if jenis_aktif == 'VIDEO' %}on{% endif %}">&#127916; Tonton</a>
+  <a href="{% url 'perpustakaan:detail_zona' zona.id %}" class="{% if not jenis_aktif %}on{% endif %}">Semua</a>
+  <a href="?jenis=TEKS" class="{% if jenis_aktif == 'TEKS' %}on{% endif %}">&#128214; Baca</a>
+  <a href="?jenis=AUDIO" class="{% if jenis_aktif == 'AUDIO' %}on{% endif %}">&#127911; Dengar</a>
+  <a href="?jenis=VIDEO" class="{% if jenis_aktif == 'VIDEO' %}on{% endif %}">&#127916; Tonton</a>
 </div>
-<form method="get" id="filter-form" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
-  <input type="hidden" name="jenis" value="{{ jenis_aktif }}">
-  <input type="text" name="q" value="{{ q }}" placeholder="Cari judul atau topik..." style="border:1px solid #e5e7eb; border-radius:8px; padding:7px 12px; font-size:13px; min-width:200px;">
-  <select name="usia" style="border:1px solid #e5e7eb; border-radius:8px; padding:7px 10px; font-size:13px;">
-    <option value="">Semua usia</option>
-    <option value="6-8" {% if usia_aktif == '6-8' %}selected{% endif %}>6-8 tahun</option>
-    <option value="9-11" {% if usia_aktif == '9-11' %}selected{% endif %}>9-11 tahun</option>
-    <option value="12-18" {% if usia_aktif == '12-18' %}selected{% endif %}>12 tahun ke atas</option>
-  </select>
-  <button type="submit" class="btn-primary" style="padding:7px 16px; font-size:13px;">Cari</button>
-  {% if q or usia_aktif %}<a href="?jenis={{ jenis_aktif }}" style="font-size:12px; color:#6b7280; align-self:center;">Hapus filter</a>{% endif %}
-</form>
 
 <div class="sumber-grid">
   {% for s in sumber_list %}

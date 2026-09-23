@@ -22,6 +22,13 @@ class RuangKerja(models.Model):
         """Jenjang pilihan guru, atau tebakan dari nama kelas ('3', 'Kelas III', 'X-1')."""
         return self.jenjang or deteksi_jenjang(self.kelas)
 
+    @property
+    def label_kelas(self):
+        k = (self.kelas or '').strip()
+        if k.lower().startswith('kelas'):
+            return k
+        return 'Kelas ' + k
+
 
 class Materi(models.Model):
     ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name='materi')

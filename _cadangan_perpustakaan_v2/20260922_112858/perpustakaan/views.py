@@ -1,4 +1,4 @@
-from django.db.models import Count
+﻿from django.db.models import Count
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -140,38 +140,24 @@ def hapus_zona(request, zona_id):
 
 @login_required
 def detail_zona(request, zona_id):
-    from django.db.models import Q
-    zona = get_object_or_404(Zona, id=zona_id)
+    zona = Zona.objects.filter(id=zona_id).first()
+    if not zona:
+        messages.error(request, 'Zona ini sudah tidak tersedia (mungkin sudah dihapus).')
+        return redirect('perpustakaan:peta')
     jenis_aktif = request.GET.get('jenis', '')
-    usia_aktif = request.GET.get('usia', '')
-    q = request.GET.get('q', '').strip()
-
     sumber_list = zona.sumber_list.all()
-    if jenis_aktif == 'AUDIO':
-        sumber_list = sumber_list.filter(Q(jenis='AUDIO') | ~Q(teks_baca=''))
-    elif jenis_aktif in ('TEKS', 'VIDEO'):
-        sumber_list = sumber_list.filter(jenis=jenis_aktif)
+    if jenis_aktif in ('TEKS', 'AUDIO', 'VIDEO'):
+        if jenis_aktif == 'AUDIO':
+            from django.db.models import Q
+            sumber_list = sumber_list.filter(Q(jenis='AUDIO') | ~Q(teks_baca=''))
+        else:
+            sumber_list = sumber_list.filter(jenis=jenis_aktif)
     else:
         jenis_aktif = ''
-
-    rentang = {'6-8': (6, 8), '9-11': (9, 11), '12-18': (12, 99)}
-    if usia_aktif in rentang:
-        bawah, atas = rentang[usia_aktif]
-        sumber_list = sumber_list.filter(usia_min__lte=atas).filter(Q(usia_maks=0) | Q(usia_maks__gte=bawah))
-    else:
-        usia_aktif = ''
-
-    if q:
-        sumber_list = sumber_list.filter(
-            Q(judul__icontains=q) | Q(deskripsi__icontains=q) | Q(topik__icontains=q)
-        )
-
     return render(request, 'perpustakaan/detail_zona.html', {
         'zona': zona,
         'sumber_list': sumber_list,
         'jenis_aktif': jenis_aktif,
-        'usia_aktif': usia_aktif,
-        'q': q,
     })
 
 
@@ -196,9 +182,6 @@ def tambah_sumber(request, zona_id):
             file=request.FILES.get('file'),
             link_url=request.POST.get('link_url') or None,
             teks_baca=request.POST.get('teks_baca', '').strip(),
-            usia_min=_angka(request.POST.get('usia_min')),
-            usia_maks=_angka(request.POST.get('usia_maks')),
-            topik=request.POST.get('topik', '').strip()[:200],
             lencana_hadiah_id=lencana_id,
             diunggah_oleh=request.user,
         )
@@ -403,9 +386,6 @@ def edit_sumber(request, sumber_id):
         sumber.deskripsi = request.POST.get('deskripsi', '').strip()
         sumber.link_url = request.POST.get('link_url', '').strip() or None
         sumber.teks_baca = request.POST.get('teks_baca', '').strip()
-        sumber.usia_min = _angka(request.POST.get('usia_min'))
-        sumber.usia_maks = _angka(request.POST.get('usia_maks'))
-        sumber.topik = request.POST.get('topik', '').strip()[:200]
         if request.FILES.get('cover'):
             sumber.cover = request.FILES['cover']
         elif request.POST.get('hapus_cover'):
@@ -513,154 +493,3 @@ def catat_selesai_baca(request, sumber_id):
         RiwayatBaca.objects.update_or_create(siswa=siswa_obj, sumber=sumber)
         return JsonResponse({'ok': True})
     return JsonResponse({'ok': False}, status=400)
-
-
-# ======================================================================
-# PERPUSTAKAAN v2: pembaca interaktif, progres baca, glosarium
-# ======================================================================
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST as _post_saja
-from .models import ProgresBaca, Glosarium
-
-
-def _angka(nilai, default=0, maks=120):
-    try:
-        n = int(nilai)
-    except (TypeError, ValueError):
-        return default
-    return max(0, min(n, maks))
-
-
-@login_required
-def baca_sumber(request, sumber_id):
-    sumber = get_object_or_404(SumberDigital, id=sumber_id)
-    if not sumber.file or not sumber.file.name.lower().endswith('.pdf'):
-        messages.error(request, 'Pembaca interaktif hanya untuk e-book berformat PDF.')
-        return redirect('perpustakaan:detail_sumber', sumber_id=sumber.id)
-    siswa_obj = get_siswa_obj(request.user) if request.user.role == 'siswa' else None
-    halaman_mulai = 0
-    if siswa_obj:
-        progres = ProgresBaca.objects.filter(siswa=siswa_obj, sumber=sumber).first()
-        if progres and not progres.selesai:
-            halaman_mulai = max(0, progres.halaman_terakhir - 1)
-    return render(request, 'perpustakaan/baca_sumber.html', {
-        'sumber': sumber,
-        'bisa_simpan': bool(siswa_obj),
-        'halaman_mulai': halaman_mulai,
-        'glosarium': list(sumber.glosarium_list.values('istilah', 'arti')),
-    })
-
-
-@login_required
-@_post_saja
-def simpan_progres(request, sumber_id):
-    sumber = get_object_or_404(SumberDigital, id=sumber_id)
-    siswa_obj = get_siswa_obj(request.user) if request.user.role == 'siswa' else None
-    if not siswa_obj:
-        return JsonResponse({'ok': False, 'selesai': False}, status=403)
-    total = _angka(request.POST.get('total'), 0, 5000)
-    halaman = _angka(request.POST.get('halaman'), 1, 5000)
-    dilihat = _angka(request.POST.get('dilihat'), 0, 5000)
-    if total < 1:
-        return JsonResponse({'ok': False, 'selesai': False}, status=400)
-    halaman = max(1, min(halaman, total))
-
-    progres, _ = ProgresBaca.objects.get_or_create(
-        siswa=siswa_obj, sumber=sumber,
-        defaults={'halaman_terakhir': halaman, 'total_halaman': total},
-    )
-    progres.halaman_terakhir = halaman
-    progres.total_halaman = total
-
-    baru = False
-    syarat = -(-total * 6 // 10)  # minimal 60% halaman pernah dibuka
-    if not progres.selesai and halaman >= total and dilihat >= syarat:
-        progres.selesai = True
-        baru = True
-    progres.save()
-
-    lencana_baru = False
-    lencana_nama = ''
-    lencana_ikon = ''
-    if baru and sumber.lencana_hadiah:
-        _, lencana_baru = LencanaDiperoleh.objects.get_or_create(
-            siswa=siswa_obj, lencana=sumber.lencana_hadiah, sumber=sumber
-        )
-        lencana_nama = sumber.lencana_hadiah.nama
-        lencana_ikon = sumber.lencana_hadiah.ikon
-
-    return JsonResponse({
-        'ok': True,
-        'selesai': progres.selesai,
-        'baru': baru,
-        'lencana_baru': lencana_baru,
-        'lencana_nama': lencana_nama,
-        'lencana_ikon': lencana_ikon,
-    })
-
-
-@login_required
-def glosarium_sumber(request, sumber_id):
-    sumber = get_object_or_404(SumberDigital, id=sumber_id)
-    if not adalah_staf(request.user):
-        messages.error(request, 'Hanya guru yang dapat mengelola glosarium.')
-        return redirect('perpustakaan:detail_sumber', sumber_id=sumber.id)
-    if request.method == 'POST':
-        tersimpan = 0
-        istilah = request.POST.get('istilah', '').strip()
-        arti = request.POST.get('arti', '').strip()
-        if istilah and arti:
-            Glosarium.objects.update_or_create(
-                sumber=sumber, istilah=istilah[:100], defaults={'arti': arti}
-            )
-            tersimpan += 1
-        for baris in request.POST.get('massal', '').splitlines():
-            if '=' not in baris:
-                continue
-            i, a = baris.split('=', 1)
-            i, a = i.strip(), a.strip()
-            if i and a:
-                Glosarium.objects.update_or_create(
-                    sumber=sumber, istilah=i[:100], defaults={'arti': a}
-                )
-                tersimpan += 1
-        if tersimpan:
-            messages.success(request, '%d istilah disimpan.' % tersimpan)
-        else:
-            messages.error(request, 'Isi istilah dan artinya, atau tempel daftar "istilah = arti".')
-        return redirect('perpustakaan:glosarium', sumber_id=sumber.id)
-    return render(request, 'perpustakaan/glosarium.html', {
-        'sumber': sumber,
-        'daftar': sumber.glosarium_list.all(),
-    })
-
-
-@login_required
-@_post_saja
-def hapus_glosarium(request, glos_id):
-    g = get_object_or_404(Glosarium, id=glos_id)
-    sumber_id = g.sumber_id
-    if not adalah_staf(request.user):
-        messages.error(request, 'Hanya guru yang dapat menghapus istilah.')
-    else:
-        g.delete()
-        messages.success(request, 'Istilah dihapus.')
-    return redirect('perpustakaan:glosarium', sumber_id=sumber_id)
-
-
-@login_required
-@require_POST
-def hapus_refleksi(request, refleksi_id):
-    refleksi = RefleksiSiswa.objects.filter(id=refleksi_id).first()
-    if not refleksi:
-        messages.error(request, 'Refleksi ini sudah tidak tersedia.')
-        return redirect('perpustakaan:peta')
-    sumber_id = refleksi.sumber_id
-    siswa_obj = get_siswa_obj(request.user) if request.user.role == 'siswa' else None
-    pemilik = siswa_obj and refleksi.siswa_id == siswa_obj.id
-    if not (adalah_staf(request.user) or pemilik):
-        messages.error(request, 'Kamu tidak punya izin untuk menghapus ini.')
-        return redirect('perpustakaan:detail_sumber', sumber_id=sumber_id)
-    refleksi.delete()
-    messages.success(request, 'Refleksi berhasil dihapus.')
-    return redirect('perpustakaan:detail_sumber', sumber_id=sumber_id)

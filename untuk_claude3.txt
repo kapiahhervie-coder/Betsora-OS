@@ -1,4 +1,5 @@
-﻿{% extends 'base.html' %}
+﻿===== templates\ruang_kerja\detail.html =====
+{% extends 'base.html' %}
 {% load ruang_kerja_extras %}
 {% block title %}{{ ruang.mapel }} - Kelas {{ ruang.kelas }}{% endblock %}
 {% block page_title %}{{ ruang.mapel }} - Kelas {{ ruang.kelas }}{% endblock %}

@@ -1,0 +1,41 @@
+﻿{% extends 'base.html' %}
+{% block title %}Edit Tugas{% endblock %}
+{% block page_title %}Edit Tugas{% endblock %}
+{% block content %}
+<div class="max-w-lg">
+<div class="mb-4"><a href="{% url 'ruang_kerja:detail' ruang.id %}" class="text-sm text-[#3C8C1F] hover:underline">&larr; Kembali ke {{ ruang.mapel }}</a></div>
+<div class="card p-6">
+  <form method="POST" enctype="multipart/form-data" class="space-y-4">
+    {% csrf_token %}
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Judul</label>
+      <input type="text" name="judul" value="{{ tugas.judul }}" required class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Instruksi</label>
+      <textarea name="instruksi" rows="4" required class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">{{ tugas.instruksi }}</textarea>
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Batas Waktu (opsional)</label>
+      <input type="datetime-local" name="deadline" value="{{ tugas.deadline|date:'Y-m-d\TH:i' }}" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Nilai Maksimal</label>
+      <input type="number" name="nilai_maksimal" value="{{ tugas.nilai_maksimal }}" min="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Lampiran Soal</label>
+      {% if tugas.lampiran %}
+      <p style="font-size:12px; margin:0 0 6px;"><a href="{{ tugas.lampiran.url }}" target="_blank" style="color:#3C8C1F;">Lampiran saat ini</a></p>
+      <label style="font-size:12px; color:#6b7280; display:block; margin-bottom:6px;"><input type="checkbox" name="hapus_lampiran" value="1"> Hapus lampiran ini</label>
+      {% endif %}
+      <input type="file" name="lampiran" class="w-full text-sm">
+    </div>
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="btn-primary">Simpan Perubahan</button>
+      <a href="{% url 'ruang_kerja:detail_tugas' tugas.id %}" class="btn-secondary">Batal</a>
+    </div>
+  </form>
+</div>
+</div>
+{% endblock %}

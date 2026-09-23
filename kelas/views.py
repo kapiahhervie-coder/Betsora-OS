@@ -90,12 +90,13 @@ def absensi(request):
     tanggal_str = request.GET.get('tanggal', '')
     tanggal = datetime.date.fromisoformat(tanggal_str) if tanggal_str else datetime.date.today()
     siswa_list = Siswa.objects.filter(aktif=True, kelas=kelas) if kelas else Siswa.objects.filter(aktif=True)
-    absensi_existing = {a.siswa_id: a.status for a in Absensi.objects.filter(tanggal=tanggal, siswa__in=siswa_list)}
+    absensi_existing = {a.siswa_id: {'status': a.status, 'catatan': a.catatan} for a in Absensi.objects.filter(tanggal=tanggal, siswa__in=siswa_list)}
     kelas_list = Siswa.objects.values_list('kelas', flat=True).distinct().order_by('kelas')
     if request.method == 'POST':
         for siswa in siswa_list:
             status = request.POST.get(f'status_{siswa.id}', 'alpha')
-            Absensi.objects.update_or_create(siswa=siswa, tanggal=tanggal, defaults={'status': status, 'guru': request.user})
+            catatan = request.POST.get(f'catatan_{siswa.id}', '').strip()
+            Absensi.objects.update_or_create(siswa=siswa, tanggal=tanggal, defaults={'status': status, 'catatan': catatan, 'guru': request.user})
         messages.success(request, f'Absensi {tanggal} berhasil disimpan!')
         return redirect('kelas:absensi')
     return render(request, 'kelas/absensi.html', {

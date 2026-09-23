@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% block title %}{{ sumber.judul }}{% endblock %}
 {% block page_title %}{{ sumber.judul }}{% endblock %}
 {% block content %}
@@ -46,7 +46,6 @@ function catatSelesaiBaca(sumberId) {
   {% if request.user.role in "guru,kepsek,admin" %}
   <p style="margin:0 0 12px; display:flex; gap:14px; flex-wrap:wrap; align-items:center;">
     <a href="{% url 'perpustakaan:edit_sumber' sumber.id %}" style="font-size:12px; color:#0369a1;">Edit koleksi ini</a>
-    <a href="{% url 'perpustakaan:glosarium' sumber.id %}" style="font-size:12px; color:#0369a1;">Kelola glosarium</a>
     {% if sumber.file and '.pdf' in sumber.file.name|lower %}
     <form method="POST" action="{% url 'perpustakaan:ekstrak_halaman' sumber.id %}" onsubmit="return confirm('Buat ulang gambar tiap halaman dari PDF ini? Halaman lama (jika ada) akan diganti.')" style="margin:0;">
       {% csrf_token %}
@@ -74,7 +73,7 @@ function catatSelesaiBaca(sumberId) {
       {% endif %}
     {% else %}
       {% if sumber.file %}
-      {% if sumber.file.name|slice:"-4:"|lower == ".pdf" %}<a href="{% url 'perpustakaan:baca_sumber' sumber.id %}" class="btn-primary">&#128214; Baca Interaktif</a> {% endif %}<a href="{{ sumber.file.url }}" target="_blank" class="btn-primary" style="background:#6b7280;">Buka / Unduh PDF</a>
+      <a href="{{ sumber.file.url }}" target="_blank" class="btn-primary">Buka / Unduh E-Book</a>
       {% elif sumber.link_url %}
       <a href="{{ sumber.link_url }}" target="_blank" class="btn-primary">Buka Link</a>
       {% else %}
@@ -324,7 +323,6 @@ function catatSelesaiBaca(sumberId) {
     <h3 class="font-semibold text-gray-800 text-sm mb-2">Rekam Kesan Suaramu (30 Detik)</h3>
     <p style="font-size:12px; color:#92702E; margin:0 0 12px;">Ceritakan singkat apa yang kamu suka dari buku ini!</p>
     <button type="button" id="qr-btn" class="rec-btn rec-start" onclick="qrMulai()">Mulai Rekam</button>
-    <button type="button" id="qr-stop-btn" class="rec-btn rec-stop" style="display:none;" onclick="qrBerhenti()">Berhenti</button>
     <div id="qr-timer" style="display:none; font-size:28px; font-weight:700; color:#92702E; margin:10px 0;">30</div>
     <audio id="qr-preview" controls style="width:100%; margin-top:10px; display:none;"></audio>
     <form method="POST" enctype="multipart/form-data" id="qr-form" style="margin-top:10px; display:none;">
@@ -357,7 +355,6 @@ function catatSelesaiBaca(sumberId) {
       });
       qrRecorder.start();
       document.getElementById('qr-btn').style.display = 'none';
-      document.getElementById('qr-stop-btn').style.display = 'inline-block';
       document.getElementById('qr-timer').style.display = 'block';
       var sisa = 30;
       document.getElementById('qr-timer').textContent = sisa;
@@ -376,7 +373,6 @@ function catatSelesaiBaca(sumberId) {
   }
   function qrBerhenti() {
     if (qrRecorder && qrRecorder.state !== 'inactive') { qrRecorder.stop(); }
-    document.getElementById('qr-stop-btn').style.display = 'none';
     document.getElementById('qr-timer').style.display = 'none';
     document.getElementById('qr-status').textContent = 'Rekaman selesai! Cek preview, lalu klik Kirim Rekaman.';
   }
@@ -389,15 +385,7 @@ function catatSelesaiBaca(sumberId) {
     <div style="display:flex; flex-direction:column; gap:10px;">
       {% for r in suara_teman %}
       <div>
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:4px;">
-          <p style="font-size:12px; color:#6b7280; margin:0;">{{ r.siswa.nama }}</p>
-          {% if request.user.role in "guru,kepsek,admin" or r.siswa_id == siswa_obj.id %}
-          <form method="POST" action="{% url 'perpustakaan:hapus_refleksi' r.id %}" onsubmit="return confirm('Hapus rekaman ini?')" style="margin:0;">
-            {% csrf_token %}
-            <button type="submit" title="Hapus" style="background:#fee2e2; color:#dc2626; border:none; width:26px; height:26px; border-radius:6px; cursor:pointer; font-size:13px; line-height:1; display:flex; align-items:center; justify-content:center;">&#128465;</button>
-          </form>
-          {% endif %}
-        </div>
+        <p style="font-size:12px; color:#6b7280; margin:0 0 4px;">{{ r.siswa.nama }}</p>
         <audio controls style="width:100%;"><source src="{{ r.file.url }}"></audio>
       </div>
       {% endfor %}
@@ -444,18 +432,10 @@ function catatSelesaiBaca(sumberId) {
   {% endif %}
 
   <div class="card p-5" style="margin-top:16px;">
-    <h3 class="font-semibold text-gray-800 text-sm mb-3">Semua Refleksi</h3>
+    <h3 class="font-semibold text-gray-800 text-sm mb-3">Refleksi Teman</h3>
     {% for r in refleksi_list %}
     <div class="refleksi-item">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-        <strong>{{ r.siswa.nama }}{% if r.siswa_id == siswa_obj.id %} <span style="font-weight:400; font-size:11px; color:#9ca3af;">(kamu)</span>{% endif %}</strong>
-        {% if request.user.role in "guru,kepsek,admin" or r.siswa_id == siswa_obj.id %}
-        <form method="POST" action="{% url 'perpustakaan:hapus_refleksi' r.id %}" onsubmit="return confirm('Hapus refleksi ini?')" style="margin:0;">
-          {% csrf_token %}
-          <button type="submit" title="Hapus" style="background:#fee2e2; color:#dc2626; border:none; width:26px; height:26px; border-radius:6px; cursor:pointer; font-size:13px; line-height:1; display:flex; align-items:center; justify-content:center;">&#128465;</button>
-        </form>
-        {% endif %}
-      </div>
+      <strong>{{ r.siswa.nama }}</strong>
       {% if r.jenis == 'TEKS' %}
         <p style="margin:4px 0 0; color:#374151;">{{ r.teks }}</p>
       {% elif r.jenis == 'AUDIO' and r.file %}

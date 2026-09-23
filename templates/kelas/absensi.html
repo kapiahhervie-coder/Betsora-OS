@@ -14,64 +14,116 @@
 </div>
 
 {% if siswa_list %}
+<div class="card p-4 mb-4" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+  <button type="button" onclick="setAll('hadir')" class="btn-primary">&#10003; Tandai Semua Hadir</button>
+  <div id="ringkasan" style="display:flex; gap:8px; flex-wrap:wrap; font-size:12px; font-weight:600;">
+    <span style="background:#dcfce7; color:#15803d; padding:4px 10px; border-radius:99px;">Hadir: <span id="rk-hadir">0</span></span>
+    <span style="background:#dbeafe; color:#1d4ed8; padding:4px 10px; border-radius:99px;">Sakit: <span id="rk-sakit">0</span></span>
+    <span style="background:#fef3c7; color:#b45309; padding:4px 10px; border-radius:99px;">Izin: <span id="rk-izin">0</span></span>
+    <span style="background:#fee2e2; color:#dc2626; padding:4px 10px; border-radius:99px;">Alpa: <span id="rk-alpha">0</span></span>
+  </div>
+</div>
+
 <form method="POST">
   {% csrf_token %}
-  <div class="grid grid-cols-4 gap-3 mb-5">
+  <div class="card p-2 mb-5">
     {% for siswa in siswa_list %}
-    <div class="card p-4 text-center cursor-pointer" id="card-{{ siswa.id }}" onclick="toggleStatus({{ siswa.id }})" style="border-width:2px">
-      <div class="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-sm font-bold" id="avatar-{{ siswa.id }}">{{ siswa.nama|slice:":2"|upper }}</div>
-      <p class="text-xs font-semibold text-gray-700 leading-tight">{{ siswa.nama }}</p>
-      <p class="text-xs mt-1 font-medium" id="label-{{ siswa.id }}">—</p>
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:12px; {% if not forloop.last %}border-bottom:1px solid #f3f4f6;{% endif %}">
+      <div style="display:flex; align-items:center; gap:10px; min-width:170px; flex:1 1 170px;">
+        <div id="avatar-{{ siswa.id }}" class="rounded-full flex items-center justify-center text-xs font-bold" style="width:36px; height:36px; flex-shrink:0;"></div>
+        <div>
+          <p class="text-sm font-semibold text-gray-800" style="margin:0; line-height:1.2;">{{ siswa.nama|title }}</p>
+          <p class="text-xs text-gray-400" style="margin:0;">NIS: {{ siswa.nis }}</p>
+        </div>
+      </div>
+
+      <div id="pil-{{ siswa.id }}" style="display:flex; gap:4px; flex-wrap:wrap;">
+        <button type="button" onclick="setStatus({{ siswa.id }}, 'hadir')" data-siswa="{{ siswa.id }}" data-nilai="hadir" style="border:1px solid #86efac; background:white; color:#15803d; font-size:12px; font-weight:600; padding:6px 12px; border-radius:99px; cursor:pointer;">Hadir</button>
+        <button type="button" onclick="setStatus({{ siswa.id }}, 'sakit')" data-siswa="{{ siswa.id }}" data-nilai="sakit" style="border:1px solid #93c5fd; background:white; color:#1d4ed8; font-size:12px; font-weight:600; padding:6px 12px; border-radius:99px; cursor:pointer;">Sakit</button>
+        <button type="button" onclick="setStatus({{ siswa.id }}, 'izin')" data-siswa="{{ siswa.id }}" data-nilai="izin" style="border:1px solid #fde68a; background:white; color:#b45309; font-size:12px; font-weight:600; padding:6px 12px; border-radius:99px; cursor:pointer;">Izin</button>
+        <button type="button" onclick="setStatus({{ siswa.id }}, 'alpha')" data-siswa="{{ siswa.id }}" data-nilai="alpha" style="border:1px solid #fca5a5; background:white; color:#dc2626; font-size:12px; font-weight:600; padding:6px 12px; border-radius:99px; cursor:pointer;">Alpa</button>
+      </div>
+
+      <input type="text" name="catatan_{{ siswa.id }}" id="catatan-{{ siswa.id }}" placeholder="Catatan (opsional)" class="border border-gray-200 rounded-lg px-3 py-2 text-xs" style="flex:1 1 160px; min-width:140px;">
       <input type="hidden" name="status_{{ siswa.id }}" id="status-{{ siswa.id }}" value="">
     </div>
     {% endfor %}
   </div>
-  <div class="flex gap-3 items-center">
-    <button type="submit" class="btn-primary">💾 Simpan Absensi</button>
-    <button type="button" onclick="setAll('hadir')" class="btn-secondary">✅ Semua Hadir</button>
-    <div class="flex gap-2 text-xs ml-auto">
-      <span class="bg-green-100 text-green-800 px-2 py-1 rounded">● Hadir</span>
-      <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded">● Izin</span>
-      <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">● Sakit</span>
-      <span class="bg-red-100 text-red-800 px-2 py-1 rounded">● Alpha</span>
-    </div>
-  </div>
+  <button type="submit" class="btn-primary">&#128190; Simpan Absensi</button>
 </form>
 {% else %}
 <div class="card p-12 text-center"><p class="text-gray-400 text-sm">Pilih kelas terlebih dahulu</p></div>
 {% endif %}
 
+{{ absensi_existing|json_script:"absensi-data" }}
 <script>
-const STATUS = ['', 'hadir', 'izin', 'sakit', 'alpha'];
-const COLORS = {
-  '': {bg:'#f9fafb',fg:'#374151',text:'—'},
-  'hadir': {bg:'#1a6b3a',fg:'white',text:'Hadir'},
-  'izin': {bg:'#f59e0b',fg:'white',text:'Izin'},
-  'sakit': {bg:'#3b82f6',fg:'white',text:'Sakit'},
-  'alpha': {bg:'#ef4444',fg:'white',text:'Alpha'},
+const WARNA = {
+  '': {bg:'#f3f4f6', fg:'#9ca3af'},
+  'hadir': {bg:'#16a34a', fg:'white'},
+  'sakit': {bg:'#2563eb', fg:'white'},
+  'izin': {bg:'#d97706', fg:'white'},
+  'alpha': {bg:'#dc2626', fg:'white'},
 };
 const state = {};
+const catatanAwal = {};
+let dataAwal = {};
+const elData = document.getElementById('absensi-data');
+if (elData) { dataAwal = JSON.parse(elData.textContent) || {}; }
+
 {% for siswa in siswa_list %}
-state[{{ siswa.id }}] = "{{ absensi_existing|default_if_none:'' }}";
+(function () {
+  const id = {{ siswa.id }};
+  const d = dataAwal[id] || {};
+  state[id] = d.status || '';
+  catatanAwal[id] = d.catatan || '';
+})();
 {% endfor %}
+
 function render(id) {
   const s = state[id] || '';
-  const c = COLORS[s];
-  document.getElementById(`avatar-${id}`).style.background = c.bg;
-  document.getElementById(`avatar-${id}`).style.color = c.fg;
-  document.getElementById(`label-${id}`).textContent = c.text;
-  document.getElementById(`label-${id}`).style.color = s === '' ? '#9ca3af' : c.bg;
-  document.getElementById(`status-${id}`).value = s;
-  document.getElementById(`card-${id}`).style.borderColor = s === '' ? '#f3f4f6' : c.bg;
+  const w = WARNA[s];
+  const av = document.getElementById('avatar-' + id);
+  if (av) {
+    av.style.background = w.bg;
+    av.style.color = w.fg;
+    av.textContent = s ? s.slice(0, 1).toUpperCase() : '?';
+  }
+  const grp = document.getElementById('pil-' + id);
+  if (grp) {
+    grp.querySelectorAll('button').forEach(function (btn) {
+      const aktif = btn.getAttribute('data-nilai') === s;
+      const warnaBtn = WARNA[btn.getAttribute('data-nilai')];
+      btn.style.background = aktif ? warnaBtn.bg : 'white';
+      btn.style.color = aktif ? warnaBtn.fg : btn.style.color;
+    });
+  }
+  const inp = document.getElementById('status-' + id);
+  if (inp) inp.value = s;
+  const cat = document.getElementById('catatan-' + id);
+  if (cat && !cat.value) cat.value = catatanAwal[id] || '';
 }
-function toggleStatus(id) {
-  const cur = STATUS.indexOf(state[id] || '');
-  state[id] = STATUS[(cur + 1) % STATUS.length];
+
+function setStatus(id, s) {
+  state[id] = s;
   render(id);
+  hitungRingkasan();
 }
+
 function setAll(s) {
-  Object.keys(state).forEach(id => { state[id] = s; render(id); });
+  Object.keys(state).forEach(function (id) { state[id] = s; render(id); });
+  hitungRingkasan();
 }
-Object.keys(state).forEach(render);
+
+function hitungRingkasan() {
+  const total = { hadir: 0, sakit: 0, izin: 0, alpha: 0 };
+  Object.values(state).forEach(function (s) { if (total[s] !== undefined) total[s]++; });
+  var eh = document.getElementById('rk-hadir'); if (eh) eh.textContent = total.hadir;
+  var es = document.getElementById('rk-sakit'); if (es) es.textContent = total.sakit;
+  var ei = document.getElementById('rk-izin'); if (ei) ei.textContent = total.izin;
+  var ea = document.getElementById('rk-alpha'); if (ea) ea.textContent = total.alpha;
+}
+
+Object.keys(state).forEach(function (id) { render(parseInt(id)); });
+hitungRingkasan();
 </script>
 {% endblock %}

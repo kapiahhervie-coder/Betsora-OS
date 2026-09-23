@@ -72,9 +72,6 @@ class SumberDigital(models.Model):
     file = models.FileField(upload_to='perpustakaan_sumber/', blank=True, null=True)
     link_url = models.URLField(blank=True, null=True, help_text='Link video YouTube atau audio eksternal')
     teks_baca = models.TextField(blank=True, default='', help_text='Teks yang dibacakan otomatis (audiobook)')
-    usia_min = models.PositiveSmallIntegerField(default=0, help_text='Usia minimal (0 = semua umur)')
-    usia_maks = models.PositiveSmallIntegerField(default=0, help_text='Usia maksimal (0 = tanpa batas)')
-    topik = models.CharField(max_length=200, blank=True, default='', help_text='Kata kunci minat, pisahkan dengan koma')
     lencana_hadiah = models.ForeignKey(Lencana, on_delete=models.SET_NULL, null=True, blank=True)
     diunggah_oleh = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     dibuat_pada = models.DateTimeField(auto_now_add=True)
@@ -153,32 +150,3 @@ class RiwayatBaca(models.Model):
 
     def __str__(self):
         return self.siswa.nama + ' selesai baca ' + self.sumber.judul
-
-
-class ProgresBaca(models.Model):
-    siswa = models.ForeignKey('accounts.Siswa', on_delete=models.CASCADE, related_name='progres_baca')
-    sumber = models.ForeignKey(SumberDigital, on_delete=models.CASCADE, related_name='progres_list')
-    halaman_terakhir = models.PositiveIntegerField(default=1)
-    total_halaman = models.PositiveIntegerField(default=0)
-    selesai = models.BooleanField(default=False)
-    diperbarui_pada = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ('siswa', 'sumber')
-        ordering = ['-diperbarui_pada']
-
-    def __str__(self):
-        return self.siswa.nama + ' - ' + self.sumber.judul
-
-
-class Glosarium(models.Model):
-    sumber = models.ForeignKey(SumberDigital, on_delete=models.CASCADE, related_name='glosarium_list')
-    istilah = models.CharField(max_length=100)
-    arti = models.TextField()
-
-    class Meta:
-        unique_together = ('sumber', 'istilah')
-        ordering = ['istilah']
-
-    def __str__(self):
-        return self.istilah

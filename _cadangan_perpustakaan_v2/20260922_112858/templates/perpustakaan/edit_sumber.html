@@ -61,21 +61,6 @@
       <button type="submit" formaction="{% url 'perpustakaan:ekstrak_teks' sumber.id %}" formnovalidate class="btn-secondary" style="margin-top:8px;">Ambil teks otomatis dari PDF</button>
       <p style="font-size:11px; color:#9ca3af; margin-top:4px;">Untuk PDF berisi teks. PDF hasil scan (gambar) tidak bisa dibaca otomatis. Simpan perubahan dulu sebelum mengambil teks.</p>
     </div>
-    <div style="display:flex; gap:12px;">
-      <div style="flex:1;">
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Usia minimal</label>
-        <input type="number" name="usia_min" min="0" max="99" value="{{ sumber.usia_min }}" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-      </div>
-      <div style="flex:1;">
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Usia maksimal</label>
-        <input type="number" name="usia_maks" min="0" max="99" value="{{ sumber.usia_maks }}" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-      </div>
-    </div>
-    <p style="font-size:11px; color:#9ca3af; margin:0;">Isi 0 untuk semua umur.</p>
-    <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Topik / minat (opsional)</label>
-      <input type="text" name="topik" value="{{ sumber.topik }}" maxlength="200" placeholder="Contoh: hewan, antariksa, persahabatan" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-    </div>
     <div class="flex gap-3 pt-2">
       <button type="submit" class="btn-primary">Simpan Perubahan</button>
       <a href="{% url 'perpustakaan:detail_sumber' sumber.id %}" class="btn-secondary">Batal</a>

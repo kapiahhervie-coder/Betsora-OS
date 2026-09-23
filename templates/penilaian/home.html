@@ -1,39 +1,48 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block title %}Penilaian{% endblock %}
 {% block page_title %}Penilaian{% endblock %}
 {% block content %}
 <div class="flex justify-between items-center mb-5">
-  <p class="text-sm text-gray-500">Riwayat penilaian formatif dan sumatif</p>
-  <a href="{% url 'penilaian:input' %}" class="btn-primary">+ Input Nilai Baru</a>
+  <div>
+    <p class="text-sm text-gray-500" style="margin:0;">Penilaian per topik pembelajaran, terhubung langsung dengan My Class</p>
+    <form method="GET" style="margin-top:8px;">
+      <select name="kelas" onchange="this.form.submit()" class="border border-gray-200 rounded-lg px-3 py-1.5 text-xs">
+        <option value="">Semua Kelas</option>
+        {% for k in kelas_list %}<option value="{{ k }}" {% if k == kelas_filter %}selected{% endif %}>Kelas {{ k }}</option>{% endfor %}
+      </select>
+    </form>
+  </div>
+  <a href="{% url 'ruang_kerja:daftar' %}" class="btn-primary">+ Ke My Class</a>
 </div>
+
 <div class="card overflow-hidden">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 border-b border-gray-100">
       <tr>
         <th class="text-left px-4 py-4 text-xs text-gray-500 font-semibold uppercase">Mata Pelajaran</th>
         <th class="text-left px-4 py-4 text-xs text-gray-500 font-semibold uppercase">Topik</th>
-        <th class="text-left px-4 py-4 text-xs text-gray-500 font-semibold uppercase">Jenis</th>
         <th class="text-left px-4 py-4 text-xs text-gray-500 font-semibold uppercase">Kelas</th>
-        <th class="text-left px-4 py-4 text-xs text-gray-500 font-semibold uppercase">Tanggal</th>
-        <th class="text-left px-4 py-4 text-xs text-gray-500 font-semibold uppercase">Rata-rata</th>
+        <th class="text-left px-4 py-4 text-xs text-gray-500 font-semibold uppercase">Dinilai</th>
+        <th class="text-left px-4 py-4 text-xs text-gray-500 font-semibold uppercase">Tuntas</th>
+        <th class="text-left px-4 py-4 text-xs text-gray-500 font-semibold uppercase">Rata-rata Mastery</th>
         <th class="px-4 py-4"></th>
       </tr>
     </thead>
     <tbody class="divide-y divide-gray-50">
-      {% for sesi in sesi_list %}
+      {% for item in topik_list %}
       <tr class="hover:bg-gray-50/50 transition-colors">
-        <td class="px-4 py-4 font-medium text-gray-700">{{ sesi.mapel }}</td>
-        <td class="px-4 py-4 text-gray-600">{{ sesi.topik }}</td>
+        <td class="px-4 py-4 font-medium text-gray-700">{{ item.ruang.mapel }}</td>
+        <td class="px-4 py-4 text-gray-600">{{ item.materi.judul }}</td>
+        <td class="px-4 py-4 text-gray-600">{{ item.ruang.label_kelas }}</td>
+        <td class="px-4 py-4 text-gray-600">{{ item.jumlah_dinilai }} siswa</td>
         <td class="px-4 py-4">
-          <span class="text-xs font-medium px-2 py-0.5 rounded-full" style="{% if sesi.jenis == 'formatif' %}background:#E6F4EA; color:#137333;{% else %}background:#FBF3E3; color:#92702E;{% endif %}">{{ sesi.get_jenis_display }}</span>
+          <span class="text-xs font-medium px-2 py-0.5 rounded-full" style="background:#dcfce7; color:#16a34a;">{{ item.tuntas }} tuntas</span>
         </td>
-        <td class="px-4 py-4 text-gray-600">{{ sesi.kelas }}</td>
-        <td class="px-4 py-4 text-gray-500 text-xs">{{ sesi.tanggal|date:"d M Y" }}</td>
-        <td class="px-4 py-4 font-mono font-bold text-gray-700">{{ sesi.rata_rata }}</td>
-        <td class="px-4 py-4"><a href="{% url 'penilaian:detail_sesi' sesi.id %}" class="text-xs text-green-700 hover:underline">Detail →</a></td>
+        <td class="px-4 py-4 font-mono font-bold text-gray-700">{% if item.rata2 is not None %}{{ item.rata2 }}%{% else %}&mdash;{% endif %}</td>
+        <td class="px-4 py-4"><a href="{% url 'ruang_kerja:penilaian_topik' item.materi.id %}" class="text-xs text-green-700 hover:underline">Detail &rarr;</a></td>
       </tr>
       {% empty %}
-      <tr><td colspan="7" class="text-center py-12 text-gray-400">Belum ada penilaian. <a href="{% url 'penilaian:input' %}" class="text-green-700 underline">Tambah sekarang</a></td></tr>
+      <tr><td colspan="7" class="text-center py-12 text-gray-400">Belum ada topik yang dinilai. Buka <a href="{% url 'ruang_kerja:daftar' %}" class="text-green-700 underline">My Class</a>, pilih topik, lalu klik "Penilaian Topik".</td></tr>
       {% endfor %}
     </tbody>
   </table>

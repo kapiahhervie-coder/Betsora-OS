@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Glosarium: {{ sumber.judul }}{% endblock %}
+{% block page_title %}Glosarium{% endblock %}
+{% block content %}
+<div class="max-w-2xl">
+<div class="mb-4"><a href="{% url 'perpustakaan:detail_sumber' sumber.id %}" class="text-sm text-[#0B3D26] hover:underline">&larr; {{ sumber.judul }}</a></div>
+
+<div class="card p-5 mb-5">
+  <h3 class="font-semibold text-gray-800 text-sm mb-3">Istilah ({{ daftar|length }})</h3>
+  {% for g in daftar %}
+  <div style="display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid #f3f4f6;">
+    <div>
+      <strong style="font-size:14px; color:#1f2937;">{{ g.istilah }}</strong>
+      <p style="margin:2px 0 0; font-size:13px; color:#4b5563;">{{ g.arti }}</p>
+    </div>
+    <form method="POST" action="{% url 'perpustakaan:hapus_glosarium' g.id %}" onsubmit="return confirm('Hapus {{ g.istilah|escapejs }}?')" style="margin:0;">
+      {% csrf_token %}
+      <button type="submit" style="font-size:10px; background:#fee2e2; color:#dc2626; border:none; padding:3px 8px; border-radius:6px; cursor:pointer;">Hapus</button>
+    </form>
+  </div>
+  {% empty %}
+  <p style="color:#9ca3af; font-size:13px; margin:0;">Belum ada istilah. Tambahkan di bawah.</p>
+  {% endfor %}
+</div>
+
+<div class="card p-5">
+  <h3 class="font-semibold text-gray-800 text-sm mb-3">Tambah istilah</h3>
+  <form method="POST" class="space-y-3">
+    {% csrf_token %}
+    <input type="text" name="istilah" maxlength="100" placeholder="Istilah, contoh: fotosintesis" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+    <textarea name="arti" rows="2" placeholder="Arti dengan bahasa yang mudah dipahami anak" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></textarea>
+    <details>
+      <summary style="cursor:pointer; font-size:12px; color:#6b7280;">Tempel banyak sekaligus</summary>
+      <textarea name="massal" rows="6" placeholder="Satu istilah per baris, format: istilah = arti" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" style="margin-top:8px;"></textarea>
+    </details>
+    <button type="submit" class="btn-primary">Simpan</button>
+  </form>
+</div>
+</div>
+{% endblock %}

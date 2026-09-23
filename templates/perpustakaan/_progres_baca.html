@@ -1,0 +1,18 @@
+<div class="card p-5 mb-5">
+  <h3 style="font-size:12px; font-weight:700; color:#0B3D26; letter-spacing:.06em; text-transform:uppercase; margin:0 0 10px;">&#128218; Bacaan Perpustakaan</h3>
+  {% if progres_list %}
+  {% for p in progres_list %}
+  <div style="margin-bottom:10px;">
+    <div style="display:flex; justify-content:space-between; gap:8px; font-size:13px; color:#374151;">
+      <span>{{ p.sumber.judul }}</span>
+      <span>{% if p.selesai %}<b style="color:#15803d;">Selesai &#10003;</b>{% else %}Hal {{ p.halaman_terakhir }} / {{ p.total_halaman }}{% endif %}</span>
+    </div>
+    <div style="height:6px; background:#e5e7eb; border-radius:99px; overflow:hidden; margin-top:4px;">
+      <div style="height:100%; width:{% if p.selesai %}100{% else %}{% widthratio p.halaman_terakhir p.total_halaman 100 %}{% endif %}%; background:#16a34a;"></div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p style="font-size:13px; color:#9ca3af; margin:0;">Belum ada buku yang dibaca.</p>
+  {% endif %}
+</div>

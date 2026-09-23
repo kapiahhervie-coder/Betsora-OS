@@ -10,9 +10,3 @@ admin.site.register(Lencana)
 admin.site.register(SumberDigital)
 admin.site.register(RefleksiSiswa)
 admin.site.register(LencanaDiperoleh)
-
-
-from .models import ProgresBaca, Glosarium
-
-admin.site.register(ProgresBaca)
-admin.site.register(Glosarium)
