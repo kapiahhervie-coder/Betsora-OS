@@ -1,10 +1,10 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block title %}{{ tugas.judul }}{% endblock %}
 {% block page_title %}Kuis - {{ tugas.judul }}{% endblock %}
 {% block content %}
 <div class="max-w-2xl">
 <div class="mb-4">
-  <a href="{% url 'ruang_kerja:detail' ruang.id %}" class="text-sm text-[#0B3D26] hover:underline">← Kembali</a>
+  <a href="{% url 'ruang_kerja:detail' ruang.id %}" class="text-sm text-[#0B3D26] hover:underline">&larr; Kembali</a>
 </div>
 
 <div class="card p-6 mb-5">
@@ -18,26 +18,137 @@
   {% endif %}
 </div>
 
-<form method="POST" class="space-y-4">
-  {% csrf_token %}
-  {% for soal in soal_list %}
-  <div class="card p-5">
-    <p class="text-sm font-medium text-gray-800 mb-3">{{ forloop.counter }}. {{ soal.pertanyaan }}</p>
-    <div class="space-y-2">
-      {% for opsi in soal.opsi.all %}
-      <label class="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer hover:bg-gray-50">
-        <input type="radio" name="soal_{{ soal.id }}" value="{{ opsi.id }}" required>
-        {{ opsi.teks }}
-      </label>
-      {% endfor %}
+{% if soal_list %}
+<style>
+  .kf-progress-wrap { display:flex; align-items:center; gap:6px; margin-bottom:18px; }
+  .kf-dot { flex:1; height:6px; border-radius:99px; background:#e5e7eb; transition:background .2s; }
+  .kf-dot.aktif { background:#3C8C1F; }
+  .kf-dot.terjawab { background:#93c5a8; }
+  .kf-slide { display:none; }
+  .kf-slide.tampil { display:block; }
+  .kf-opsi { display:block; border:2px solid #e5e7eb; border-radius:12px; padding:16px 18px; font-size:15px; cursor:pointer; margin-bottom:10px; transition:all .15s; background:white; }
+  .kf-opsi:hover { border-color:#93c5a8; background:#F5FBF3; }
+  .kf-opsi.terpilih { border-color:#3C8C1F; background:#EAF7DE; color:#256b16; font-weight:600; }
+  .kf-opsi input { position:absolute; opacity:0; pointer-events:none; }
+  .kf-nav { display:flex; justify-content:space-between; align-items:center; margin-top:20px; }
+  .kf-no { font-size:13px; color:#9ca3af; text-align:center; margin-bottom:6px; }
+  .kf-btn { border:none; border-radius:8px; padding:10px 20px; font-size:14px; font-weight:600; cursor:pointer; }
+  .kf-btn.utama { background:#3C8C1F; color:white; }
+  .kf-btn.sekunder { background:#f3f4f6; color:#374151; }
+  .kf-btn:disabled { opacity:.4; cursor:not-allowed; }
+</style>
+
+<noscript><style>.kf-js-only{display:none!important;} .kf-fallback{display:block!important;}</style></noscript>
+
+<div class="kf-js-only">
+  <div class="kf-progress-wrap" id="kf-progress"></div>
+
+  <form id="kf-form" method="POST">
+    {% csrf_token %}
+    {% for soal in soal_list %}
+    <div class="kf-slide {% if forloop.first %}tampil{% endif %}" data-index="{{ forloop.counter0 }}">
+      <p class="kf-no">Soal {{ forloop.counter }} dari {{ soal_list|length }}</p>
+      <div class="card p-6">
+        <p class="text-base font-semibold text-gray-800 mb-4">{{ soal.pertanyaan }}</p>
+        {% for opsi in soal.opsi.all %}
+        <label class="kf-opsi">
+          <input type="radio" name="soal_{{ soal.id }}" value="{{ opsi.id }}" required>
+          {{ opsi.teks }}
+        </label>
+        {% endfor %}
+      </div>
+      <div class="kf-nav">
+        <button type="button" class="kf-btn sekunder" onclick="kfGeser(-1)">&larr; Sebelumnya</button>
+        {% if not forloop.last %}
+        <button type="button" class="kf-btn utama" onclick="kfGeser(1)">Berikutnya &rarr;</button>
+        {% else %}
+        <button type="submit" class="kf-btn utama">Kumpulkan Jawaban</button>
+        {% endif %}
+      </div>
     </div>
-  </div>
-  {% empty %}
-  <div class="card p-8 text-center text-gray-400 text-sm">Guru belum menambahkan soal untuk kuis ini.</div>
-  {% endfor %}
-  {% if soal_list %}
-  <button type="submit" class="btn-primary">Kumpulkan Jawaban</button>
-  {% endif %}
-</form>
+    {% endfor %}
+  </form>
+</div>
+
+<div class="kf-fallback" style="display:none;">
+  <form method="POST" class="space-y-4">
+    {% csrf_token %}
+    {% for soal in soal_list %}
+    <div class="card p-5">
+      <p class="text-sm font-medium text-gray-800 mb-3">{{ forloop.counter }}. {{ soal.pertanyaan }}</p>
+      <div class="space-y-2">
+        {% for opsi in soal.opsi.all %}
+        <label class="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer hover:bg-gray-50">
+          <input type="radio" name="soal_{{ soal.id }}" value="{{ opsi.id }}" required>
+          {{ opsi.teks }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+    <button type="submit" class="btn-primary">Kumpulkan Jawaban</button>
+  </form>
+</div>
+
+<script>
+(function () {
+  var slides = document.querySelectorAll('.kf-slide');
+  var idx = 0;
+  var prog = document.getElementById('kf-progress');
+  var dots = [];
+
+  slides.forEach(function (s, i) {
+    var d = document.createElement('div');
+    d.className = 'kf-dot' + (i === 0 ? ' aktif' : '');
+    prog.appendChild(d);
+    dots.push(d);
+  });
+
+  function perbaruiDot() {
+    dots.forEach(function (d, i) {
+      var slide = slides[i];
+      var terjawab = slide.querySelector('input[type=radio]:checked') !== null;
+      d.classList.toggle('aktif', i === idx);
+      d.classList.toggle('terjawab', terjawab && i !== idx);
+    });
+  }
+
+  function tampilkan(i) {
+    if (i < 0 || i >= slides.length) return;
+    slides[idx].classList.remove('tampil');
+    idx = i;
+    slides[idx].classList.add('tampil');
+    perbaruiDot();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  window.kfGeser = function (arah) {
+    if (arah > 0) {
+      var wajib = slides[idx].querySelectorAll('input[type=radio]');
+      var terisi = slides[idx].querySelector('input[type=radio]:checked');
+      if (wajib.length && !terisi) {
+        alert('Pilih salah satu jawaban dulu ya, sebelum lanjut.');
+        return;
+      }
+    }
+    tampilkan(idx + arah);
+  };
+
+  slides.forEach(function (slide) {
+    slide.querySelectorAll('.kf-opsi').forEach(function (label) {
+      label.addEventListener('click', function () {
+        slide.querySelectorAll('.kf-opsi').forEach(function (l) { l.classList.remove('terpilih'); });
+        label.classList.add('terpilih');
+        perbaruiDot();
+      });
+    });
+  });
+
+  perbaruiDot();
+})();
+</script>
+{% else %}
+<div class="card p-8 text-center text-gray-400 text-sm">Guru belum menambahkan soal untuk kuis ini.</div>
+{% endif %}
 </div>
 {% endblock %}

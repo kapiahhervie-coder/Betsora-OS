@@ -1,4 +1,4 @@
-"""
+﻿"""
 Logika pengumpulan Tugas Kreasi: validasi masukan, penyimpanan atomik, dan
 penyusunan tampilan refleksi. Dipisah dari view agar mudah diuji.
 """
@@ -161,6 +161,34 @@ def proses_pengumpulan(tugas, siswa, cfg, post, files):
             tersimpan.append(RefleksiKarya.objects.create(
                 submisi=submisi, tipe=cfg['refleksi']['tipe'], emoji=emoji,
                 jawaban=jawaban, audio=audio_refleksi))
+
+            try:
+                from portofolio.models import KaryaSiswa
+                item_lampiran = [obj for obj in tersimpan if isinstance(obj, LampiranKarya)]
+                if item_lampiran:
+                    for i, lp in enumerate(item_lampiran, start=1):
+                        if len(item_lampiran) == 1:
+                            judul_karya = tugas.judul[:150]
+                        else:
+                            judul_karya = (tugas.judul + ' (' + str(i) + '/' + str(len(item_lampiran)) + ')')[:150]
+                        KaryaSiswa.objects.create(
+                            siswa=siswa,
+                            judul=judul_karya,
+                            deskripsi='Tugas Kreasi: ' + tugas.ruang_kerja.mapel,
+                            file=lp.file.name if lp.file else '',
+                            video_url=lp.url if lp.tipe == 'link' else '',
+                            dibagikan=False,
+                            refleksi=ringkasan,
+                        )
+                else:
+                    KaryaSiswa.objects.create(
+                        siswa=siswa,
+                        judul=tugas.judul[:150],
+                        deskripsi='Tugas Kreasi: ' + tugas.ruang_kerja.mapel,
+                        refleksi=ringkasan,
+                    )
+            except Exception:
+                pass
     except Exception:
         for obj in tersimpan:  # basis data sudah di-rollback; hapus berkas yatim
             berkas = getattr(obj, 'file', None) or getattr(obj, 'audio', None)

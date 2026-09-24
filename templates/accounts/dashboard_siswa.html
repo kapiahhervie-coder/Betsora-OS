@@ -12,6 +12,21 @@
 <a href="{% url 'perpustakaan:peta' %}" class="btn-primary" style="display:inline-block; margin-bottom:20px;">&#128218; Buka Perpustakaan</a>
 {% include 'perpustakaan/_lencana_kartu.html' %}
 {% include 'perpustakaan/_progres_baca.html' %}
+{% if tugas_menunggu %}
+<div class="card p-5 mb-5" style="border:1px solid #FDE68A; background:#FFFBEB;">
+  <h3 style="font-size:12px; font-weight:700; color:#92702E; letter-spacing:.06em; text-transform:uppercase; margin:0 0 10px;">&#128221; Tugas Menunggu ({{ tugas_menunggu|length }})</h3>
+  {% for t in tugas_menunggu %}
+  <a href="{% url 'ruang_kerja:detail_tugas' t.id %}" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; text-decoration:none; {% if not forloop.last %}border-bottom:1px solid #FDE68A;{% endif %}">
+    <div>
+      <p style="margin:0; font-size:13px; font-weight:600; color:#1f2937;">{{ t.judul }}</p>
+      <p style="margin:2px 0 0; font-size:11px; color:#92702E;">{{ t.ruang_kerja.mapel }} &middot; {{ t.ruang_kerja.label_kelas }}{% if t.deadline %} &middot; Batas: {{ t.deadline|date:"d M, H:i" }}{% endif %}</p>
+    </div>
+    <span style="font-size:11px; font-weight:700; color:#92702E; white-space:nowrap;">Kerjakan &rarr;</span>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
 <div class="card p-6 text-center">
   <p class="text-gray-400 text-sm">Halaman siswa masih dalam pengembangan. Ruang kerja, materi, dan tugas akan tersedia di sini.</p>
 </div>

@@ -1,4 +1,4 @@
-﻿from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
@@ -936,7 +936,7 @@ def tambah_soal(request, tugas_id):
 def hapus_soal(request, soal_id):
     soal = get_object_or_404(SoalPG, id=soal_id)
     tugas_id = soal.tugas.id
-    if not request.user.is_staff_role() and request.method == 'POST':
+    if request.user.is_staff_role() and request.method == 'POST':
         soal.delete()
         messages.success(request, 'Soal berhasil dihapus.')
     return redirect('ruang_kerja:kelola_soal', tugas_id=tugas_id)
