@@ -89,9 +89,17 @@ def dashboard_siswa(request):
         return redirect('accounts:logout')
     siswa = request.user.profil_siswa
     from perpustakaan.models import LencanaDiperoleh, ProgresBaca
+    from ruang_kerja.models import Tugas
+
+    ruang_ids = siswa.ruang_kerja_diikuti.values_list('ruang_kerja_id', flat=True)
+    tugas_menunggu = [
+        t for t in Tugas.objects.filter(ruang_kerja_id__in=ruang_ids).select_related('ruang_kerja')
+        if not t.sudah_submit(siswa)
+    ]
     lencana_list = LencanaDiperoleh.objects.filter(siswa=siswa).select_related('lencana', 'sumber')
     return render(request, 'accounts/dashboard_siswa.html', {'siswa': siswa, 'lencana_list': lencana_list,
-        'progres_list': ProgresBaca.objects.filter(siswa=siswa).select_related('sumber')[:8]})
+        'progres_list': ProgresBaca.objects.filter(siswa=siswa).select_related('sumber')[:8],
+        'tugas_menunggu': tugas_menunggu})
 
 @login_required
 def buat_akun_orangtua(request, siswa_id):
