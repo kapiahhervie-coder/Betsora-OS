@@ -57,10 +57,9 @@ class AksesHalamanTest(DasarGantiPassword):
         self.assertIn('dashboard-orangtua', r['Location'])
 
     def test_link_muncul_di_sidebar_untuk_semua_role(self):
-        # guru & siswa: base.html dirender lewat kelas:dashboard (cukup utk cek sidebar, bukan
-        # menguji hak akses ke kelas:dashboard itu sendiri). Orang tua: lewat dashboardnya sendiri,
-        # karena middleware membatasi orang tua hanya ke halaman itu.
-        for u, nama_url in [(self.guru, 'kelas:dashboard'), (self.u_siswa, 'kelas:dashboard'),
+        # guru: base.html dirender lewat kelas:dashboard. Siswa & orang tua: lewat dashboard
+        # masing-masing, karena kelas:dashboard mengalihkan siswa (bukan halamannya).
+        for u, nama_url in [(self.guru, 'kelas:dashboard'), (self.u_siswa, 'accounts:dashboard_siswa'),
                             (self.u_ortu, 'accounts:dashboard_orangtua')]:
             self.masuk(u)
             r = self.client.get(reverse(nama_url))
