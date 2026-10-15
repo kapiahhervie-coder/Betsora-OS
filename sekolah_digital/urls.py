@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('ckeditor/', include('ckeditor_uploader.urls')),
@@ -14,4 +15,5 @@ urlpatterns = [
     path('pesan/', include('pesan.urls', namespace='pesan')),
     path('perpustakaan/', include('perpustakaan.urls', namespace='perpustakaan')),
     path('kreasi/', include('kreasi.urls', namespace='kreasi')),
+    path("kuis/", include("kuis.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

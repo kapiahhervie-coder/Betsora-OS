@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -6,7 +7,8 @@
 <title>{% block title %}{{ pengaturan.nama_institusi }}{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.1.0/iconfont/tabler-icons.min.css">
+{% static 'vendor/tabler-icons/tabler-icons.min.css' as tabler_css %}
+<link rel="stylesheet" href="{{ tabler_css }}">
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
 tailwind.config = {
@@ -45,6 +47,10 @@ tailwind.config = {
   .badge-sakit { background:#E7EEF7; color:#2E5C92; font-size:11px; font-weight:500; padding:3px 10px; border-radius:9999px; }
   .alert-row { background:#FEF2F2; border:1px solid #FCA5A5; border-radius:10px; color:#991B1B; }
   .nav-section { color:#82B85F; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; padding:12px 14px 4px; }
+  .nav-section:not(:first-of-type) { border-top:1px solid rgba(255,255,255,0.07); margin-top:6px; padding-top:14px; }
+  .nav-link i { min-width:16px; text-align:center; flex-shrink:0; }
+  .nav-kelas-submenu.open { display:block !important; }
+  .nav-chevron.rotated { transform: rotate(180deg); }
 </style>
 </head>
 <body class="bg-[#FAF9F5] min-h-screen flex">
@@ -54,14 +60,20 @@ tailwind.config = {
 
   <!-- Brand -->
   <div class="px-5 py-6 border-b border-white border-opacity-10">
-    <p class="font-serif text-white text-[19px] leading-tight font-bold tracking-wide">{{ pengaturan.nama_institusi }}</p>
-    <p class="text-[11px] text-[#B7DFA0] mt-1 tracking-wide uppercase">{{ pengaturan.sub_judul|default:"SMP Negeri 1 Contoh" }}</p>
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#2ECC71;">
+        <span class="font-serif font-bold" style="color:#0F2C1D; font-size:15px;">{{ pengaturan.nama_institusi|slice:":1"|upper }}</span>
+      </div>
+      <p class="font-serif text-white text-[18px] leading-tight font-bold tracking-wide truncate">{{ pengaturan.nama_institusi }}</p>
+    </div>
+    {% if pengaturan.sub_judul %}
+    <span class="inline-block mt-2" style="background:rgba(46,204,113,0.15); color:#7FE3A3; font-size:10px; font-weight:700; letter-spacing:0.06em; padding:2px 9px; border-radius:9999px;">{{ pengaturan.sub_judul }}</span>
+    {% endif %}
   </div>
 
   <!-- Nav -->
   <nav class="flex-1 px-3 py-4 overflow-y-auto">
 
-    
     <p class="nav-section">Utama</p>
     <a href="{% url 'kelas:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
       <i class="ti ti-layout-dashboard" style="font-size:16px"></i>Dashboard
@@ -71,6 +83,9 @@ tailwind.config = {
     </a>
     <a href="{% url 'perpustakaan:peta' %}" class="nav-link {% if request.resolver_match.app_name == 'perpustakaan' %}active{% endif %}" style="padding-left:28px; font-size:12.5px;">
       <i class="ti ti-books" style="font-size:15px"></i>Perpustakaan
+    </a>
+    <a href="{% url 'kuis:home' %}" class="nav-link {% if request.resolver_match.app_name == 'kuis' %}active{% endif %}" style="padding-left:28px; font-size:12.5px;">
+      <i class="ti ti-device-gamepad-2" style="font-size:15px"></i>Quiz Battle
     </a>
     {% if user.role == "siswa" and user.profil_siswa %}
     <a href="{% url 'portofolio:detail' user.profil_siswa.id %}" class="nav-link {% if request.resolver_match.app_name == 'portofolio' %}active{% endif %}" style="padding-left:28px; font-size:12.5px;">
@@ -97,10 +112,26 @@ tailwind.config = {
 
     {% if user.role != "orangtua" %}
     <p class="nav-section">Pembelajaran</p>
-    <a href="{% url 'ruang_kerja:daftar' %}" class="nav-link {% if request.resolver_match.url_name == 'daftar' and request.resolver_match.app_name == 'ruang_kerja' %}active{% endif %}">
-  <i class="ti ti-book-2" style="font-size:16px"></i>{{ pengaturan.label_ruang_kerja }}
-  {% if total_belum_dibaca %}<span style="background:#dc2626; color:white; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:auto;">{{ total_belum_dibaca }}</span>{% endif %}
-</a>
+    <div>
+      <button type="button" onclick="toggleKelasDropdown(this)" class="nav-link {% if request.resolver_match.app_name == 'ruang_kerja' %}active{% endif %}" style="width:100%; border:none; background:none; cursor:pointer; text-align:left; font-family:inherit;">
+        <i class="ti ti-book-2" style="font-size:16px"></i>
+        <span style="flex:1;">{{ pengaturan.label_ruang_kerja }}</span>
+        {% if total_belum_dibaca %}<span style="background:#dc2626; color:white; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px;">{{ total_belum_dibaca }}</span>{% endif %}
+        <i class="ti ti-chevron-down nav-chevron" style="font-size:14px; transition:transform .2s;"></i>
+      </button>
+      <div class="nav-kelas-submenu" style="display:none;">
+        {% for k in sidebar_kelas_list %}
+        <a href="{% url 'ruang_kerja:detail_kelas' k.id %}" class="nav-link {% if request.resolver_match.url_name == 'detail_kelas' and request.resolver_match.kwargs.kelas_id|stringformat:'s' == k.id|stringformat:'s' %}active{% endif %}" style="padding-left:28px; font-size:12.5px;">
+          <i class="ti ti-users" style="font-size:14px"></i>{{ k.label_kelas }}
+        </a>
+        {% empty %}
+        <p style="padding:6px 14px 6px 28px; font-size:11px; color:#6b8a75; margin:0;">Belum ada kelas</p>
+        {% endfor %}
+        <a href="{% url 'ruang_kerja:kelola_kelas' %}" class="nav-link" style="padding-left:28px; font-size:12.5px; color:#6b8a75;">
+          <i class="ti ti-settings" style="font-size:14px"></i>Kelola Kelas
+        </a>
+      </div>
+    </div>
     {% endif %}
 
     {% if user.role in "guru,kepsek,admin" %}
@@ -159,9 +190,21 @@ tailwind.config = {
   </div>
 </main>
 
+<script>
+function toggleKelasDropdown(btn) {
+  const submenu = btn.parentElement.querySelector('.nav-kelas-submenu');
+  const chevron = btn.querySelector('.nav-chevron');
+  submenu.classList.toggle('open');
+  chevron.classList.toggle('rotated');
+}
+document.addEventListener('DOMContentLoaded', function() {
+  const activeInSubmenu = document.querySelector('.nav-kelas-submenu a.active');
+  if (activeInSubmenu) {
+    const submenu = activeInSubmenu.closest('.nav-kelas-submenu');
+    submenu.classList.add('open');
+    submenu.previousElementSibling.querySelector('.nav-chevron').classList.add('rotated');
+  }
+});
+</script>
 </body>
 </html>
-
-
-
-

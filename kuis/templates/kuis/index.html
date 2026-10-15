@@ -1,0 +1,744 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Betsora OS - Quiz Battle: Millionaire Challenge & Live Battle</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            betsora: {
+              50: '#f0f3ff',
+              100: '#e1e7fe',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+              dark: '#090d16',
+              card: '#111827',
+              border: '#1f293d'
+            },
+            kahoot: {
+              red: '#e21b3c',
+              blue: '#1368ce',
+              yellow: '#d89e00',
+              green: '#26890c'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Poppins', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@600;700;800;900&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+    }
+    .glass-panel {
+      background: rgba(17, 24, 39, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.3);
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.6);
+    }
+    .glow-indigo {
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.35);
+    }
+    .glow-amber {
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col justify-between bg-slate-950 text-slate-100 overflow-x-hidden custom-scrollbar">
+
+  <!-- TOP NAVIGATION HEADER -->
+  <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo & OS Title -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchView('play')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-amber-500 flex items-center justify-center text-white font-black text-xl shadow-lg glow-indigo">
+          B
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-black text-lg tracking-wider text-white">BETSORA <span class="text-indigo-400">OS</span></span>
+            <span class="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold">v3.5 Engine</span>
+          </div>
+          <p class="text-[11px] text-slate-400 font-medium">Quiz Battle: Millionaire & Live Competition</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="hidden md:flex items-center space-x-1 lg:space-x-2 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
+        <button id="navPlay" onclick="switchView('play')" class="nav-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-2 bg-indigo-600 text-white shadow-md">
+          <i class="fa-solid fa-gamepad"></i>
+          <span>Play / Simulator</span>
+        </button>
+        <button id="navBuilder" onclick="switchView('builder')" class="nav-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800">
+          <i class="fa-solid fa-pen-to-square"></i>
+          <span>Game Builder</span>
+        </button>
+        <button id="navAnalytics" onclick="switchView('analytics')" class="nav-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Analytics</span>
+        </button>
+        <button id="navSpec" onclick="switchView('spec')" class="nav-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800">
+          <i class="fa-solid fa-code"></i>
+          <span>Backend Spec</span>
+        </button>
+      </nav>
+
+      <!-- Audio Toggle & Mobile Menu Btn -->
+      <div class="flex items-center space-x-3">
+        <button id="soundToggleBtn" onclick="toggleSound()" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-slate-300 transition">
+          <i class="fa-solid fa-volume-high text-sm" id="soundIcon"></i>
+        </button>
+        
+        <!-- Mobile Navigation Menu Toggle -->
+        <button onclick="toggleMobileMenu()" class="md:hidden p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-slate-300">
+          <i class="fa-solid fa-bars text-sm"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobileMenu" class="hidden md:hidden bg-slate-900 border-b border-slate-800 px-4 py-3 space-y-2">
+      <button onclick="switchView('play'); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-slate-200 hover:bg-slate-800 flex items-center space-x-2">
+        <i class="fa-solid fa-gamepad text-indigo-400"></i>
+        <span>Play / Simulator</span>
+      </button>
+      <button onclick="switchView('builder'); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-slate-200 hover:bg-slate-800 flex items-center space-x-2">
+        <i class="fa-solid fa-pen-to-square text-amber-400"></i>
+        <span>Quiz Game Builder</span>
+      </button>
+      <button onclick="switchView('analytics'); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-slate-200 hover:bg-slate-800 flex items-center space-x-2">
+        <i class="fa-solid fa-chart-line text-emerald-400"></i>
+        <span>Analytics & History</span>
+      </button>
+      <button onclick="switchView('spec'); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-slate-200 hover:bg-slate-800 flex items-center space-x-2">
+        <i class="fa-solid fa-code text-violet-400"></i>
+        <span>Integration Spec</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- VIEW 1: PLAY & ROOM SIMULATOR -->
+    <section id="viewPlay" class="space-y-6">
+      
+      <!-- Sub Selector Bar: Choose Mode & Preset -->
+      <div class="glass-panel p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <!-- Mode Switch Buttons -->
+        <div class="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 w-full md:w-auto">
+          <button id="btnModeMillionaire" onclick="setPlayMode('millionaire')" class="flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-2 bg-amber-500 text-slate-950 shadow-md">
+            <i class="fa-solid fa-award"></i>
+            <span>1. Millionaire Challenge</span>
+          </button>
+          <button id="btnModeKahoot" onclick="setPlayMode('kahoot')" class="flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-2 text-slate-400 hover:text-white">
+            <i class="fa-solid fa-bolt"></i>
+            <span>2. Live Quiz Battle</span>
+          </button>
+        </div>
+
+        <!-- Quiz Set Selector -->
+        <div class="flex items-center space-x-3 w-full md:w-auto justify-end">
+          <span class="text-xs font-bold text-slate-400 shrink-0"><i class="fa-solid fa-book-open text-indigo-400 mr-1"></i> Preset:</span>
+          <select id="presetQuizSelector" onchange="changePresetQuiz(this.value)" class="bg-slate-900 border border-slate-700 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-indigo-500 w-full md:w-64">
+            <option value="math">Matematika SMA & Logika (15 Soal)</option>
+            <option value="general">Pengetahuan Umum Dunia (15 Soal)</option>
+            <option value="webdev">Betsora Web Development (15 Soal)</option>
+            <option value="custom" id="customQuizOption" disabled>Kuis Kustom Saya (0 Soal)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- PLAY AREA: MODE 1 - MILLIONAIRE CHALLENGE -->
+      <div id="playMillionaire" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- Left 3 Cols: Millionaire Question Arena -->
+        <div class="lg:col-span-3 glass-panel p-6 sm:p-8 rounded-3xl flex flex-col justify-between min-h-[500px] relative overflow-hidden border border-amber-500/20">
+          
+          <!-- Top Status Bar -->
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div class="flex items-center space-x-3">
+              <span class="px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-extrabold uppercase">
+               LEVEL <span id="mLevelNum">1</span> / <span id="mLevelTotal">15</span>
+              </span>
+              <div class="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 text-xs font-bold">
+                <i class="fa-solid fa-stopwatch text-amber-400"></i>
+                <span id="mTimer">30</span>s
+              </div>
+            </div>
+
+            <!-- Lifelines Buttons -->
+            <div class="flex items-center space-x-2">
+              <button id="life5050" onclick="useLifeline('5050')" class="px-3 py-1.5 bg-indigo-950/80 hover:bg-amber-500 hover:text-slate-950 text-amber-400 border border-amber-500/40 rounded-xl text-xs font-extrabold transition shadow-lg disabled:opacity-30 disabled:pointer-events-none">
+                50:50
+              </button>
+              <button id="lifeHint" onclick="useLifeline('hint')" class="px-3 py-1.5 bg-indigo-950/80 hover:bg-amber-500 hover:text-slate-950 text-amber-400 border border-amber-500/40 rounded-xl text-xs font-extrabold transition shadow-lg disabled:opacity-30 disabled:pointer-events-none flex items-center space-x-1">
+                <i class="fa-solid fa-lightbulb"></i>
+                <span class="hidden sm:inline">Petunjuk</span>
+              </button>
+              <button id="lifeFriend" onclick="useLifeline('friend')" class="px-3 py-1.5 bg-indigo-950/80 hover:bg-amber-500 hover:text-slate-950 text-amber-400 border border-amber-500/40 rounded-xl text-xs font-extrabold transition shadow-lg disabled:opacity-30 disabled:pointer-events-none flex items-center space-x-1">
+                <i class="fa-solid fa-users"></i>
+                <span class="hidden sm:inline">Tanya Teman</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Question Display -->
+          <div class="my-8 text-center px-2">
+            <span id="mCategoryBadge" class="inline-block px-3 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[11px] font-semibold mb-3">Kategori: Matematika</span>
+            <h2 id="mQuestionText" class="text-xl sm:text-2xl font-bold text-white leading-relaxed">
+              Memuat pertanyaan...
+            </h2>
+          </div>
+
+          <!-- Lifeline Clue / Overlay Display Box -->
+          <div id="lifelineBox" class="hidden mb-6 bg-slate-900/90 border border-indigo-500/50 p-4 rounded-2xl animate-fade-in">
+            <div class="flex justify-between items-center mb-2">
+              <h4 id="lifelineTitle" class="text-xs font-bold text-amber-400 flex items-center gap-2"></h4>
+              <button onclick="closeLifelineBox()" class="text-slate-400 hover:text-white text-xs">✖ Tutup</button>
+            </div>
+            <div id="lifelineContent" class="text-xs text-slate-200 leading-relaxed"></div>
+          </div>
+
+          <!-- Answer Options Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            <button onclick="selectMillionaireAnswer(0)" id="mAns0" class="m-ans-btn group p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-400 hover:bg-indigo-950/50 text-left transition flex items-center space-x-3">
+              <span class="w-7 h-7 rounded-lg bg-indigo-950 text-amber-400 font-extrabold text-xs flex items-center justify-center border border-indigo-800">A</span>
+              <span class="m-ans-text text-sm font-semibold text-slate-200 flex-1"></span>
+            </button>
+            <button onclick="selectMillionaireAnswer(1)" id="mAns1" class="m-ans-btn group p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-400 hover:bg-indigo-950/50 text-left transition flex items-center space-x-3">
+              <span class="w-7 h-7 rounded-lg bg-indigo-950 text-amber-400 font-extrabold text-xs flex items-center justify-center border border-indigo-800">B</span>
+              <span class="m-ans-text text-sm font-semibold text-slate-200 flex-1"></span>
+            </button>
+            <button onclick="selectMillionaireAnswer(2)" id="mAns2" class="m-ans-btn group p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-400 hover:bg-indigo-950/50 text-left transition flex items-center space-x-3">
+              <span class="w-7 h-7 rounded-lg bg-indigo-950 text-amber-400 font-extrabold text-xs flex items-center justify-center border border-indigo-800">C</span>
+              <span class="m-ans-text text-sm font-semibold text-slate-200 flex-1"></span>
+            </button>
+            <button onclick="selectMillionaireAnswer(3)" id="mAns3" class="m-ans-btn group p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-400 hover:bg-indigo-950/50 text-left transition flex items-center space-x-3">
+              <span class="w-7 h-7 rounded-lg bg-indigo-950 text-amber-400 font-extrabold text-xs flex items-center justify-center border border-indigo-800">D</span>
+              <span class="m-ans-text text-sm font-semibold text-slate-200 flex-1"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right 1 Col: Prize Ladder & Cash Out -->
+        <div class="glass-panel p-4 rounded-3xl flex flex-col justify-between border border-amber-500/20">
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 text-center mb-3">
+              Tangga Hadiah & Level
+            </h3>
+            <div id="mLadderContainer" class="flex flex-col-reverse space-y-1 space-y-reverse text-xs font-bold max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+          <button onclick="quitMillionaireEarly()" class="mt-4 w-full py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-extrabold transition">
+            🛑 Berhenti & Amankan Poin
+          </button>
+        </div>
+      </div>
+
+      <!-- PLAY AREA: MODE 2 - LIVE QUIZ BATTLE (KAHOOT STYLE) -->
+      <div id="playKahoot" class="hidden space-y-6">
+        
+        <!-- Live Host Control / Room Simulation Header -->
+        <div class="glass-panel p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 border border-indigo-500/30">
+          <div class="flex items-center space-x-3">
+            <div class="px-3 py-1.5 rounded-xl bg-purple-600/20 border border-purple-500/40 text-purple-300 font-extrabold text-xs flex items-center space-x-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>KODE ROOM: <strong class="text-white tracking-widest text-sm" id="roomCodeDisplay">#BET-9824</strong></span>
+            </div>
+            <span class="text-xs text-slate-400 font-medium hidden sm:inline"><i class="fa-solid fa-users text-indigo-400 mr-1"></i> <span id="kLivePlayersCount">24</span> Peserta Terhubung</span>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button onclick="resetKahootGame()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition">
+              Restart Room 🔄
+            </button>
+            <button id="kStartBtn" onclick="startKahootGame()" class="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-black shadow-lg transition">
+              MULAI LIVE BATTLE 🚀
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Left 2 Cols: Kahoot Speed Question & Cards -->
+          <div class="lg:col-span-2 space-y-4">
+            
+            <!-- Top Score & Streak Info Bar -->
+            <div class="glass-panel p-4 rounded-2xl flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs font-bold text-slate-400">SOAL <span id="kQuestionNum" class="text-white">1/15</span></span>
+                <div id="kStreakBadge" class="hidden items-center space-x-1 px-2.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-400 text-xs font-black">
+                  <span>🔥</span>
+                  <span id="kStreakCount">0</span>x Combo!
+                </div>
+              </div>
+
+              <!-- Speed Timer Circle -->
+              <div class="w-11 h-11 rounded-full border-2 border-purple-500 flex items-center justify-center font-black text-sm text-white bg-slate-950 shadow-inner" id="kTimerCircle">
+                <span id="kTimer">15</span>
+              </div>
+
+              <div>
+                <span class="text-[10px] text-slate-400 block font-semibold text-right">SKOR BATTLE</span>
+                <span id="kScore" class="text-lg font-black text-amber-400">0</span>
+              </div>
+            </div>
+
+            <!-- Question Box with Timer Bar -->
+            <div class="glass-panel p-6 sm:p-8 rounded-3xl text-center flex items-center justify-center min-h-[160px] relative overflow-hidden border border-purple-500/30">
+              <div id="kTimerBar" class="absolute bottom-0 left-0 h-1.5 bg-gradient-to-r from-amber-400 via-purple-500 to-indigo-500 transition-all duration-1000 ease-linear w-full"></div>
+              <h2 id="kQuestionText" class="text-xl sm:text-2xl font-extrabold text-white leading-snug">
+                Klik 'MULAI LIVE BATTLE' untuk mensimulasikan permainan Kahoot bersama siswa!
+              </h2>
+            </div>
+
+            <!-- Kahoot Colored Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <button onclick="selectKahootAnswer(0)" id="kAns0" class="k-ans-btn bg-kahoot-red hover:brightness-110 p-4 rounded-2xl flex items-center space-x-3.5 shadow-lg transition active:scale-95 text-left">
+                <div class="w-9 h-9 rounded-xl bg-black/20 flex items-center justify-center text-white text-lg font-black shrink-0">▲</div>
+                <span class="k-ans-text text-sm font-bold text-white flex-1">Pilihan A</span>
+              </button>
+              <button onclick="selectKahootAnswer(1)" id="kAns1" class="k-ans-btn bg-kahoot-blue hover:brightness-110 p-4 rounded-2xl flex items-center space-x-3.5 shadow-lg transition active:scale-95 text-left">
+                <div class="w-9 h-9 rounded-xl bg-black/20 flex items-center justify-center text-white text-lg font-black shrink-0">◆</div>
+                <span class="k-ans-text text-sm font-bold text-white flex-1">Pilihan B</span>
+              </button>
+              <button onclick="selectKahootAnswer(2)" id="kAns2" class="k-ans-btn bg-kahoot-yellow hover:brightness-110 p-4 rounded-2xl flex items-center space-x-3.5 shadow-lg transition active:scale-95 text-left">
+                <div class="w-9 h-9 rounded-xl bg-black/20 flex items-center justify-center text-white text-lg font-black shrink-0">●</div>
+                <span class="k-ans-text text-sm font-bold text-white flex-1">Pilihan C</span>
+              </button>
+              <button onclick="selectKahootAnswer(3)" id="kAns3" class="k-ans-btn bg-kahoot-green hover:brightness-110 p-4 rounded-2xl flex items-center space-x-3.5 shadow-lg transition active:scale-95 text-left">
+                <div class="w-9 h-9 rounded-xl bg-black/20 flex items-center justify-center text-white text-lg font-black shrink-0">■</div>
+                <span class="k-ans-text text-sm font-bold text-white flex-1">Pilihan D</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right 1 Col: Real-time Live Leaderboard -->
+          <div class="glass-panel p-5 rounded-3xl border border-purple-500/20 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <i class="fa-solid fa-ranking-star text-amber-400"></i>
+                <span>Live Leaderboard</span>
+              </h3>
+              <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">Realtime</span>
+            </div>
+
+            <div id="kLeaderboardContainer" class="space-y-2 text-xs">
+              <!-- Simulated Live Leaderboard Items -->
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold">
+                <div class="flex items-center space-x-2">
+                  <span class="w-5 text-center font-black">1</span>
+                  <span>Anda (Pemain)</span>
+                </div>
+                <span id="lbUserPoints">0 Pts</span>
+              </div>
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300">
+                <div class="flex items-center space-x-2">
+                  <span class="w-5 text-center font-bold text-slate-500">2</span>
+                  <span>Budi Santoso</span>
+                </div>
+                <span>1,240 Pts</span>
+              </div>
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300">
+                <div class="flex items-center space-x-2">
+                  <span class="w-5 text-center font-bold text-slate-500">3</span>
+                  <span>Siti Rahma</span>
+                </div>
+                <span>1,110 Pts</span>
+              </div>
+              <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300">
+                <div class="flex items-center space-x-2">
+                  <span class="w-5 text-center font-bold text-slate-500">4</span>
+                  <span>Dimas Pro</span>
+                </div>
+                <span>950 Pts</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: QUIZ GAME BUILDER STUDIO -->
+    <section id="viewBuilder" class="hidden space-y-6">
+      
+      <!-- Header Actions -->
+      <div class="glass-panel p-6 rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border border-indigo-500/20">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-pen-to-square text-indigo-400"></i>
+            <span>Betsora Quiz Game Builder</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Buat kuis kustom, atur tingkat kesulitan, dan ekspor/impor JSON untuk digunakan di Betsora OS.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <button onclick="exportQuizJSON()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition flex items-center space-x-2">
+            <i class="fa-solid fa-download"></i>
+            <span>Ekspor JSON</span>
+          </button>
+          <button onclick="document.getElementById('jsonFileInput').click()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition flex items-center space-x-2">
+            <i class="fa-solid fa-upload"></i>
+            <span>Impor JSON</span>
+          </button>
+          <input type="file" id="jsonFileInput" onchange="importQuizJSON(event)" class="hidden" accept=".json">
+          <button onclick="saveCustomQuiz()" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black rounded-xl text-xs shadow-lg transition flex items-center space-x-2">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Simpan Kuis</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Add New Question Form -->
+      <div class="glass-panel p-6 rounded-3xl space-y-4 border border-slate-800">
+        <h3 class="text-sm font-bold text-amber-400 flex items-center space-x-2">
+          <i class="fa-solid fa-plus-circle"></i>
+          <span>Tambah Pertanyaan Kuis</span>
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="md:col-span-2">
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Teks Pertanyaan</label>
+            <input type="text" id="bQuestionInput" placeholder="Contoh: Berapakah hasil dari 12 x 8?" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-indigo-500 text-xs">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Petunjuk (Hint untuk Lifeline)</label>
+            <input type="text" id="bHintInput" placeholder="Contoh: Perkalian di bawah 100" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-indigo-500 text-xs">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Pilihan A</label>
+            <input type="text" id="bOpt0" placeholder="Jawaban A" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Pilihan B</label>
+            <input type="text" id="bOpt1" placeholder="Jawaban B" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Pilihan C</label>
+            <input type="text" id="bOpt2" placeholder="Jawaban C" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Pilihan D</label>
+            <input type="text" id="bOpt3" placeholder="Jawaban D" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+          <div class="w-full sm:w-1/2">
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Opsi Jawaban Benar</label>
+            <select id="bCorrectOpt" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-indigo-500">
+              <option value="0">Pilihan A</option>
+              <option value="1">Pilihan B</option>
+              <option value="2">Pilihan C</option>
+              <option value="3">Pilihan D</option>
+            </select>
+          </div>
+
+          <button onclick="addQuestionToCustomBuilder()" class="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs shadow transition mt-auto">
+            + Tambahkan Soal
+          </button>
+        </div>
+      </div>
+
+      <!-- Question List Container -->
+      <div class="glass-panel p-6 rounded-3xl space-y-3 border border-slate-800">
+        <h3 class="text-sm font-bold text-slate-200 flex items-center justify-between">
+          <span>Daftar Soal Kustom (<span id="bQuestionCount">0</span>)</span>
+          <span class="text-xs font-normal text-slate-400">Kuis akan otomatis tersimpan untuk mode simulator.</span>
+        </h3>
+
+        <div id="builderQuestionsList" class="space-y-2.5 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+          <!-- Item questions rendered via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: LEARNING ANALYTICS & HISTORY -->
+    <section id="viewAnalytics" class="hidden space-y-6">
+      
+      <!-- Top Overview Stats Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-users"></i>
+          </div>
+          <div>
+            <span class="text-[11px] text-slate-400 block font-semibold">Total Siswa Aktif</span>
+            <span class="text-lg font-black text-white">128 Siswa</span>
+          </div>
+        </div>
+
+        <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <div>
+            <span class="text-[11px] text-slate-400 block font-semibold">Rata-rata Penguasaan</span>
+            <span class="text-lg font-black text-emerald-400">82.4%</span>
+          </div>
+        </div>
+
+        <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div>
+            <span class="text-[11px] text-slate-400 block font-semibold">Topik Paling Sulit</span>
+            <span class="text-xs font-bold text-amber-300">Trigonometri Lanjut</span>
+          </div>
+        </div>
+
+        <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-gamepad"></i>
+          </div>
+          <div>
+            <span class="text-[11px] text-slate-400 block font-semibold">Sesi Battle Dimainkan</span>
+            <span class="text-lg font-black text-white">42 Sesi</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <i class="fa-solid fa-chart-column text-indigo-400"></i>
+            <span>Tingkat Penguasaan Siswa per Topik (%)</span>
+          </h3>
+          <div class="h-64 relative">
+            <canvas id="analyticsTopicChart"></canvas>
+          </div>
+        </div>
+
+        <div class="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+            <i class="fa-solid fa-circle-nodes text-amber-400"></i>
+            <span>Analisis Soal Tersulit (Error Rate)</span>
+          </h3>
+          <div class="h-64 relative">
+            <canvas id="analyticsHardestChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Results History Table -->
+      <div class="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-indigo-400"></i>
+            <span>Riwayat Hasil Sesi Siswa</span>
+          </h3>
+          <button onclick="alert('Laporan PDF/Excel siap diunduh!')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition">
+            <i class="fa-solid fa-file-export mr-1"></i> Unduh Rekap CSV
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-900 text-slate-400 uppercase font-extrabold text-[10px]">
+              <tr>
+                <th class="p-3 rounded-l-xl">Nama Siswa</th>
+                <th class="p-3">Mode Game</th>
+                <th class="p-3">Skor Akhir</th>
+                <th class="p-3">Akurasi</th>
+                <th class="p-3">Rata-rata Waktu</th>
+                <th class="p-3 rounded-r-xl">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 font-medium">
+              <tr>
+                <td class="p-3 text-white font-bold">Budi Santoso</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px]">Millionaire</span></td>
+                <td class="p-3 text-amber-400 font-bold">$125,000</td>
+                <td class="p-3 text-emerald-400">86.6% (13/15)</td>
+                <td class="p-3">8.4 detik</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px]">Lulus Safe 2</span></td>
+              </tr>
+              <tr>
+                <td class="p-3 text-white font-bold">Siti Rahma</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 text-[10px]">Live Battle</span></td>
+                <td class="p-3 text-purple-400 font-bold">14,250 Pts</td>
+                <td class="p-3 text-emerald-400">93.3% (14/15)</td>
+                <td class="p-3">3.2 detik</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 text-[10px]">Juara 1 🏆</span></td>
+              </tr>
+              <tr>
+                <td class="p-3 text-white font-bold">Dimas Pro</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px]">Millionaire</span></td>
+                <td class="p-3 text-amber-400 font-bold">$32,000</td>
+                <td class="p-3 text-yellow-400">66.6% (10/15)</td>
+                <td class="p-3">12.1 detik</td>
+                <td class="p-3"><span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px]">Terhenti L11</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: BACKEND INTEGRATION & SPECIFICATION -->
+    <section id="viewSpec" class="hidden space-y-6">
+      
+      <div class="glass-panel p-6 rounded-3xl border border-violet-500/30 space-y-4">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-violet-600/20 text-violet-400 flex items-center justify-center text-xl font-bold">
+            <i class="fa-solid fa-code"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-white">Arsitektur Integration Spec - Betsora OS</h2>
+            <p class="text-xs text-slate-400">Cetak biru API, Skema Database, dan WebSocket Payloads untuk integrasi Laravel / Node.js Backend.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tech Architecture Specs Tabs -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Code Spec 1: WebSocket Socket.io Events -->
+        <div class="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center justify-between">
+            <span>1. WebSocket Live Battle Events (Socket.io)</span>
+            <span class="text-[10px] text-slate-500">Real-time Protocol</span>
+          </h3>
+          <pre class="bg-slate-950 p-4 rounded-xl text-[11px] text-slate-300 font-mono overflow-x-auto border border-slate-800 leading-relaxed custom-scrollbar">// Client -> Server: Submit Answer
+socket.emit('submit_answer', {
+  room_code: 'BET-9824',
+  participant_id: 'usr_8812',
+  question_id: 104,
+  selected_option: 1, // Index B
+  response_time_ms: 1850
+});
+
+// Server -> Client: Broadcast Realtime Score
+socket.on('score_update', (data) => {
+  // data: { score: 1250, streak: 3, leaderboard: [...] }
+  updateLeaderboardUI(data.leaderboard);
+});</pre>
+        </div>
+
+        <!-- Code Spec 2: Database ERD Schema Structure -->
+        <div class="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center justify-between">
+            <span>2. Database Schema Blueprint (MySQL / PostgreSQL)</span>
+            <span class="text-[10px] text-slate-500">Relational Tables</span>
+          </h3>
+          <pre class="bg-slate-950 p-4 rounded-xl text-[11px] text-slate-300 font-mono overflow-x-auto border border-slate-800 leading-relaxed custom-scrollbar">TABLE quizzes (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(255),
+  mode ENUM('millionaire', 'kahoot_battle'),
+  safe_checkpoints JSON, -- [5, 10]
+  created_by INT
+);
+
+TABLE questions (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  quiz_id INT FOREIGN KEY,
+  question_text TEXT,
+  options JSON, -- ["A", "B", "C", "D"]
+  correct_option INT,
+  hint_text TEXT
+);</pre>
+        </div>
+      </div>
+    </section>
+     <!-- WELCOME MODAL -->
+<div id="welcomeModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+  <div class="glass-panel p-8 rounded-3xl max-w-md w-full text-center space-y-5 border border-indigo-500/30 glow-indigo">
+    <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-violet-600 to-amber-500 mx-auto flex items-center justify-center text-white font-black text-3xl shadow-lg">B</div>
+    <div>
+      <h2 class="text-2xl font-black text-white">Selamat Datang di Betsora OS</h2>
+      <p class="text-xs text-slate-400 mt-1">Pilih mode permainan untuk memulai.</p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-3">
+      <button onclick="closeWelcome('millionaire')" class="py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs transition">
+        🏆 Millionaire Challenge
+      </button>
+      <button onclick="closeWelcome('kahoot')" class="py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold rounded-xl text-xs transition">
+        ⚡ Live Quiz Battle
+      </button>
+      <button onclick="closeWelcome('builder')" class="py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition">
+        ✏️ Buat Kuis Sendiri
+      </button>
+    </div>
+
+    <label class="flex items-center justify-center gap-2 text-[11px] text-slate-400 cursor-pointer">
+      <input type="checkbox" id="welcomeSkip" class="accent-indigo-500">
+      Jangan tampilkan lagi
+    </label>
+  </div>
+</div>
+    <!-- RESULT MODAL DISPLAY -->
+    <div id="resultModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+      <div class="glass-panel p-8 rounded-3xl max-w-md w-full text-center space-y-6 border border-amber-500/30 glow-amber">
+        <div class="w-20 h-20 rounded-3xl bg-amber-500/20 text-amber-400 mx-auto flex items-center justify-center text-4xl border border-amber-500/40">
+          <i id="resIcon" class="fa-solid fa-trophy"></i>
+        </div>
+        <div>
+          <h2 id="resTitle" class="text-2xl font-black text-white">Sesi Selesai!</h2>
+          <p id="resSubtitle" class="text-xs text-slate-400 mt-1">Hasil pencapaian permainan kuis Anda</p>
+        </div>
+
+        <div class="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-1">
+          <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block" id="resScoreLabel">TOTAL SKOR</span>
+          <span id="resScoreValue" class="text-3xl font-black text-amber-400 block">$0</span>
+        </div>
+
+        <div class="flex gap-3">
+          <button onclick="closeResultModal()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs shadow transition">
+            Main Lagi 🔄
+          </button>
+          <button onclick="closeResultModal(); switchView('analytics')" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition">
+            Lihat Analytics 📊
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-950 border-t border-slate-900 py-4 text-center text-xs text-slate-600">
+    <p>Betsora OS &copy; 2026 - Modern Educational Quiz Battle Engine</p>
+  </footer>
+
+  <!-- JAVASCRIPT LOGIC & ENGINE -->
+  <script src="{% static 'kuis/app.js' %}"></script>
+</body>
+</html>

@@ -23,7 +23,8 @@ INSTALLED_APPS = [
     'pengaturan',
     'pesan',
     'perpustakaan',
-    'kreasi'
+    'kreasi',
+    'kuis',
 ]
 
 MIDDLEWARE = [
@@ -53,6 +54,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'pengaturan.context_processors.pengaturan_sekolah',
                 'pengaturan.context_processors.notifikasi_belum_dibaca',
+                'ruang_kerja.context_processors.sidebar_kelas',
             ],
         },
     },
@@ -89,9 +91,18 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
