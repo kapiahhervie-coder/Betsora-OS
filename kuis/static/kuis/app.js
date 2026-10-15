@@ -200,12 +200,6 @@ function toggleMobileMenu() {
   document.getElementById('mobileMenu').classList.toggle('hidden');
 }
 
-function changePresetQuiz(val) {
-  activePresetKey = val;
-  currentQuestions = val === 'custom' ? customQuestions : PRESETS[val];
-  if (playMode === 'millionaire') startMillionaireGame();
-  if (playMode === 'kahoot') resetKahootGame();
-}
 
 function setPlayMode(mode) {
   playSound('click');
@@ -245,7 +239,7 @@ function getLadderIdx(qIdx) {
 }
 
 function startMillionaireGame() {
-  currentQuestions = activePresetKey === 'custom' ? customQuestions : PRESETS[activePresetKey];
+  currentQuestions = getActiveQuestions();
   if (!currentQuestions || currentQuestions.length === 0) return;
 
   currentQIdx = 0;
@@ -292,7 +286,7 @@ function loadMillionaireQuestion() {
   const ladderIdx = getLadderIdx(currentQIdx);
   document.getElementById('mLevelNum').innerText = currentQIdx + 1;
   document.getElementById('mQuestionText').innerText = q.q;
-  document.getElementById('mCategoryBadge').innerText = 'Kategori: ' + (CATEGORY_NAMES[activePresetKey] || '-');
+  document.getElementById('mCategoryBadge').innerText = 'Kategori: ' + getActiveCategory();
 
   MILLIONAIRE_LADDER.forEach((_, idx) => {
     const row = document.getElementById(`mLadderRow_${idx}`);
@@ -426,7 +420,7 @@ function resetKahootGame() {
 }
 
 function startKahootGame() {
-  currentQuestions = activePresetKey === 'custom' ? customQuestions : PRESETS[activePresetKey];
+  currentQuestions = getActiveQuestions();
   if (!currentQuestions || currentQuestions.length === 0) return;
 
   currentQIdx = 0;
@@ -589,20 +583,6 @@ function renderCustomBuilderList() {
   });
 }
 
-function saveCustomQuiz() {
-  if (customQuestions.length === 0) {
-    alert("Tambahkan minimal 1 soal sebelum menyimpan!");
-    return;
-  }
-  playSound('correct');
-  const customOpt = document.getElementById('customQuizOption');
-  customOpt.disabled = false;
-  customOpt.innerText = `Kuis Kustom Saya (${customQuestions.length} Soal)`;
-  document.getElementById('presetQuizSelector').value = 'custom';
-  changePresetQuiz('custom');
-  alert("Kuis Kustom Berhasil Disimpan! Siap dimainkan di mode Simulator.");
-  switchView('play');
-}
 
 function exportQuizJSON() {
   if (customQuestions.length === 0) {
@@ -644,7 +624,9 @@ function importQuizJSON(event) {
       if (clean.length === 0) throw new Error("Tidak ada soal valid");
 
       customQuestions = clean;
+      editingQuizId = null;
       renderCustomBuilderList();
+      updateBuilderInfo();
       const skipped = imported.length - clean.length;
       alert(`Berhasil mengimpor ${clean.length} soal.` + (skipped ? ` ${skipped} soal dilewati karena format tidak valid.` : ''));
     } catch (err) {
@@ -769,9 +751,258 @@ function chooseWelcome(mode) {
 }
 
 // ==========================================
-// 8. INITIALIZER
+// 8. DATABASE (KUIS TERSIMPAN)
+// ==========================================
+
+const CFG = window.KUIS_CONFIG || {};
+let savedQuizzes = [];   // daftar kuis (metadata) dari server
+let dbQuizCache = {};    // id -> { judul, soal: [...] }
+let editingQuizId = null; // id kuis yang sedang diedit di Builder (null = kuis baru)
+
+function apiUrl(base, id) {
+  return base.replace('/0/', '/' + id + '/');
+}
+
+async function apiFetch(url, options = {}) {
+  const opts = Object.assign({ credentials: 'same-origin' }, options);
+  opts.headers = Object.assign({ 'X-CSRFToken': CFG.csrfToken }, opts.headers || {});
+  const res = await fetch(url, opts);
+  let data = {};
+  try { data = await res.json(); } catch (e) { /* bukan JSON */ }
+  if (!res.ok) throw new Error(data.error || ('Permintaan gagal (' + res.status + ')'));
+  return data;
+}
+
+function getActiveQuestions() {
+  if (activePresetKey === 'custom') return customQuestions;
+  if (activePresetKey.startsWith('db:')) {
+    const q = dbQuizCache[activePresetKey.slice(3)];
+    return q ? q.soal : [];
+  }
+  return PRESETS[activePresetKey] || [];
+}
+
+function getActiveCategory() {
+  if (activePresetKey.startsWith('db:')) {
+    const q = dbQuizCache[activePresetKey.slice(3)];
+    return q ? q.judul : 'Kuis Tersimpan';
+  }
+  return CATEGORY_NAMES[activePresetKey] || '-';
+}
+
+async function changePresetQuiz(val) {
+  if (val.startsWith('db:')) {
+    const id = val.slice(3);
+    if (!dbQuizCache[id]) {
+      try {
+        dbQuizCache[id] = await apiFetch(apiUrl(CFG.apiDetail, id));
+      } catch (e) {
+        alert('Gagal memuat kuis: ' + e.message);
+        document.getElementById('presetQuizSelector').value = activePresetKey;
+        return;
+      }
+    }
+  }
+  activePresetKey = val;
+  currentQuestions = getActiveQuestions();
+  if (playMode === 'millionaire') startMillionaireGame();
+  if (playMode === 'kahoot') resetKahootGame();
+}
+
+async function refreshSavedQuizzes() {
+  if (!CFG.apiDaftar) return;
+  try {
+    const data = await apiFetch(CFG.apiDaftar);
+    savedQuizzes = data.kuis || [];
+  } catch (e) {
+    console.error('Gagal memuat daftar kuis:', e);
+    savedQuizzes = [];
+  }
+  renderPresetGroup();
+  renderSavedQuizList();
+  updateBuilderInfo();
+}
+
+function renderPresetGroup() {
+  const group = document.getElementById('savedQuizGroup');
+  const sel = document.getElementById('presetQuizSelector');
+  if (!group || !sel) return;
+
+  group.innerHTML = '';
+  savedQuizzes.forEach(q => {
+    const opt = document.createElement('option');
+    opt.value = 'db:' + q.id;
+    opt.textContent = q.judul + ' (' + q.jumlah_soal + ' Soal)' + (q.milik_saya ? '' : ' - ' + q.pembuat);
+    group.appendChild(opt);
+  });
+  group.hidden = savedQuizzes.length === 0;
+  sel.value = activePresetKey;
+}
+
+function renderSavedQuizList() {
+  const box = document.getElementById('savedQuizList');
+  if (!box) return;
+
+  if (savedQuizzes.length === 0) {
+    box.innerHTML = '<p class="text-slate-500 text-xs text-center py-6">Belum ada kuis tersimpan.</p>';
+    return;
+  }
+
+  box.innerHTML = '';
+  savedQuizzes.forEach(q => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center justify-between p-3 bg-slate-900 rounded-xl border border-slate-800 text-xs gap-2';
+
+    const badge = q.dibagikan
+      ? '<span class="ml-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold">Dibagikan</span>'
+      : '';
+    const ownerButtons = q.milik_saya
+      ? `<button onclick="editSavedQuiz(${q.id})" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold transition">Edit</button>
+         <button onclick="deleteSavedQuiz(${q.id})" class="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg font-bold transition">Hapus</button>`
+      : '';
+
+    row.innerHTML = `
+      <div class="overflow-hidden pr-2">
+        <p class="font-bold text-slate-200 truncate">${escapeHTML(q.judul)}${badge}</p>
+        <p class="text-[10px] text-slate-400">${q.jumlah_soal} soal &middot; ${escapeHTML(q.pembuat)}</p>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button onclick="playSavedQuiz(${q.id})" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition">Mainkan</button>
+        ${ownerButtons}
+      </div>
+    `;
+    box.appendChild(row);
+  });
+}
+
+function updateBuilderInfo() {
+  const el = document.getElementById('bEditInfo');
+  if (!el) return;
+  if (editingQuizId === null) {
+    el.textContent = 'Kuis baru (belum disimpan)';
+    return;
+  }
+  const q = savedQuizzes.find(x => x.id === editingQuizId);
+  el.textContent = 'Mengedit kuis: ' + (q ? q.judul : '#' + editingQuizId);
+}
+
+function newQuizBuilder() {
+  playSound('click');
+  customQuestions = [];
+  editingQuizId = null;
+  const title = document.getElementById('bQuizTitle');
+  const share = document.getElementById('bShare');
+  if (title) title.value = '';
+  if (share) share.checked = false;
+  renderCustomBuilderList();
+  updateBuilderInfo();
+}
+
+async function playSavedQuiz(id) {
+  playSound('click');
+  await changePresetQuiz('db:' + id);
+  document.getElementById('presetQuizSelector').value = activePresetKey;
+  switchView('play');
+}
+
+async function editSavedQuiz(id) {
+  playSound('click');
+  try {
+    const data = await apiFetch(apiUrl(CFG.apiDetail, id));
+    customQuestions = data.soal.map(q => ({ q: q.q, a: q.a.slice(), correct: q.correct, hint: q.hint }));
+    editingQuizId = data.id;
+    const title = document.getElementById('bQuizTitle');
+    const share = document.getElementById('bShare');
+    if (title) title.value = data.judul;
+    if (share) share.checked = !!data.dibagikan;
+    renderCustomBuilderList();
+    updateBuilderInfo();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (e) {
+    alert('Gagal memuat kuis: ' + e.message);
+  }
+}
+
+async function deleteSavedQuiz(id) {
+  const q = savedQuizzes.find(x => x.id === id);
+  if (!confirm('Hapus kuis "' + (q ? q.judul : '#' + id) + '"? Tindakan ini tidak bisa dibatalkan.')) return;
+  try {
+    await apiFetch(apiUrl(CFG.apiHapus, id), { method: 'POST' });
+  } catch (e) {
+    alert('Gagal menghapus kuis: ' + e.message);
+    return;
+  }
+  delete dbQuizCache[id];
+  if (editingQuizId === id) newQuizBuilder();
+  if (activePresetKey === 'db:' + id) {
+    activePresetKey = 'math';
+    await changePresetQuiz('math');
+  }
+  await refreshSavedQuizzes();
+}
+
+async function saveCustomQuiz() {
+  if (customQuestions.length === 0) {
+    alert("Tambahkan minimal 1 soal sebelum menyimpan!");
+    return;
+  }
+
+  // Mode mandiri (tanpa backend Django): simpan di memori browser saja
+  if (!CFG.apiSimpan) {
+    playSound('correct');
+    const customOpt = document.getElementById('customQuizOption');
+    customOpt.disabled = false;
+    customOpt.innerText = `Kuis Kustom Saya (${customQuestions.length} Soal)`;
+    document.getElementById('presetQuizSelector').value = 'custom';
+    changePresetQuiz('custom');
+    alert("Kuis Kustom Berhasil Disimpan! Siap dimainkan di mode Simulator.");
+    switchView('play');
+    return;
+  }
+
+  const titleInput = document.getElementById('bQuizTitle');
+  const shareBox = document.getElementById('bShare');
+  const judul = titleInput ? titleInput.value.trim() : '';
+  const dibagikan = shareBox ? shareBox.checked : false;
+
+  if (!judul) {
+    alert('Isi judul kuis terlebih dahulu.');
+    if (titleInput) titleInput.focus();
+    return;
+  }
+
+  try {
+    const res = await apiFetch(CFG.apiSimpan, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: editingQuizId, judul, dibagikan, soal: customQuestions })
+    });
+
+    editingQuizId = res.id;
+    dbQuizCache[res.id] = {
+      id: res.id,
+      judul: res.judul,
+      dibagikan: res.dibagikan,
+      milik_saya: true,
+      soal: customQuestions.map(q => ({ q: q.q, a: q.a.slice(), correct: q.correct, hint: q.hint }))
+    };
+
+    playSound('correct');
+    activePresetKey = 'db:' + res.id;
+    await refreshSavedQuizzes();
+    await changePresetQuiz(activePresetKey);
+    alert('Kuis "' + res.judul + '" berhasil disimpan ke database.');
+    switchView('play');
+  } catch (e) {
+    alert('Gagal menyimpan kuis: ' + e.message);
+  }
+}
+
+// ==========================================
+// 9. INITIALIZER
 // ==========================================
 
 window.onload = function () {
   showWelcomeModal(); // game baru dimulai setelah pengguna memilih mode
+  refreshSavedQuizzes(); // muat kuis tersimpan dari database
 };
