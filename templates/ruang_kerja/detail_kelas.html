@@ -1,0 +1,29 @@
+﻿{% extends 'base.html' %}
+{% block title %}{{ kelas_obj.label_kelas }}{% endblock %}
+{% block page_title %}{{ kelas_obj.label_kelas }}{% endblock %}
+{% block content %}
+
+<div class="mb-4" style="display:flex; justify-content:space-between; align-items:center;">
+  <a href="{% url 'ruang_kerja:kelola_kelas' %}" class="text-sm text-[#3C8C1F] hover:underline">← Semua Kelas</a>
+  {% if request.user.role != 'siswa' %}
+  <a href="{% url 'ruang_kerja:tambah_mapel_kelas' kelas_obj.id %}" class="btn-primary">+ Tambah Mata Pelajaran</a>
+  {% endif %}
+</div>
+
+<div class="grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:16px;">
+  {% for ruang in ruang_list %}
+  <a href="{% url 'ruang_kerja:detail' ruang.id %}" class="card p-5" style="text-decoration:none; display:block;">
+    <div style="width:40px; height:40px; border-radius:8px; background:#EAF7DE; color:#3C8C1F; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; margin-bottom:12px;">
+      {{ ruang.mapel|slice:":2"|upper }}
+    </div>
+    <h3 class="font-semibold text-gray-800">{{ ruang.mapel }}</h3>
+    <p class="text-xs text-gray-400 mt-1">{{ ruang.materi_set.count }} materi</p>
+  </a>
+  {% empty %}
+  <div class="card" style="padding:40px; text-align:center; color:#9ca3af; grid-column:1/-1;">
+    Belum ada mata pelajaran di {{ kelas_obj.label_kelas }}.
+    {% if request.user.role != 'siswa' %}<br><a href="{% url 'ruang_kerja:tambah_mapel_kelas' kelas_obj.id %}" class="text-sm text-[#3C8C1F] hover:underline">Tambah mata pelajaran pertama</a>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Narasi Guru: {{ sumber.judul }}{% endblock %}
+{% block page_title %}Narasi Guru{% endblock %}
+{% block content %}
+<style>
+  .ng-wrap { max-width:720px; }
+  .ng-ringkasan { background:#EAF7DE; border:1px solid #C5DBC5; border-radius:12px; padding:14px 18px; margin-bottom:18px; font-size:14px; color:#1f2937; }
+  .ng-bar { height:8px; background:#e5e7eb; border-radius:99px; overflow:hidden; margin-top:8px; }
+  .ng-bar-isi { height:100%; background:#3C8C1F; }
+  .ng-halaman { border:1px solid #e5e7eb; border-radius:12px; padding:14px 16px; margin-bottom:12px; display:flex; gap:14px; align-items:flex-start; }
+  .ng-thumb { width:60px; height:80px; object-fit:cover; border-radius:6px; flex-shrink:0; background:#f3f4f6; }
+  .ng-isi { flex:1; min-width:0; }
+  .ng-no { font-size:12px; font-weight:700; color:#6b7280; margin:0 0 4px; }
+  .ng-teks { font-size:12px; color:#9ca3af; margin:0 0 8px; max-height:38px; overflow:hidden; }
+  .ng-kontrol { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .ng-btn { border:none; border-radius:8px; padding:7px 14px; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .ng-btn.rekam { background:#0B3D26; color:white; }
+  .ng-btn.stop { background:#dc2626; color:white; }
+  .ng-btn.hapus { background:#fee2e2; color:#dc2626; }
+  .ng-btn.unggah { background:#f3f4f6; color:#374151; }
+  .ng-status { font-size:11px; color:#6b7280; }
+  .ng-paginasi { display:flex; gap:6px; justify-content:center; margin-top:18px; flex-wrap:wrap; }
+  .ng-paginasi a, .ng-paginasi span { font-size:12px; padding:6px 11px; border-radius:6px; text-decoration:none; }
+  .ng-paginasi a { background:#f3f4f6; color:#374151; }
+  .ng-paginasi span.aktif { background:#0B3D26; color:white; }
+</style>
+
+<div class="ng-wrap">
+<div class="mb-4"><a href="{% url 'perpustakaan:detail_sumber' sumber.id %}" class="text-sm text-[#0B3D26] hover:underline">&larr; {{ sumber.judul }}</a></div>
+
+<div class="ng-ringkasan">
+  &#127908; <strong>{{ terisi }} dari {{ total }}</strong> halaman sudah punya narasi suara guru.
+  <div class="ng-bar"><div class="ng-bar-isi" style="width:{% widthratio terisi total 100 %}%;"></div></div>
+</div>
+
+{% for h in halaman_page %}
+<div class="ng-halaman" id="hal-{{ h.id }}">
+  <img src="{{ h.gambar.url }}" class="ng-thumb" alt="Halaman {{ h.nomor }}">
+  <div class="ng-isi">
+    <p class="ng-no">Halaman {{ h.nomor }}</p>
+    {% if h.teks %}<p class="ng-teks">{{ h.teks|truncatechars:90 }}</p>{% else %}<p class="ng-teks">(tidak ada teks di halaman ini)</p>{% endif %}
+
+    {% if h.audio_guru %}
+    <audio controls style="width:100%; margin-bottom:8px;"><source src="{{ h.audio_guru.url }}"></audio>
+    {% endif %}
+
+    <div class="ng-kontrol">
+      <button type="button" class="ng-btn rekam" id="btn-rekam-{{ h.id }}" onclick="ngMulaiRekam({{ h.id }})">&#127908; {% if h.audio_guru %}Rekam Ulang{% else %}Rekam{% endif %}</button>
+      <button type="button" class="ng-btn stop" id="btn-stop-{{ h.id }}" style="display:none;" onclick="ngBerhentiRekam({{ h.id }})">Berhenti</button>
+      <label class="ng-btn unggah" style="display:inline-block;">
+        Unggah File
+        <input type="file" accept="audio/*" style="display:none;" onchange="ngUnggah({{ h.id }}, this.files[0])">
+      </label>
+      {% if h.audio_guru %}
+      <form method="POST" action="{% url 'perpustakaan:hapus_narasi' h.id %}?p={{ halaman_page.number }}" onsubmit="return confirm('Hapus narasi halaman {{ h.nomor }}?')" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" class="ng-btn hapus">Hapus</button>
+      </form>
+      {% endif %}
+      <span class="ng-status" id="status-{{ h.id }}"></span>
+    </div>
+
+    <form method="POST" action="{% url 'perpustakaan:simpan_narasi' h.id %}?p={{ halaman_page.number }}" enctype="multipart/form-data" id="form-{{ h.id }}" style="display:none; margin-top:8px;">
+      {% csrf_token %}
+      <input type="file" name="audio" id="file-{{ h.id }}" style="display:none;" accept="audio/*">
+      <audio id="preview-{{ h.id }}" controls style="width:100%; margin-bottom:6px;"></audio>
+      <button type="submit" class="ng-btn rekam">Simpan Narasi Ini</button>
+    </form>
+  </div>
+</div>
+{% endfor %}
+
+<div class="ng-paginasi">
+  {% if halaman_page.has_previous %}<a href="?p={{ halaman_page.previous_page_number }}">&larr; Sebelumnya</a>{% endif %}
+  <span class="aktif">Halaman {{ halaman_page.number }} / {{ halaman_page.paginator.num_pages }}</span>
+  {% if halaman_page.has_next %}<a href="?p={{ halaman_page.next_page_number }}">Berikutnya &rarr;</a>{% endif %}
+</div>
+</div>
+
+<script>
+var ngRecorder = {}, ngChunks = {};
+
+function ngMulaiRekam(id) {
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+    ngChunks[id] = [];
+    ngRecorder[id] = new MediaRecorder(stream);
+    ngRecorder[id].addEventListener('dataavailable', function (e) {
+      if (e.data && e.data.size) ngChunks[id].push(e.data);
+    });
+    ngRecorder[id].addEventListener('stop', function () {
+      stream.getTracks().forEach(function (t) { t.stop(); });
+      var blob = new Blob(ngChunks[id], { type: ngRecorder[id].mimeType || 'audio/webm' });
+      ngSiapkanSimpan(id, new File([blob], 'narasi_hal.webm', { type: blob.type }));
+    });
+    ngRecorder[id].start();
+    document.getElementById('btn-rekam-' + id).style.display = 'none';
+    document.getElementById('btn-stop-' + id).style.display = 'inline-block';
+    document.getElementById('status-' + id).textContent = 'Sedang merekam...';
+  }).catch(function (err) {
+    document.getElementById('status-' + id).textContent = 'Tidak bisa akses mikrofon: ' + err.message;
+  });
+}
+
+function ngBerhentiRekam(id) {
+  if (ngRecorder[id] && ngRecorder[id].state !== 'inactive') ngRecorder[id].stop();
+  document.getElementById('btn-rekam-' + id).style.display = 'inline-block';
+  document.getElementById('btn-stop-' + id).style.display = 'none';
+  document.getElementById('status-' + id).textContent = 'Rekaman selesai. Dengarkan lalu klik Simpan Narasi Ini.';
+}
+
+function ngUnggah(id, file) {
+  if (file) ngSiapkanSimpan(id, file);
+}
+
+function ngSiapkanSimpan(id, file) {
+  var dt = new DataTransfer();
+  dt.items.add(file);
+  document.getElementById('file-' + id).files = dt.files;
+  var preview = document.getElementById('preview-' + id);
+  preview.src = URL.createObjectURL(file);
+  document.getElementById('form-' + id).style.display = 'block';
+}
+</script>
+{% endblock %}

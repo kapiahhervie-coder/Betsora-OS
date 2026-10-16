@@ -26,5 +26,8 @@ urlpatterns = [
     path('sumber/<int:sumber_id>/ekstrak-halaman/', views.ekstrak_halaman, name='ekstrak_halaman'),
     path('sumber/<int:sumber_id>/selesai-baca/', views.catat_selesai_baca, name='catat_selesai_baca'),
     path('refleksi/<int:refleksi_id>/hapus/', views.hapus_refleksi, name='hapus_refleksi'),
+    path('sumber/<int:sumber_id>/narasi/', views.kelola_narasi, name='kelola_narasi'),
+    path('narasi/<int:halaman_id>/simpan/', views.simpan_narasi, name='simpan_narasi'),
+    path('narasi/<int:halaman_id>/hapus/', views.hapus_narasi, name='hapus_narasi'),
     path('galeri-karya/', views.galeri_karya, name='galeri_karya'),
 ]

@@ -1,0 +1,38 @@
+﻿{% extends 'base.html' %}
+{% block title %}Kelola Kelas{% endblock %}
+{% block page_title %}Kelola Kelas{% endblock %}
+{% block content %}
+
+<div class="mb-4">
+  <a href="{% url 'ruang_kerja:buat' %}" class="text-sm text-[#3C8C1F] hover:underline">&larr; Kembali ke Buat Ruang Kerja</a>
+</div>
+
+<div class="max-w-lg">
+  <div class="card p-5 mb-4">
+    <h3 class="font-semibold text-gray-800 text-sm mb-3">Tambah Kelas Baru</h3>
+    <form method="POST" action="{% url 'ruang_kerja:tambah_kelas' %}" style="display:flex; gap:8px;">
+      {% csrf_token %}
+      <input type="text" name="nama" required placeholder="Contoh: III, IV, X-1"
+        style="flex:1; border:1px solid #e5e7eb; border-radius:8px; padding:9px 14px; font-size:13px; font-family:inherit; outline:none;">
+      <button type="submit" style="background:#3C8C1F; color:white; border:none; border-radius:8px; padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer;">Tambah</button>
+    </form>
+  </div>
+
+  <div class="card">
+    {% for k in kelas_qs %}
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid #f3f4f6;">
+      <a href="{% url 'ruang_kerja:detail_kelas' k.id %}" style="font-size:13px; font-weight:500; color:#1f2937; text-decoration:none; flex:1;">{{ k.label_kelas }} <span style="color:#9ca3af; font-weight:400;">&rarr;</span></a>
+      <form method="POST" action="{% url 'ruang_kerja:hapus_kelas' k.id %}" onsubmit="return confirm('Hapus {{ k.label_kelas }}?')">
+        {% csrf_token %}
+        <button type="submit" title="Hapus" style="background:#fee2e2; color:#dc2626; border:none; width:30px; height:30px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;"><i class="ti ti-trash" style="font-size:15px;"></i></button>
+      </form>
+    </div>
+    {% empty %}
+    <div style="padding:32px 16px; text-align:center; color:#9ca3af; font-size:13px;">
+      Belum ada kelas. Tambahkan lewat form di atas.
+    </div>
+    {% endfor %}
+  </div>
+  <p style="font-size:11px; color:#9ca3af; margin-top:8px;">Kelas yang sudah dipakai di ruang kerja aktif tidak bisa dihapus.</p>
+</div>
+{% endblock %}

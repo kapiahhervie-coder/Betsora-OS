@@ -548,6 +548,7 @@ def baca_sumber(request, sumber_id):
         'bisa_simpan': bool(siswa_obj),
         'halaman_mulai': halaman_mulai,
         'glosarium': list(sumber.glosarium_list.values('istilah', 'arti')),
+        'narasi_guru': {h.nomor - 1: h.audio_guru.url for h in sumber.halaman_list.exclude(audio_guru='').exclude(audio_guru__isnull=True)},
     })
 
 
@@ -664,3 +665,65 @@ def hapus_refleksi(request, refleksi_id):
     refleksi.delete()
     messages.success(request, 'Refleksi berhasil dihapus.')
     return redirect('perpustakaan:detail_sumber', sumber_id=sumber_id)
+
+
+@login_required
+def kelola_narasi(request, sumber_id):
+    from .models import HalamanSumber
+    from django.core.paginator import Paginator
+    sumber = get_object_or_404(SumberDigital, id=sumber_id)
+    if not adalah_staf(request.user):
+        messages.error(request, 'Hanya guru yang dapat mengelola narasi.')
+        return redirect('perpustakaan:detail_sumber', sumber_id=sumber.id)
+    semua_halaman = sumber.halaman_list.all()
+    if not semua_halaman.exists():
+        messages.info(request, 'Buat dulu tampilan halaman dari PDF sebelum menambah narasi (tombol "Buat tampilan komik dari PDF" di halaman koleksi).')
+        return redirect('perpustakaan:detail_sumber', sumber_id=sumber.id)
+    paginator = Paginator(semua_halaman, 20)
+    nomor_hal = request.GET.get('p', '1')
+    halaman_page = paginator.get_page(nomor_hal)
+    total = semua_halaman.count()
+    terisi = semua_halaman.exclude(audio_guru='').exclude(audio_guru__isnull=True).count()
+    return render(request, 'perpustakaan/kelola_narasi.html', {
+        'sumber': sumber,
+        'halaman_page': halaman_page,
+        'total': total,
+        'terisi': terisi,
+    })
+
+
+@login_required
+@require_POST
+def simpan_narasi(request, halaman_id):
+    from .models import HalamanSumber
+    halaman = get_object_or_404(HalamanSumber, id=halaman_id)
+    sumber_id = halaman.sumber_id
+    if not adalah_staf(request.user):
+        messages.error(request, 'Hanya guru yang dapat menyimpan narasi.')
+        return redirect('perpustakaan:kelola_narasi', sumber_id=sumber_id)
+    berkas = request.FILES.get('audio')
+    if not berkas:
+        messages.error(request, 'Pilih atau rekam audio dulu sebelum menyimpan.')
+    else:
+        halaman.audio_guru = berkas
+        halaman.save(update_fields=['audio_guru'])
+        messages.success(request, 'Narasi halaman %d tersimpan.' % halaman.nomor)
+    halaman_num = request.GET.get('p', '1')
+    return redirect('%s?p=%s' % (reverse('perpustakaan:kelola_narasi', args=[sumber_id]), halaman_num))
+
+
+@login_required
+@require_POST
+def hapus_narasi(request, halaman_id):
+    from .models import HalamanSumber
+    halaman = get_object_or_404(HalamanSumber, id=halaman_id)
+    sumber_id = halaman.sumber_id
+    if not adalah_staf(request.user):
+        messages.error(request, 'Hanya guru yang dapat menghapus narasi.')
+    else:
+        halaman.audio_guru.delete(save=False)
+        halaman.audio_guru = None
+        halaman.save(update_fields=['audio_guru'])
+        messages.success(request, 'Narasi halaman %d dihapus.' % halaman.nomor)
+    halaman_num = request.GET.get('p', '1')
+    return redirect('%s?p=%s' % (reverse('perpustakaan:kelola_narasi', args=[sumber_id]), halaman_num))

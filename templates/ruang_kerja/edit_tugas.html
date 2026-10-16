@@ -20,6 +20,14 @@
       <input type="datetime-local" name="deadline" value="{{ tugas.deadline|date:'Y-m-d\TH:i' }}" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
     </div>
     <div>
+      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Hubungkan ke Topik</label>
+      <select name="materi" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+        <option value="">Tidak dihubungkan</option>
+        {% for m in materi_list %}<option value="{{ m.id }}" {% if tugas.materi_id == m.id %}selected{% endif %}>Syarat topik {{ forloop.counter }}: {{ m.judul }}</option>{% endfor %}
+      </select>
+      <p style="font-size:11px; color:#9ca3af; margin:4px 0 0;">Kalau dihubungkan, tugas ini jadi salah satu syarat siswa membuka topik berikutnya.</p>
+    </div>
+    <div>
       <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Nilai Maksimal</label>
       <input type="number" name="nilai_maksimal" value="{{ tugas.nilai_maksimal }}" min="1" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
     </div>

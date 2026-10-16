@@ -13,12 +13,17 @@
   <p class="text-xs text-gray-400 mt-2">Nilai maksimal: {{ tugas.nilai_maksimal }} poin</p>
   {% if submisi %}
   <div class="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2 text-sm text-emerald-800">
-    Skor terakhirmu: <strong>{{ submisi.nilai }}</strong> / {{ tugas.nilai_maksimal }}. Kamu bisa mengerjakan ulang, skor terbaru akan menggantikan yang lama.
+    Skor terakhirmu: <strong>{{ submisi.nilai }}</strong> / {{ tugas.nilai_maksimal }}.
+    {% if submisi.boleh_ulang %} Gurumu mengizinkanmu mengerjakan ulang sekali lagi.{% else %} Kuis ini terkunci, hubungi gurumu jika ingin mengerjakan ulang.{% endif %}
   </div>
   {% endif %}
 </div>
 
-{% if soal_list %}
+{% if terkunci %}
+<div class="card p-8 text-center text-gray-500 text-sm">
+  Kamu sudah mengumpulkan kuis ini dan hasilnya terkunci.<br>Hubungi gurumu jika ingin mengerjakan ulang.
+</div>
+{% elif soal_list %}
 <style>
   .kf-progress-wrap { display:flex; align-items:center; gap:6px; margin-bottom:18px; }
   .kf-dot { flex:1; height:6px; border-radius:99px; background:#e5e7eb; transition:background .2s; }

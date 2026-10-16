@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.utils import timezone
 from accounts.models import Siswa
 from django.db.models import Avg
-from .models import RuangKerja, Materi, SubMateri, Pengumuman, Tugas, SubmisiTugas, AnggotaRuangKerja, MataPelajaran, CatatanRapor, RefleksiTopik, PenilaianTopik, SoalPG, OpsiPG, JawabanPG
+from .models import RuangKerja, Materi, SubMateri, Pengumuman, Tugas, SubmisiTugas, AnggotaRuangKerja, MataPelajaran, Kelas, CatatanRapor, RefleksiTopik, PenilaianTopik, SoalPG, OpsiPG, JawabanPG
 
 
 def get_kelas_siswa(user):
@@ -31,10 +31,8 @@ def daftar_ruang_kerja(request):
             ruang_list = RuangKerja.objects.filter(anggota__siswa=siswa_obj).distinct()
         else:
             ruang_list = RuangKerja.objects.none()
-    else:
-        ruang_list = RuangKerja.objects.all()
-    kelas_list = Siswa.objects.values_list('kelas', flat=True).distinct().order_by('kelas')
-    return render(request, 'ruang_kerja/daftar.html', {'ruang_list': ruang_list, 'kelas_list': kelas_list})
+        return render(request, 'ruang_kerja/daftar.html', {'ruang_list': ruang_list})
+    return redirect('ruang_kerja:kelola_kelas')
 
 
 @login_required
@@ -43,34 +41,54 @@ def hapus_ruang_kerja(request, ruang_id):
     if request.user.role == 'siswa':
         messages.error(request, 'Hanya guru yang dapat menghapus ruang kerja.')
         return redirect('ruang_kerja:daftar')
+    kelas_id = ruang.kelas_baru_id
     if request.method == 'POST':
-        nama = f"{ruang.mapel} Kelas {ruang.kelas}"
+        nama = f"{ruang.mapel} - {ruang.kelas_baru.label_kelas if ruang.kelas_baru else ruang.kelas}"
         ruang.delete()
-        messages.success(request, f'Ruang kerja "{nama}" berhasil dihapus.')
-    return redirect('ruang_kerja:daftar')
+        messages.success(request, f'"{nama}" berhasil dihapus.')
+    if kelas_id:
+        return redirect('ruang_kerja:detail_kelas', kelas_id=kelas_id)
+    return redirect('ruang_kerja:kelola_kelas')
 
 
 @login_required
 def buat_ruang_kerja(request):
-    if request.user.role == 'siswa':
-        messages.error(request, 'Hanya guru yang dapat membuat ruang kerja.')
-        return redirect('ruang_kerja:daftar')
-    kelas_list = Siswa.objects.values_list('kelas', flat=True).distinct().order_by('kelas')
-    mapel_list = MataPelajaran.objects.all()
-    if request.method == 'POST':
-        mapel = request.POST.get('mapel')
-        kelas = request.POST.get('kelas')
-        if RuangKerja.objects.filter(mapel=mapel, kelas=kelas).exists():
-            messages.error(request, f'Ruang kerja {mapel} Kelas {kelas} sudah ada.')
-        else:
-            ruang = RuangKerja.objects.create(
-                mapel=mapel, kelas=kelas,
-                deskripsi=request.POST.get('deskripsi', ''),
-                guru=request.user
-            )
-            messages.success(request, 'Ruang kerja berhasil dibuat. Sekarang tambahkan anggota siswanya.')
-            return redirect('ruang_kerja:kelola_anggota', ruang_id=ruang.id)
-    return render(request, 'ruang_kerja/buat.html', {'kelas_list': kelas_list, 'mapel_list': mapel_list})
+    # Alur lama (form gabungan Kelas+Mapel) digantikan: pilih Kelas dulu di kelola_kelas,
+    # lalu tambah Mapel dari dalam detail_kelas.
+    return redirect('ruang_kerja:kelola_kelas')
+
+
+def hitung_gembok(ruang, siswa_obj):
+    """
+    Status gembok tiap topik untuk seorang siswa. Topik ke-N terkunci sampai topik
+    ke-(N-1) selesai (semua item dilihat dan semua tugas terkait dikumpulkan).
+    Gembok prasyarat nilai (MateriPrasyarat) yang sudah ada tetap berlaku berdampingan.
+    Untuk guru/non-siswa (siswa_obj kosong) tidak ada topik yang terkunci.
+    """
+    daftar = list(ruang.materi.all())
+    prev_selesai = True
+    prev_judul = ''
+    prev_status = None
+    for idx, m in enumerate(daftar):
+        m.alasan_kunci = ''
+        m.syarat_prev = None
+        if not siswa_obj:
+            m.locked = False
+            m.status = None
+            continue
+        m.status = m.status_selesai(siswa_obj)
+        terkunci_nilai = m.is_locked_for(siswa_obj)
+        terkunci_urut = idx > 0 and not prev_selesai
+        m.locked = terkunci_nilai or terkunci_urut
+        if terkunci_urut:
+            m.alasan_kunci = 'Selesaikan topik sebelumnya (%s) terlebih dahulu: lihat semua materi dan kumpulkan tugasnya.' % prev_judul
+            m.syarat_prev = prev_status
+        elif terkunci_nilai:
+            m.alasan_kunci = 'Selesaikan topik prasyarat terlebih dahulu untuk membuka topik ini.'
+        prev_selesai = m.status['selesai'] and not m.locked
+        prev_judul = m.judul
+        prev_status = m.status
+    return daftar
 
 
 @login_required
@@ -94,9 +112,7 @@ def detail_ruang_kerja(request, ruang_id):
             for r in RefleksiTopik.objects.filter(materi__ruang_kerja=ruang, siswa=siswa_obj)
         }
 
-    materi_list = ruang.materi.all()
-    for m in materi_list:
-        m.locked = m.is_locked_for(siswa_obj) if siswa_obj else False
+    materi_list = hitung_gembok(ruang, siswa_obj)
     pengumuman_list = ruang.pengumuman.all()
     tugas_list = ruang.tugas.all()
     jumlah_anggota = ruang.anggota.count()
@@ -114,6 +130,25 @@ def detail_ruang_kerja(request, ruang_id):
         'jumlah_anggota': jumlah_anggota,
         'refleksi_map': refleksi_map,
     })
+
+
+@login_required
+def catat_item_dilihat(request, item_id):
+    from django.http import JsonResponse
+    from .models import ProgresItem
+    if request.method != 'POST':
+        return JsonResponse({'ok': False}, status=405)
+    item = get_object_or_404(SubMateri, id=item_id)
+    if request.user.role != 'siswa':
+        return JsonResponse({'ok': True, 'dicatat': False})
+    siswa_obj = get_siswa_obj(request.user)
+    if not is_anggota(item.materi.ruang_kerja, siswa_obj):
+        return JsonResponse({'ok': False}, status=403)
+    for topik in hitung_gembok(item.materi.ruang_kerja, siswa_obj):
+        if topik.id == item.materi_id and topik.locked:
+            return JsonResponse({'ok': False, 'terkunci': True}, status=403)
+    ProgresItem.objects.get_or_create(siswa=siswa_obj, sub_materi=item)
+    return JsonResponse({'ok': True, 'dicatat': True})
 
 
 @login_required
@@ -150,6 +185,14 @@ def tambah_pengumuman(request, ruang_id):
     return redirect('ruang_kerja:detail', ruang_id=ruang.id)
 
 
+def _materi_dari_form(request, ruang):
+    """Ambil topik (Materi) dari isian form tugas; hanya topik milik ruang kerja ini yang diterima."""
+    materi_id = request.POST.get('materi')
+    if not materi_id:
+        return None
+    return Materi.objects.filter(id=materi_id, ruang_kerja=ruang).first()
+
+
 @login_required
 def tambah_tugas(request, ruang_id):
     ruang = get_object_or_404(RuangKerja, id=ruang_id)
@@ -167,6 +210,7 @@ def tambah_tugas(request, ruang_id):
             deadline=request.POST.get('deadline') or None,
             lampiran=request.FILES.get('lampiran'),
             dibuat_oleh=request.user,
+            materi=_materi_dari_form(request, ruang),
         )
         messages.success(request, 'Tugas berhasil dibuat.')
         if jenis == 'pilihan_ganda':
@@ -197,10 +241,12 @@ def edit_tugas(request, tugas_id):
             tugas.lampiran = request.FILES['lampiran']
         elif request.POST.get('hapus_lampiran'):
             tugas.lampiran = None
+        if 'materi' in request.POST:
+            tugas.materi = _materi_dari_form(request, ruang)
         tugas.save()
         messages.success(request, 'Tugas berhasil diperbarui.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
-    return render(request, 'ruang_kerja/edit_tugas.html', {'tugas': tugas, 'ruang': ruang})
+    return render(request, 'ruang_kerja/edit_tugas.html', {'tugas': tugas, 'ruang': ruang, 'materi_list': ruang.materi.all()})
 
 
 @login_required
@@ -231,7 +277,8 @@ def detail_tugas(request, tugas_id):
         if tugas.jenis == 'pilihan_ganda':
             soal_list = tugas.soal_pg.prefetch_related('opsi').all()
             jawaban_lama = {j.soal_id: j.opsi_dipilih_id for j in JawabanPG.objects.filter(siswa=siswa_obj, soal__tugas=tugas)}
-            if request.method == 'POST':
+            terkunci = bool(submisi) and not submisi.boleh_ulang
+            if request.method == 'POST' and not terkunci:
                 benar = 0
                 total = soal_list.count()
                 for soal in soal_list:
@@ -247,26 +294,36 @@ def detail_tugas(request, tugas_id):
                 nilai_akhir = round((benar / total) * tugas.nilai_maksimal, 1) if total else 0
                 SubmisiTugas.objects.update_or_create(
                     tugas=tugas, siswa=siswa_obj,
-                    defaults={'nilai': nilai_akhir, 'teks_jawaban': f'Kuis: {benar}/{total} benar'}
+                    defaults={'nilai': nilai_akhir, 'teks_jawaban': f'Kuis: {benar}/{total} benar', 'boleh_ulang': False}
                 )
                 messages.success(request, f'Kuis selesai! Skor: {nilai_akhir}/{tugas.nilai_maksimal}')
                 return redirect('ruang_kerja:detail_tugas', tugas_id=tugas.id)
             return render(request, 'ruang_kerja/kerjakan_kuis.html', {
                 'tugas': tugas, 'ruang': ruang, 'soal_list': soal_list,
-                'jawaban_lama': jawaban_lama, 'submisi': submisi,
+                'jawaban_lama': jawaban_lama, 'submisi': submisi, 'terkunci': terkunci,
             })
 
-        if request.method == 'POST' and not submisi:
-            SubmisiTugas.objects.create(
-                tugas=tugas,
-                siswa=siswa_obj,
-                teks_jawaban=request.POST.get('teks_jawaban', ''),
-                file_jawaban=request.FILES.get('file_jawaban'),
-            )
+        boleh_kirim = (not submisi) or submisi.boleh_ulang
+        if request.method == 'POST' and boleh_kirim:
+            if submisi:
+                submisi.teks_jawaban = request.POST.get('teks_jawaban', '')
+                if request.FILES.get('file_jawaban'):
+                    submisi.file_jawaban = request.FILES.get('file_jawaban')
+                submisi.boleh_ulang = False
+                submisi.nilai = None
+                submisi.feedback = ''
+                submisi.save()
+            else:
+                SubmisiTugas.objects.create(
+                    tugas=tugas,
+                    siswa=siswa_obj,
+                    teks_jawaban=request.POST.get('teks_jawaban', ''),
+                    file_jawaban=request.FILES.get('file_jawaban'),
+                )
             messages.success(request, 'Tugas berhasil dikumpulkan!')
             return redirect('ruang_kerja:detail_tugas', tugas_id=tugas.id)
         return render(request, 'ruang_kerja/detail_tugas_siswa.html', {
-            'tugas': tugas, 'ruang': ruang, 'submisi': submisi,
+            'tugas': tugas, 'ruang': ruang, 'submisi': submisi, 'boleh_kirim': boleh_kirim,
         })
 
     if tugas.jenis == 'kreasi':
@@ -407,7 +464,7 @@ def hapus_topik(request, materi_id):
 def simpan_refleksi(request, materi_id):
     materi = get_object_or_404(Materi, id=materi_id)
     ruang = materi.ruang_kerja
-    if not request.user.is_staff_role():
+    if request.user.is_staff_role():
         messages.error(request, 'Hanya siswa yang dapat mengisi refleksi.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     siswa_obj = get_siswa_obj(request.user)
@@ -710,6 +767,83 @@ def hapus_mapel(request, mapel_id):
             messages.success(request, f'Mata pelajaran "{mapel.nama}" dihapus.')
     return redirect('ruang_kerja:kelola_mapel')
 
+@login_required
+def kelola_kelas(request):
+    if request.user.role == 'siswa':
+        messages.error(request, 'Hanya guru yang dapat mengelola kelas.')
+        return redirect('ruang_kerja:daftar')
+    kelas_qs = Kelas.objects.all()
+    return render(request, 'ruang_kerja/kelola_kelas.html', {'kelas_qs': kelas_qs})
+
+
+@login_required
+def tambah_kelas(request):
+    if request.user.role == 'siswa':
+        messages.error(request, 'Hanya guru yang dapat menambah kelas.')
+        return redirect('ruang_kerja:daftar')
+    if request.method == 'POST':
+        nama = request.POST.get('nama', '').strip()
+        if nama:
+            _, created = Kelas.objects.get_or_create(nama=nama)
+            if created:
+                messages.success(request, f'Kelas "{nama}" berhasil ditambahkan.')
+            else:
+                messages.info(request, f'Kelas "{nama}" sudah ada.')
+    return redirect('ruang_kerja:kelola_kelas')
+
+
+@login_required
+def hapus_kelas(request, kelas_id):
+    kelas_obj = get_object_or_404(Kelas, id=kelas_id)
+    if request.user.role == 'siswa':
+        messages.error(request, 'Hanya guru yang dapat menghapus kelas.')
+        return redirect('ruang_kerja:kelola_kelas')
+    if request.method == 'POST':
+        if RuangKerja.objects.filter(kelas_baru=kelas_obj).exists():
+            messages.error(request, f'"{kelas_obj.label_kelas}" tidak bisa dihapus karena masih dipakai di ruang kerja yang ada.')
+        else:
+            kelas_obj.delete()
+            messages.success(request, f'Kelas "{kelas_obj.label_kelas}" dihapus.')
+    return redirect('ruang_kerja:kelola_kelas')
+
+@login_required
+def detail_kelas(request, kelas_id):
+    kelas_obj = get_object_or_404(Kelas, id=kelas_id)
+    if request.user.role == 'siswa':
+        siswa_obj = get_siswa_obj(request.user)
+        if siswa_obj:
+            ruang_list = RuangKerja.objects.filter(kelas_baru=kelas_obj, anggota__siswa=siswa_obj).distinct()
+        else:
+            ruang_list = RuangKerja.objects.none()
+    else:
+        ruang_list = RuangKerja.objects.filter(kelas_baru=kelas_obj)
+    return render(request, 'ruang_kerja/detail_kelas.html', {'kelas_obj': kelas_obj, 'ruang_list': ruang_list})
+
+
+@login_required
+def tambah_mapel_kelas(request, kelas_id):
+    kelas_obj = get_object_or_404(Kelas, id=kelas_id)
+    if request.user.role == 'siswa':
+        messages.error(request, 'Hanya guru yang dapat menambah mata pelajaran.')
+        return redirect('ruang_kerja:detail_kelas', kelas_id=kelas_obj.id)
+    mapel_list = MataPelajaran.objects.all()
+    if request.method == 'POST':
+        mapel = request.POST.get('mapel', '').strip()
+        if not mapel:
+            messages.error(request, 'Nama mata pelajaran tidak boleh kosong.')
+        elif RuangKerja.objects.filter(mapel=mapel, kelas_baru=kelas_obj).exists():
+            messages.error(request, f'Mata pelajaran "{mapel}" sudah ada di {kelas_obj.label_kelas}.')
+        else:
+            MataPelajaran.objects.get_or_create(nama=mapel, defaults={'dibuat_oleh': request.user})
+            ruang = RuangKerja.objects.create(
+                mapel=mapel, kelas=kelas_obj.nama, kelas_baru=kelas_obj,
+                deskripsi=request.POST.get('deskripsi', ''),
+                guru=request.user
+            )
+            messages.success(request, 'Mata pelajaran berhasil ditambahkan. Sekarang tambahkan anggota siswanya.')
+            return redirect('ruang_kerja:kelola_anggota', ruang_id=ruang.id)
+    return render(request, 'ruang_kerja/tambah_mapel_kelas.html', {'kelas_obj': kelas_obj, 'mapel_list': mapel_list})
+
 
 # ============================================================
 # RAPOR DIGITAL (nilai otomatis dari rata-rata tugas + narasi guru)
@@ -940,3 +1074,17 @@ def hapus_soal(request, soal_id):
         soal.delete()
         messages.success(request, 'Soal berhasil dihapus.')
     return redirect('ruang_kerja:kelola_soal', tugas_id=tugas_id)
+
+
+@login_required
+def izinkan_ulang(request, submisi_id):
+    submisi = get_object_or_404(SubmisiTugas, id=submisi_id)
+    tugas = submisi.tugas
+    if request.user.role == 'siswa':
+        messages.error(request, 'Hanya guru yang dapat mengizinkan pengerjaan ulang.')
+        return redirect('ruang_kerja:detail', ruang_id=tugas.ruang_kerja.id)
+    if request.method == 'POST':
+        submisi.boleh_ulang = True
+        submisi.save(update_fields=['boleh_ulang'])
+        messages.success(request, f'{submisi.siswa.nama} sekarang boleh mengerjakan ulang "{tugas.judul}".')
+    return redirect('ruang_kerja:detail_tugas', tugas_id=tugas.id)

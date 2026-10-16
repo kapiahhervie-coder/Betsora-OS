@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block title %}{{ tugas.judul }} — Submisi{% endblock %}
 {% block page_title %}{{ tugas.judul }}{% endblock %}
 {% block content %}
@@ -30,9 +30,19 @@
               <p class="text-xs text-gray-400">Dikumpulkan: {{ sub.dikirim_pada|date:"d M Y, H:i" }}</p>
             </div>
           </div>
-          {% if sub.nilai %}
-          <span class="font-serif text-lg font-bold text-[#3C8C1F]">{{ sub.nilai }}<span class="text-xs font-normal text-gray-400">/{{ tugas.nilai_maksimal }}</span></span>
-          {% endif %}
+          <div style="display:flex; align-items:center; gap:10px;">
+            {% if sub.nilai %}
+            <span class="font-serif text-lg font-bold text-[#3C8C1F]">{{ sub.nilai }}<span class="text-xs font-normal text-gray-400">/{{ tugas.nilai_maksimal }}</span></span>
+            {% endif %}
+            {% if sub.boleh_ulang %}
+            <span class="text-xs text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">Menunggu dikerjakan ulang</span>
+            {% else %}
+            <form method="POST" action="{% url 'ruang_kerja:izinkan_ulang' sub.id %}" onsubmit="return confirm('Izinkan {{ sub.siswa.nama|escapejs }} mengerjakan ulang tugas ini?')" style="margin:0;">
+              {% csrf_token %}
+              <button type="submit" style="font-size:11px; background:#f3f4f6; color:#374151; border:none; padding:5px 10px; border-radius:6px; cursor:pointer;">Izinkan Kerjakan Ulang</button>
+            </form>
+            {% endif %}
+          </div>
         </div>
 
         {% if sub.teks_jawaban %}

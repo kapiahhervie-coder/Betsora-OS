@@ -57,7 +57,7 @@
       </a>
       {% if pengaturan.mode != 'kursus_online' %}<a onclick="showTab('pengumuman')" id="nav-pengumuman">📣 Pengumuman</a>{% endif %}
     </div>
-    {% if request.user.role != 'siswa' %}
+    {% if request.user.is_staff_role %}
     {% if pengaturan.mode != 'kursus_online' %}
     <a href="{% url 'ruang_kerja:rapor_ruang_kerja' ruang.id %}" style="font-size:12px; background:#f3f4f6; color:#374151; padding:8px 14px; border-radius:8px; text-decoration:none; font-weight:500; white-space:nowrap;">📊 Rapor</a>
     <a href="{% url 'ruang_kerja:kelola_anggota' ruang.id %}" style="font-size:12px; background:#f3f4f6; color:#374151; padding:8px 14px; border-radius:8px; text-decoration:none; font-weight:500; white-space:nowrap;">👥 Anggota ({{ jumlah_anggota }})</a>
@@ -66,7 +66,7 @@
     {% endif %}
   </div>
 
-  {% if request.user.role != 'siswa' %}
+  {% if request.user.is_staff_role %}
   <div class="add-topik-form" id="add-topik-form">
     <form method="POST" action="{% url 'ruang_kerja:tambah_topik' ruang.id %}" style="display:flex; gap:8px; align-items:center;">
       {% csrf_token %}
@@ -85,13 +85,13 @@
             <div style="display:flex; align-items:center; gap:10px;">
               <div class="topik-num">{{ forloop.counter }}</div>
               <div>
-                <p style="font-size:14px; font-weight:600; color:#3C8C1F; margin:0; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">{{ topik.judul }}{% if topik.locked %} <span style="font-size:11px; color:#9ca3af; font-weight:500;">🔒 Terkunci</span>{% endif %}{% with tipe_media=topik.get_tipe_media %}{% if "video" in tipe_media %}<span title="Ada video" style="font-size:11px;">🎬</span>{% endif %}{% if "audio" in tipe_media %}<span title="Ada audio" style="font-size:11px;">🎧</span>{% endif %}{% if "link" in tipe_media %}<span title="Ada link eksternal" style="font-size:11px;">🔗</span>{% endif %}{% if "dokumen" in tipe_media %}<span title="Ada dokumen" style="font-size:11px;">📄</span>{% endif %}{% endwith %}</p>
+                <p style="font-size:14px; font-weight:600; color:#3C8C1F; margin:0; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">{{ topik.judul }}{% if topik.status and not topik.locked %}<span title="Materi dilihat {{ topik.status.item_dilihat }}/{{ topik.status.item_total }} &middot; Tugas terkumpul {{ topik.status.tugas_terkirim }}/{{ topik.status.tugas_total }}" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{% if topik.status.selesai %}#22c55e{% else %}#f59e0b{% endif %}; {% if topik.status.selesai %}box-shadow:0 0 0 3px rgba(34,197,94,0.25);{% endif %}"></span>{% if topik.status.selesai %}<span style="font-size:11px; color:#16a34a; font-weight:600;">Selesai</span>{% endif %}{% endif %}{% if topik.locked %} <span style="font-size:11px; color:#9ca3af; font-weight:500;">🔒 Terkunci</span>{% endif %}{% with tipe_media=topik.get_tipe_media %}{% if "video" in tipe_media %}<span title="Ada video" style="font-size:11px;">🎬</span>{% endif %}{% if "audio" in tipe_media %}<span title="Ada audio" style="font-size:11px;">🎧</span>{% endif %}{% if "link" in tipe_media %}<span title="Ada link eksternal" style="font-size:11px;">🔗</span>{% endif %}{% if "dokumen" in tipe_media %}<span title="Ada dokumen" style="font-size:11px;">📄</span>{% endif %}{% endwith %}</p>
                 {% if topik.deskripsi %}<div style="font-size:11px; color:#6b7280; margin:2px 0 0;">{{ topik.deskripsi|safe }}</div>{% endif %}
               </div>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
               <span style="font-size:11px; color:#6b7280; background:white; padding:2px 8px; border-radius:10px; border:1px solid #e5e7eb;">{{ topik.sub_materi.count }} item</span>
-              {% if request.user.role != 'siswa' %}
+              {% if request.user.is_staff_role %}
               <a href="{% url 'ruang_kerja:tambah_item' topik.id %}" onclick="event.stopPropagation()"
                 style="font-size:11px; background:#EAF7DE; color:#3C8C1F; padding:4px 10px; border-radius:6px; text-decoration:none; font-weight:500; white-space:nowrap;">+ Item</a>
               <form method="POST" action="{% url 'ruang_kerja:hapus_topik' topik.id %}" onclick="event.stopPropagation()" onsubmit="return confirm('Hapus topik ini?')">
@@ -106,24 +106,23 @@
             {% if topik.locked %}
             <div style="padding:24px; text-align:center; color:#9ca3af;">
               <p style="font-size:24px; margin:0 0 6px;">🔒</p>
-              <p style="font-size:12px; margin:0;">Selesaikan topik prasyarat terlebih dahulu untuk membuka topik ini.</p>
+              <p style="font-size:12px; margin:0;">{% if topik.alasan_kunci %}{{ topik.alasan_kunci }}{% else %}Selesaikan topik prasyarat terlebih dahulu untuk membuka topik ini.{% endif %}</p>
+              {% if topik.syarat_prev %}<p style="font-size:11px; margin:6px 0 0; color:#6b7280;">Materi dilihat {{ topik.syarat_prev.item_dilihat }}/{{ topik.syarat_prev.item_total }} &middot; Tugas terkumpul {{ topik.syarat_prev.tugas_terkirim }}/{{ topik.syarat_prev.tugas_total }}</p>{% endif %}
             </div>
             {% else %}
             {% for item in topik.sub_materi.all %}
-            <div class="item-row">
-              <div class="item-icon {% if item.file %}file{% elif item.video_url %}video{% elif item.link_url %}link{% else %}text{% endif %}">
+            <div class="item-row item-nav-{{ topik.id }}" data-index="{{ forloop.counter0 }}" data-topik="{{ topik.id }}" data-item-id="{{ item.id }}" style="align-items:flex-start;{% if not forloop.first %} display:none;{% endif %}">
+              <div class="item-icon {% if item.file %}file{% elif item.video_url %}video{% elif item.link_url %}link{% else %}text{% endif %}"{% if item.video_url %} onclick="toggleVideoInline('v-{{ item.id }}')" style="cursor:pointer;"{% endif %}>
                 {% if item.file %}📄{% elif item.video_url %}▶{% elif item.link_url %}🔗{% else %}📝{% endif %}
               </div>
               <div style="flex:1; min-width:0;">
-                <p style="font-size:13px; font-weight:500; color:#1f2937; margin:0; {% if item.deskripsi %}cursor:pointer;{% endif %}" {% if item.deskripsi %}onclick="toggleItemDeskripsi('desc-{{ item.id }}', this)"{% endif %}>
+                <p style="font-size:13px; font-weight:500; color:#1f2937; margin:0;{% if item.deskripsi %}cursor:pointer;{% endif %}" {% if item.deskripsi %}onclick="toggleItemDeskripsi('desc-{{ item.id }}', this)"{% endif %}>
                   {{ item.judul }}{% if item.deskripsi %} <span id="arrow-desc-{{ item.id }}" style="font-size:12px; color:#9ca3af; font-weight:700;">+</span>{% endif %}
                 </p>
+                <p style="font-size:11px; color:#9ca3af; margin:2px 0 0;">
+                  {% if item.video_url %}Video Pembelajaran{% elif item.is_video_file %}Video{% elif item.is_audio_file %}Audio{% elif item.link_url %}Tautan{% elif item.file %}Dokumen{% else %}Teks{% endif %}
+                </p>
                 {% if item.deskripsi %}<div id="desc-{{ item.id }}" style="display:none; font-size:11px; color:#6b7280; margin:6px 0 0;">{{ item.deskripsi|safe }}</div>{% endif %}
-                <div style="display:flex; gap:10px; margin-top:4px; flex-wrap:wrap;">
-                  {% if item.file and not item.is_video_file and not item.is_audio_file %}<a href="{{ item.file.url }}" target="_blank" style="font-size:11px; color:#3C8C1F;">⬇ Unduh</a>{% endif %}
-                  {% if item.link_url %}<a href="{{ item.link_url }}" target="_blank" style="font-size:11px; color:#2563eb;">🔗 Buka Link</a>{% endif %}
-                  {% if item.video_url %}<button onclick="toggleVideoInline('v-{{ item.id }}')" style="font-size:11px; color:#dc2626; background:none; border:none; cursor:pointer; padding:0;">▶️ Putar Video</button>{% endif %}
-                </div>
                 {% if item.video_url %}
                 <div id="v-{{ item.id }}" style="display:none; margin-top:8px; border-radius:8px; overflow:hidden; max-width:480px; aspect-ratio:16/9;">
                   <iframe src="{{ item.get_video_embed }}" style="width:100%; height:100%;" frameborder="0" allowfullscreen></iframe>
@@ -140,19 +139,29 @@
                 </audio>
                 {% endif %}
               </div>
-              {% if request.user.role != 'siswa' %}
-              <a href="{% url 'ruang_kerja:edit_item' item.id %}" style="color:#9ca3af; font-size:13px; text-decoration:none; margin-right:8px;" onmouseover="this.style.color='#3C8C1F'" onmouseout="this.style.color='#9ca3af'">✏️</a>
-              <form method="POST" action="{% url 'ruang_kerja:hapus_item' item.id %}" onsubmit="return confirm('Hapus item ini?')" style="display:inline;">
-                {% csrf_token %}
-                <button type="submit" style="background:none; border:none; cursor:pointer; color:#d1d5db; font-size:14px;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#d1d5db'">✕</button>
-              </form>
-              {% endif %}
-            </div>
-            {% empty %}
+              <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                
+                {% if item.link_url %}<a href="{{ item.link_url }}" target="_blank" style="font-size:11px; background:#dbeafe; color:#2563eb; border-radius:14px; padding:5px 12px; font-weight:600; text-decoration:none; white-space:nowrap;">Buka</a>{% endif %}
+                {% if item.file and not item.is_video_file and not item.is_audio_file %}<a href="{{ item.file.url }}" target="_blank" style="font-size:11px; background:#f3f4f6; color:#374151; border-radius:14px; padding:5px 12px; font-weight:600; text-decoration:none; white-space:nowrap;">Unduh</a>{% endif %}
+                {% if request.user.is_staff_role %}
+                <a href="{% url 'ruang_kerja:edit_item' item.id %}" style="color:#9ca3af; font-size:13px; text-decoration:none;" onmouseover="this.style.color='#3C8C1F'" onmouseout="this.style.color='#9ca3af'">Edit</a>
+                <form method="POST" action="{% url 'ruang_kerja:hapus_item' item.id %}" onsubmit="return confirm('Hapus item ini?')" style="display:inline; margin:0;">
+                  {% csrf_token %}
+                  <button type="submit" style="background:none; border:none; cursor:pointer; color:#d1d5db; font-size:13px;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#d1d5db'">Hapus</button>
+                </form>
+                {% endif %}
+              </div>
+            </div>{% empty %}
             <div style="padding:16px; font-size:12px; color:#9ca3af; font-style:italic; text-align:center;">
-              Belum ada item.{% if request.user.role != 'siswa' %} Klik "+ Item" untuk menambahkan.{% endif %}
+              Belum ada item.{% if request.user.is_staff_role %} Klik "+ Item" untuk menambahkan.{% endif %}
             </div>
             {% endfor %}
+
+            <div class="item-nav-controls-{{ topik.id }}" style="display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:#fafbfa; border-top:1px solid #f3f4f6;">
+              <button type="button" class="btn-prev-{{ topik.id }}" onclick="navItem({{ topik.id }}, -1)" style="font-size:12px; background:#f3f4f6; color:#374151; border:none; border-radius:14px; padding:6px 14px; font-weight:600; cursor:pointer;" disabled>&larr; Sebelumnya</button>
+              <span class="item-nav-posisi-{{ topik.id }}" style="font-size:11px; color:#9ca3af; font-weight:600;"></span>
+              <button type="button" class="btn-next-{{ topik.id }}" onclick="navItem({{ topik.id }}, 1)" style="font-size:12px; background:#3C8C1F; color:white; border:none; border-radius:14px; padding:6px 14px; font-weight:600; cursor:pointer;">Berikutnya &rarr;</button>
+            </div>
 
             <!-- REFLEKSI & PENILAIAN PER TOPIK -->
             <div style="padding:14px 16px; border-top:1px solid #f3f4f6; background:#fafbfa;">
@@ -173,6 +182,27 @@
               </div>
               {% endif %}
             </div>
+            {% with topik_tugas=topik.tugas_terkait.all %}
+            {% if topik_tugas %}
+            <div style="padding:14px 16px; border-top:1px solid #f3f4f6;">
+              <p style="font-size:11px; font-weight:700; color:#3C8C1F; text-transform:uppercase; letter-spacing:0.05em; margin:0 0 8px;">Tugas Topik Ini</p>
+              {% for t in topik_tugas %}
+              <a href="{% url 'ruang_kerja:detail_tugas' t.id %}" style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid #f9fafb; text-decoration:none; color:inherit;">
+                <div style="min-width:0;">
+                  <p style="font-size:13px; font-weight:500; color:#1f2937; margin:0;">{{ t.judul }}</p>
+                  {% if request.user.role == 'siswa' and siswa_obj %}
+                  <span style="font-size:11px; {% if t.id in tugas_sudah_submit %}background:#EAF7DE; color:#4FA82E;{% else %}background:#FBF3E3; color:#92702E;{% endif %} padding:2px 8px; border-radius:10px; display:inline-block; margin-top:3px;">
+                    {% if t.id in tugas_sudah_submit %}&#10003; Sudah dikumpulkan{% else %}Belum dikumpulkan{% endif %}
+                  </span>
+                  {% endif %}
+                </div>
+                <span style="font-size:11px; font-weight:600; background:#f3f4f6; color:#374151; padding:3px 8px; border-radius:6px; flex-shrink:0;">{% if t.jenis == 'kreasi' %}Kreasi{% else %}{{ t.nilai_maksimal }} poin{% endif %}</span>
+              </a>
+              {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
             {% endif %}
           </div>
         </div>
@@ -180,7 +210,7 @@
         <div style="text-align:center; padding:60px 20px; color:#9ca3af;">
           <p style="font-size:32px; margin:0 0 8px;">📚</p>
           <p style="font-size:14px; font-weight:500; margin:0 0 4px;">Belum ada topik</p>
-          <p style="font-size:12px; margin:0;">{% if request.user.role != 'siswa' %}Klik "➕ Tambah Topik" di kanan atas{% else %}Guru belum menambahkan materi{% endif %}</p>
+          <p style="font-size:12px; margin:0;">{% if request.user.is_staff_role %}Klik "➕ Tambah Topik" di kanan atas{% else %}Guru belum menambahkan materi{% endif %}</p>
         </div>
         {% endfor %}
       </div>
@@ -188,7 +218,7 @@
 
     <!-- TAB TUGAS -->
     <div class="tab-panel" id="panel-tugas">
-      {% if request.user.role != 'siswa' %}
+      {% if request.user.is_staff_role %}
       <div style="padding:16px 24px; border-bottom:1px solid #f3f4f6; background:#f9fafb;">
         <form method="POST" action="{% url 'ruang_kerja:tambah_tugas' ruang.id %}" enctype="multipart/form-data" style="display:flex; flex-direction:column; gap:10px;">
           {% csrf_token %}
@@ -200,6 +230,10 @@
             <option value="esai">Esai / Upload File</option>
             <option value="pilihan_ganda">Pilihan Ganda</option>
             <option value="kreasi">Tugas Kreasi (foto, suara, refleksi &amp; rubrik)</option>
+          </select>
+          <select name="materi" style="border:1px solid #e5e7eb; border-radius:8px; padding:9px 14px; font-size:13px; font-family:inherit; outline:none; background:white;">
+            <option value="">Hubungkan ke topik (opsional): tidak dihubungkan</option>
+            {% for m in materi_list %}<option value="{{ m.id }}">Syarat topik {{ forloop.counter }}: {{ m.judul }}</option>{% endfor %}
           </select>
           <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
             <div style="display:flex; align-items:center; gap:8px;">
@@ -225,7 +259,7 @@
       </div>
       {% endif %}
       <div>
-        {% for t in tugas_list %}
+        {% for t in tugas_list %}{% if request.user.role != 'siswa' or t.materi_id %}
         <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 24px; border-bottom:1px solid #f3f4f6;">
           <a href="{% url 'ruang_kerja:detail_tugas' t.id %}" style="flex:1; display:flex; align-items:center; justify-content:space-between; gap:14px; text-decoration:none; color:inherit; min-width:0;">
             <div style="min-width:0;">
@@ -243,7 +277,7 @@
             </div>
             <span style="font-size:12px; font-weight:600; background:#f3f4f6; color:#374151; padding:4px 10px; border-radius:6px; flex-shrink:0;">{% if t.jenis == 'kreasi' %}Kreasi{% else %}{{ t.nilai_maksimal }} poin{% endif %}</span>
           </a>
-          {% if request.user.role != 'siswa' %}
+          {% if request.user.is_staff_role %}
           <div style="display:flex; gap:6px; margin-left:14px; flex-shrink:0;">
             <a href="{% url 'ruang_kerja:edit_tugas' t.id %}" style="font-size:11px; background:#f3f4f6; color:#374151; padding:5px 10px; border-radius:6px; text-decoration:none;">Edit</a>
             <form method="POST" action="{% url 'ruang_kerja:hapus_tugas' t.id %}" onsubmit="return confirm('Hapus tugas {{ t.judul|escapejs }}? Semua submisi siswa untuk tugas ini akan ikut terhapus.')" style="margin:0;">
@@ -253,6 +287,7 @@
           </div>
           {% endif %}
         </div>
+        {% endif %}
         {% empty %}
         <div style="text-align:center; padding:60px 20px; color:#9ca3af;">
           <p style="font-size:32px; margin:0 0 8px;">📝</p>
@@ -264,7 +299,7 @@
 
     <!-- TAB PENGUMUMAN -->
     <div class="tab-panel" id="panel-pengumuman">
-      {% if request.user.role != 'siswa' %}
+      {% if request.user.is_staff_role %}
       <div style="padding:16px 24px; border-bottom:1px solid #f3f4f6; background:#f9fafb;">
         <form method="POST" action="{% url 'ruang_kerja:tambah_pengumuman' ruang.id %}">
           {% csrf_token %}
@@ -317,6 +352,78 @@ function toggleVideoInline(id) {
   var el = document.getElementById(id);
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
+function navItem(topikId, arah) {
+  var rows = document.querySelectorAll('.item-nav-' + topikId);
+  var current = 0;
+  rows.forEach(function(r) { if (r.style.display !== 'none') current = parseInt(r.getAttribute('data-index')); });
+  var target = current + arah;
+  if (target < 0 || target >= rows.length) return;
+  rows.forEach(function(r) {
+    r.style.display = (parseInt(r.getAttribute('data-index')) === target) ? '' : 'none';
+  });
+  updateNavPosisi(topikId, target, rows.length);
+  var targetRow = document.querySelector('.item-nav-' + topikId + '[data-index="' + target + '"]');
+  var videoBox = targetRow.querySelector('[id^="v-"]');
+  if (videoBox) { videoBox.style.display = 'block'; }
+}
+
+function updateNavPosisi(topikId, index, total) {
+  var label = document.querySelector('.item-nav-posisi-' + topikId);
+  if (label) { label.textContent = 'Item ' + (index + 1) + ' dari ' + total; }
+  var btnPrev = document.querySelector('.btn-prev-' + topikId);
+  var btnNext = document.querySelector('.btn-next-' + topikId);
+  if (btnPrev) { btnPrev.disabled = (index === 0); btnPrev.style.opacity = (index === 0) ? '0.5' : '1'; }
+  if (btnNext) { btnNext.disabled = (index === total - 1); btnNext.style.opacity = (index === total - 1) ? '0.5' : '1'; btnNext.textContent = (index === total - 1) ? 'Selesai' : 'Berikutnya \u2192'; }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('[class*="item-nav-controls-"]').forEach(function(box) {
+    var topikId = box.className.match(/item-nav-controls-(\d+)/)[1];
+    var rows = document.querySelectorAll('.item-nav-' + topikId);
+    if (rows.length > 0) {
+      updateNavPosisi(topikId, 0, rows.length);
+      var firstVideo = rows[0].querySelector('[id^="v-"]');
+      if (firstVideo) { firstVideo.style.display = 'block'; }
+    }
+  });
+});
+
+var IS_SISWA = {% if request.user.role == 'siswa' %}true{% else %}false{% endif %};
+var URL_DILIHAT = "{% url 'ruang_kerja:catat_item_dilihat' 0 %}";
+var _sudahDicatat = {};
+
+function ambilCsrf() {
+  var el = document.querySelector('input[name=csrfmiddlewaretoken]');
+  if (el) { return el.value; }
+  var m = document.cookie.match(/csrftoken=([^;]+)/);
+  return m ? m[1] : '';
+}
+
+function catatDilihat(row) {
+  if (!IS_SISWA || !row) { return; }
+  var id = row.getAttribute('data-item-id');
+  if (!id || _sudahDicatat[id]) { return; }
+  _sudahDicatat[id] = true;
+  fetch(URL_DILIHAT.replace('/0/', '/' + id + '/'), {
+    method: 'POST',
+    headers: { 'X-CSRFToken': ambilCsrf() }
+  });
+}
+
+var _navItemAsli = navItem;
+navItem = function(topikId, arah) {
+  _navItemAsli(topikId, arah);
+  document.querySelectorAll('.item-nav-' + topikId).forEach(function(r) {
+    if (r.style.display !== 'none') { catatDilihat(r); }
+  });
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.item-row[data-item-id]').forEach(function(r) {
+    if (r.style.display !== 'none') { catatDilihat(r); }
+  });
+});
+
 function toggleItemDeskripsi(descId, judulEl) {
   var el = document.getElementById(descId);
   var arrow = document.getElementById('arrow-' + descId);

@@ -51,9 +51,11 @@
 </div>
 {% endif %}
 
-{% else %}
+{% endif %}
+
+{% if boleh_kirim %}
 <div class="card p-6 md:p-8">
-  <h3 class="font-semibold text-gray-800 text-base mb-1">Kumpulkan Jawaban</h3>
+  <h3 class="font-semibold text-gray-800 text-base mb-1">{% if submisi %}Kirim Ulang Jawaban{% else %}Kumpulkan Jawaban{% endif %}</h3>
   <p class="text-xs text-gray-400 mb-5">Isi jawabanmu di bawah ini, lalu klik Kumpulkan Tugas.</p>
   <form method="POST" enctype="multipart/form-data" class="space-y-5">
     {% csrf_token %}

@@ -1,11 +1,34 @@
-﻿from django.db import models
+from django.db import models
 from accounts.models import User, Siswa
 from kreasi.fase_config import JENJANG_CHOICES, deteksi_jenjang
+
+class Kelas(models.Model):
+    nama = models.CharField(max_length=100, unique=True, help_text="Contoh: III, X-1, Kelas 5")
+    jenjang = models.CharField(max_length=10, choices=JENJANG_CHOICES, blank=True, help_text='Kosongkan agar dideteksi otomatis dari nama kelas')
+    wali_kelas = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='kelas_diwalikan')
+    dibuat_pada = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['nama']
+
+    def __str__(self):
+        return self.label_kelas
+
+    def get_jenjang(self):
+        return self.jenjang or deteksi_jenjang(self.nama)
+
+    @property
+    def label_kelas(self):
+        n = (self.nama or '').strip()
+        if n.lower().startswith('kelas'):
+            return n
+        return 'Kelas ' + n
 
 
 class RuangKerja(models.Model):
     mapel = models.CharField(max_length=50)
     kelas = models.CharField(max_length=100)
+    kelas_baru = models.ForeignKey('Kelas', on_delete=models.SET_NULL, null=True, blank=True, related_name='ruang_kerja')
     deskripsi = models.TextField(blank=True)
     guru = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='ruang_kerja_dikelola')
     dibuat_pada = models.DateTimeField(auto_now_add=True)
@@ -102,6 +125,33 @@ class Materi(models.Model):
                 return True
         return False
 
+    def status_selesai(self, siswa):
+        """
+        Status penyelesaian topik untuk seorang siswa: semua item materi sudah
+        dilihat DAN semua tugas yang dihubungkan ke topik ini sudah dikumpulkan.
+        Topik tanpa item dan tanpa tugas dianggap selesai (tidak ada yang perlu dikerjakan).
+        """
+        items = list(self.sub_materi.all())
+        total_item = len(items)
+        item_dilihat = 0
+        if items:
+            item_dilihat = ProgresItem.objects.filter(siswa=siswa, sub_materi__in=items).count()
+        tugas_ids = list(self.tugas_terkait.values_list('id', flat=True))
+        total_tugas = len(tugas_ids)
+        tugas_terkirim = 0
+        if tugas_ids:
+            tugas_terkirim = SubmisiTugas.objects.filter(
+                siswa=siswa, tugas_id__in=tugas_ids
+            ).values('tugas_id').distinct().count()
+        return {
+            'selesai': item_dilihat >= total_item and tugas_terkirim >= total_tugas,
+            'item_dilihat': item_dilihat,
+            'item_total': total_item,
+            'tugas_terkirim': tugas_terkirim,
+            'tugas_total': total_tugas,
+        }
+
+
 class SubMateri(models.Model):
     materi = models.ForeignKey(Materi, on_delete=models.CASCADE, related_name='sub_materi')
     judul = models.CharField(max_length=150)
@@ -162,6 +212,7 @@ class Tugas(models.Model):
         ('kreasi', 'Tugas Kreasi (Portofolio)'),
     ]
     ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name='tugas')
+    materi = models.ForeignKey('Materi', on_delete=models.SET_NULL, null=True, blank=True, related_name='tugas_terkait', help_text='Opsional: hubungkan ke topik agar jadi syarat membuka topik berikutnya')
     jenis = models.CharField(max_length=20, choices=JENIS_CHOICES, default='esai')
     judul = models.CharField(max_length=150)
     instruksi = models.TextField()
@@ -193,6 +244,7 @@ class SubmisiTugas(models.Model):
     nilai = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
     feedback = models.TextField(blank=True)
     dinilai_pada = models.DateTimeField(null=True, blank=True)
+    boleh_ulang = models.BooleanField(default=False, help_text='Jika dicentang guru, siswa boleh mengerjakan ulang tugas ini sekali lagi.')
 
     class Meta:
         unique_together = ['tugas', 'siswa']
@@ -393,3 +445,16 @@ class MateriPrasyarat(models.Model):
 
     def __str__(self):
         return f"{self.prasyarat.judul} -> membuka -> {self.materi.judul}"
+
+
+class ProgresItem(models.Model):
+    """Mencatat item materi yang sudah dibuka/dilihat siswa (syarat membuka topik berikutnya)."""
+    siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='progres_item')
+    sub_materi = models.ForeignKey(SubMateri, on_delete=models.CASCADE, related_name='progres')
+    dilihat_pada = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('siswa', 'sub_materi')
+
+    def __str__(self):
+        return f"{self.siswa} - {self.sub_materi}"

@@ -133,6 +133,7 @@ class HalamanSumber(models.Model):
     nomor = models.PositiveIntegerField()
     gambar = models.ImageField(upload_to='perpustakaan_halaman/')
     teks = models.TextField(blank=True)
+    audio_guru = models.FileField(upload_to='perpustakaan_narasi_guru/', blank=True, null=True, help_text='Rekaman guru membacakan halaman ini')
 
     class Meta:
         ordering = ['nomor']
