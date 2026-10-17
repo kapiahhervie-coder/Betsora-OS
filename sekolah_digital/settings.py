@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'perpustakaan',
     'kreasi',
     'kuis',
+    'misi',
 ]
 
 MIDDLEWARE = [

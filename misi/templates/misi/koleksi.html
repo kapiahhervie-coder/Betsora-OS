@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Buku koleksi {{ siswa.nama }}{% endblock %}
+{% block page_title %}Misi Dunia Nyata{% endblock %}
+{% block content %}
+<div class="max-w-5xl">
+  <h1 class="font-serif text-2xl text-gray-800">Buku koleksi {{ siswa.nama }}</h1>
+  <p class="text-sm text-gray-500 mt-1"><span class="badge-hadir">{{ level }}</span> <span class="ml-2">{{ selesai.count }} kartu terkumpul</span></p>
+  {% if selesai %}
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mt-5">
+    {% for p in selesai %}
+    <a href="{% url 'misi:kerjakan' p.pk %}" class="card p-5 text-center bg-primary-light block hover:border-primary-mid">
+      <p style="font-size:42px">{{ p.misi.emoji_kartu }}</p>
+      <p class="font-semibold text-gray-800 mt-1">{{ p.misi.judul_kartu }}</p>
+      <p class="text-xs text-gray-500">{{ p.misi.judul }}</p>
+      <p class="text-[11px] text-gray-400 mt-1">{{ p.dikonfirmasi_pada|date:"j F Y" }}</p>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="card p-5 text-sm text-gray-500 mt-5">Belum ada kartu. Selesaikan misi pertama, lalu minta konfirmasi.</p>
+  {% endif %}
+</div>
+{% endblock %}

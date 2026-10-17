@@ -16,4 +16,5 @@ urlpatterns = [
     path('perpustakaan/', include('perpustakaan.urls', namespace='perpustakaan')),
     path('kreasi/', include('kreasi.urls', namespace='kreasi')),
     path("kuis/", include("kuis.urls")),
+    path('misi/', include('misi.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

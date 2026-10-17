@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Misi Dunia Nyata{% endblock %}
+{% block page_title %}Misi Dunia Nyata{% endblock %}
+{% block content %}
+<div class="max-w-5xl">
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <h1 class="font-serif text-2xl text-gray-800">Misi siswa</h1>
+    <a href="{% url 'misi:tugaskan' %}" class="btn-primary"><i class="ti ti-plus"></i> Tugaskan misi</a>
+  </div>
+
+  <h2 class="font-semibold text-gray-800 mt-6 mb-2">Menunggu konfirmasi ({{ menunggu|length }})</h2>
+  {% for p in menunggu %}
+  <a href="{% url 'misi:kerjakan' p.pk %}" class="card p-4 block mb-3 hover:border-primary-mid">
+    <div class="flex justify-between flex-wrap gap-2">
+      <p><span class="font-semibold text-gray-800">{{ p.siswa.nama }}</span> <span class="text-xs text-gray-500">({{ p.siswa.kelas }})</span> · {{ p.misi.judul }}</p>
+      <span class="text-xs text-gray-400">{{ p.refleksi_pada|date:"j F Y, H:i" }}</span>
+    </div>
+    <p class="text-sm text-gray-700 mt-1">{{ p.refleksi|truncatechars:140 }}</p>
+  </a>
+  {% empty %}
+  <p class="card p-4 text-sm text-gray-500">Tidak ada yang menunggu.</p>
+  {% endfor %}
+
+  <h2 class="font-semibold text-gray-800 mt-6 mb-2">Sedang dikerjakan</h2>
+  <div class="card p-4">
+    {% for p in berjalan %}
+    <p class="text-sm py-1.5 {% if not forloop.first %}border-t border-gray-100{% endif %}">{{ p.siswa.nama }} ({{ p.siswa.kelas }}) · {{ p.misi.judul }} · {{ p.jumlah_catatan }}/{{ p.misi.min_catatan }} catatan</p>
+    {% empty %}
+    <p class="text-sm text-gray-500">Belum ada.</p>
+    {% endfor %}
+  </div>
+
+  <h2 class="font-semibold text-gray-800 mt-6 mb-2">Penugasan</h2>
+  <div class="card p-4">
+    {% for t in penugasan %}
+    <p class="text-sm py-1.5 {% if not forloop.first %}border-t border-gray-100{% endif %}">{{ t.misi.judul }} → {{ t.ruang_kerja }}{% if t.materi %} · topik {{ t.materi.judul }}{% endif %}{% if t.tenggat %} · tenggat {{ t.tenggat|date:"j M Y" }}{% endif %}</p>
+    {% empty %}
+    <p class="text-sm text-gray-500">Belum ada penugasan.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

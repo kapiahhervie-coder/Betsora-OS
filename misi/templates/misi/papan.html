@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Misi Dunia Nyata{% endblock %}
+{% block page_title %}Misi Dunia Nyata{% endblock %}
+{% block content %}
+<div class="max-w-5xl">
+  <div class="flex items-center justify-between flex-wrap gap-3 mb-6">
+    <div>
+      <h1 class="font-serif text-2xl text-gray-800">Halo, {{ siswa.nama }}!</h1>
+      <p class="text-sm text-gray-500 mt-1">
+        <span class="badge-hadir">{{ level }}</span>
+        <span class="ml-2">{{ selesai }} misi selesai</span>
+      </p>
+    </div>
+    <a href="{% url 'misi:koleksi' %}" class="btn-secondary"><i class="ti ti-album"></i> Buku koleksi</a>
+  </div>
+
+  {% if tugas %}
+  <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">Tugas dari gurumu</h2>
+  <div class="grid gap-3 md:grid-cols-2 mb-8">
+    {% for t in tugas %}
+    <a href="{% url 'misi:detail' t.penugasan.misi.slug %}" class="card p-4 block hover:border-primary-mid">
+      <div class="flex items-center gap-2 mb-1">
+        <i class="ti {{ t.penugasan.misi.ikon }} text-primary" style="font-size:20px"></i>
+        <span class="font-semibold text-gray-800">{{ t.penugasan.misi.judul }}</span>
+      </div>
+      <p class="text-xs text-gray-500">{{ t.penugasan.ruang_kerja }}{% if t.penugasan.tenggat %} · tenggat {{ t.penugasan.tenggat|date:"j M Y, H:i" }}{% endif %}</p>
+      <div class="mt-2">{% if t.pengerjaan %}{% include "misi/_status.html" with status=t.pengerjaan.status %}{% else %}<span class="badge-alpha">Belum dimulai</span>{% endif %}</div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-2">Papan misi</h2>
+  <div class="flex flex-wrap gap-2 mb-4">
+    <a href="{% url 'misi:papan' %}" class="px-3 py-1 rounded-full text-[13px] border {% if not kategori %}bg-primary text-white border-primary{% else %}bg-white text-gray-700 border-gray-200{% endif %}">Semua</a>
+    {% for kode, label in kategori_list %}
+    <a href="?kategori={{ kode }}" class="px-3 py-1 rounded-full text-[13px] border {% if kategori == kode %}bg-primary text-white border-primary{% else %}bg-white text-gray-700 border-gray-200{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </div>
+
+  {% if kartu %}
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {% for k in kartu %}
+    <a href="{% url 'misi:detail' k.misi.slug %}" class="card p-4 block hover:border-primary-mid">
+      <div class="flex items-center gap-2 mb-1">
+        <i class="ti {{ k.misi.ikon }} text-primary" style="font-size:22px"></i>
+        <span class="font-semibold text-gray-800">{{ k.misi.judul }}</span>
+      </div>
+      <p class="text-[13px] text-gray-500">{{ k.misi.ringkasan }}</p>
+      <div class="flex flex-wrap items-center gap-2 mt-3 text-[11px] text-gray-500">
+        <span>{{ k.misi.get_kategori_display }}</span><span>·</span><span>~{{ k.misi.durasi_menit }} menit</span>
+        {% if k.misi.misi_keluarga %}<span class="badge-izin">Bersama keluarga</span>{% endif %}
+      </div>
+      {% if k.pengerjaan %}<div class="mt-2">{% include "misi/_status.html" with status=k.pengerjaan.status %}</div>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="card p-5 text-sm text-gray-500">Belum ada misi untuk filter ini.</p>
+  {% endif %}
+</div>
+{% endblock %}

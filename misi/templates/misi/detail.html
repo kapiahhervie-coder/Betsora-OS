@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ misi.judul }}{% endblock %}
+{% block page_title %}Misi Dunia Nyata{% endblock %}
+{% block content %}
+<div class="max-w-3xl">
+  <a href="{% url 'misi:papan' %}" class="text-sm text-primary">← Papan misi</a>
+  <div class="flex items-center gap-3 mt-3">
+    <i class="ti {{ misi.ikon }} text-primary" style="font-size:34px"></i>
+    <h1 class="font-serif text-2xl text-gray-800">{{ misi.judul }}</h1>
+  </div>
+  <p class="text-gray-500 mt-1">{{ misi.ringkasan }}</p>
+  <p class="text-xs text-gray-500 mt-2">{{ misi.get_kategori_display }} · ~{{ misi.durasi_menit }} menit · kelas {{ misi.tingkat_min }}-{{ misi.tingkat_max }}{% if misi.misi_keluarga %} · <span class="badge-izin">Bersama keluarga</span>{% endif %}</p>
+
+  {% if penugasan %}
+  <p class="card p-3 mt-4 text-sm bg-accent-light">Ditugaskan di {{ penugasan.ruang_kerja }}{% if penugasan.tenggat %}, tenggat {{ penugasan.tenggat|date:"j F Y, H:i" }}{% endif %}.</p>
+  {% endif %}
+
+  <h2 class="font-semibold text-gray-800 mt-6 mb-2">Langkah misi</h2>
+  <ol class="list-decimal pl-6 space-y-1 text-[14px] text-gray-700">
+    {% for langkah in misi.daftar_langkah %}<li>{{ langkah }}</li>{% endfor %}
+  </ol>
+  {% if misi.bahan %}<p class="text-sm mt-3"><strong>Bahan:</strong> {{ misi.bahan }}</p>{% endif %}
+  {% if misi.catatan_keselamatan %}<p class="mt-3 rounded-lg border-l-4 border-accent bg-accent-light px-3 py-2 text-sm"><i class="ti ti-shield-check"></i> {{ misi.catatan_keselamatan }}</p>{% endif %}
+  <p class="text-sm mt-3">Hadiah: kartu koleksi <strong>{{ misi.emoji_kartu }} {{ misi.judul_kartu }}</strong></p>
+
+  <div class="mt-6">
+    {% if pengerjaan %}
+      <a href="{% url 'misi:kerjakan' pengerjaan.pk %}" class="btn-primary">Lanjutkan misi</a>
+    {% else %}
+      <form method="post">{% csrf_token %}<button class="btn-primary" type="submit">Mulai misi!</button></form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

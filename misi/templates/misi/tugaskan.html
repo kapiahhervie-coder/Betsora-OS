@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Tugaskan misi{% endblock %}
+{% block page_title %}Misi Dunia Nyata{% endblock %}
+{% block content %}
+<div class="max-w-xl">
+  <a href="{% url 'misi:panel_guru' %}" class="text-sm text-primary">← Misi siswa</a>
+  <h1 class="font-serif text-2xl text-gray-800 mt-3">Tugaskan misi ke ruang kerja</h1>
+  <p class="text-sm text-gray-500 mt-1">Semua siswa di ruang kerja itu akan melihat misi ini di papan mereka.</p>
+  <form method="post" class="card p-5 mt-4 space-y-4">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+    <div>
+      <label class="block text-[12px] font-semibold text-gray-500 uppercase tracking-wide mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<p class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>{% endif %}
+      {% for e in field.errors %}<p class="text-xs text-red-600 mt-1">{{ e }}</p>{% endfor %}
+    </div>
+    {% endfor %}
+    <button class="btn-primary" type="submit">Tugaskan</button>
+  </form>
+</div>
+{% endblock %}

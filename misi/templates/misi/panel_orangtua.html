@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Misi Anak{% endblock %}
+{% block page_title %}Misi Anak{% endblock %}
+{% block content %}
+<div class="max-w-3xl">
+  {% if not anak %}
+  <p class="card p-5 text-sm text-gray-600">Akun Anda belum dihubungkan ke data siswa. Hubungi guru atau admin sekolah.</p>
+  {% else %}
+  <h1 class="font-serif text-2xl text-gray-800">Misi {{ anak.nama }}</h1>
+  <p class="text-sm text-gray-500 mt-1">Lihat hasil kerja anak, lalu konfirmasi bila sudah benar-benar dikerjakan. <a class="text-primary" href="{% url 'misi:koleksi_siswa' anak.pk %}">Buku koleksi</a></p>
+
+  <h2 class="font-semibold text-gray-800 mt-6 mb-2">Menunggu konfirmasi ({{ menunggu|length }})</h2>
+  {% for p in menunggu %}
+  <a href="{% url 'misi:kerjakan' p.pk %}" class="card p-4 block mb-3 hover:border-primary-mid">
+    <p class="font-semibold text-gray-800">{{ p.misi.judul }}</p>
+    <p class="text-xs text-gray-500">{{ p.jumlah_catatan }} catatan · dikirim {{ p.refleksi_pada|date:"j F Y, H:i" }}</p>
+    <p class="text-sm text-gray-700 mt-2">{{ p.refleksi|truncatechars:160 }}</p>
+    <span class="btn-primary mt-3">Lihat dan konfirmasi</span>
+  </a>
+  {% empty %}
+  <p class="card p-4 text-sm text-gray-500">Tidak ada yang menunggu.</p>
+  {% endfor %}
+
+  <h2 class="font-semibold text-gray-800 mt-6 mb-2">Baru selesai</h2>
+  {% for p in selesai %}
+  <div class="card p-3 mb-2 flex justify-between text-sm"><span>{{ p.misi.emoji_kartu }} {{ p.misi.judul }}</span><span class="text-gray-400">{{ p.dikonfirmasi_pada|date:"j F Y" }}</span></div>
+  {% empty %}
+  <p class="card p-4 text-sm text-gray-500">Belum ada.</p>
+  {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}
