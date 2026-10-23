@@ -30,7 +30,7 @@
 
   {% if akses_penuh %}
   <div class="pf-grid pf-g3 sd-tiles" style="margin-top:.75rem;">
-    <div class="pf-card sd-tile"><div class="ikon">📅</div><p class="pf-kpi">{{ kehadiran }}%</p><p class="pf-muted" style="font-size:.78rem;">Kehadiran</p></div>
+    <div class="pf-card sd-tile"><div class="ikon">📅</div><p class="pf-kpi">{% if total_hari %}{{ kehadiran }}%{% else %}—{% endif %}</p><p class="pf-muted" style="font-size:.78rem;">{% if total_hari %}Kehadiran{% else %}Kehadiran (belum ada data){% endif %}</p></div>
     <div class="pf-card sd-tile"><div class="ikon">⭐</div><p class="pf-kpi">{{ avg_nilai|default:"—" }}</p><p class="pf-muted" style="font-size:.78rem;">Rata-rata Nilai</p></div>
     <div class="pf-card sd-tile"><div class="ikon">⚡</div><p class="pf-kpi">{{ total_poin }}</p><p class="pf-muted" style="font-size:.78rem;">Poin Aktif</p></div>
   </div>

@@ -118,6 +118,12 @@ class TemaTests(DasarPortofolio):
             resp = self.client.get(reverse("portofolio:detail", args=[kosong.id]) + f"?tema={tema}")
             self.assertEqual(resp.status_code, 200, msg=tema)
             self.assertContains(resp, "Belum ada karya diunggah.")
+            # Tanpa data absensi, kehadiran bukan "0%" (menyesatkan) melainkan "belum ada data".
+            self.assertNotContains(resp, ">0%<", msg_prefix=tema)
+
+    def test_kehadiran_tampil_jika_ada_data(self):
+        resp = self.buka_detail(self.guru)
+        self.assertContains(resp, ">100%<")  # 1 hari hadir dari 1 hari
 
     def test_video_berbahaya_tidak_sampai_ke_halaman_di_semua_tema(self):
         KaryaSiswa.objects.create(siswa=self.a, judul="Jahat", video_url=PAYLOAD_XSS, dibagikan=True)

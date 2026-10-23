@@ -23,7 +23,7 @@
 
   {% if akses_penuh %}
   <div class="pf-grid pf-g4" style="margin-top:.75rem;">
-    <div class="pf-card"><p class="pf-sec">Kehadiran</p><p class="pf-kpi">{{ kehadiran }}%</p></div>
+    <div class="pf-card"><p class="pf-sec">Kehadiran</p><p class="pf-kpi">{% if total_hari %}{{ kehadiran }}%{% else %}—{% endif %}</p></div>
     <div class="pf-card"><p class="pf-sec">Rata-rata</p><p class="pf-kpi">{{ avg_nilai|default:"—" }}</p></div>
     <div class="pf-card"><p class="pf-sec">Poin Aktif</p><p class="pf-kpi">{{ total_poin }}</p></div>
     <div class="pf-card"><p class="pf-sec">Penilaian</p><p class="pf-kpi">{{ nilai_list|length }}</p></div>
