@@ -1,0 +1,9 @@
+{% if bisa_pratinjau %}
+<div style="display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin-bottom:.75rem; font-size:.78rem;" class="text-gray-500">
+  <span><i class="ti ti-eye"></i> Pratinjau tema (hanya guru):</span>
+  {% for kode, nama in daftar_tema %}
+  <a href="?tema={{ kode }}" style="padding:.15rem .7rem; border-radius:9999px; text-decoration:none; border:1px solid #D1D5DB; {% if tema == kode %}background:#1E6B43; color:#fff; border-color:#1E6B43;{% else %}color:#374151; background:#fff;{% endif %}">{{ nama }}</a>
+  {% endfor %}
+  {% if tema != tema_asli %}<span>· tema asli siswa ini: <b>{{ tema_asli|upper }}</b> · <a href="?" style="color:#1E6B43;">kembali</a></span>{% endif %}
+</div>
+{% endif %}

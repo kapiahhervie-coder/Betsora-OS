@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Portofolio {{ siswa.nama }}{% endblock %}
+{% block page_title %}Portofolio Siswa{% endblock %}
+{% block content %}
+{% include 'portofolio/_pratinjau.html' %}
+{% include 'portofolio/_pf_dasar.html' %}
+<style>
+  .pf-smp { --pf-bg:#F4F7F2; --pf-card:#FFFFFF; --pf-border:#E3EADF; --pf-text:#1F2D24; --pf-muted:#6B7A70; --pf-accent:#1E6B43; --pf-soft:#E6F4EA; --pf-track:#E5EAE2; --pf-radius:12px; --pf-radius-lg:14px; }
+</style>
+<div class="pf-root pf-smp">
+  {% if request.user.is_staff_role %}
+  <div style="margin-bottom:.6rem;"><a href="{% url 'portofolio:daftar' %}" class="pf-link">← Kembali ke daftar</a></div>
+  {% endif %}
+
+  <div class="pf-card" style="display:flex; align-items:center; gap:1rem; background:#1E6B43; border-color:#1E6B43; color:#fff; flex-wrap:wrap;">
+    <div style="width:56px; height:56px; border-radius:9999px; background:rgba(255,255,255,.18); display:flex; align-items:center; justify-content:center; font-size:1.3rem; font-weight:700;">{{ siswa.nama|slice:":2"|upper }}</div>
+    <div style="flex:1; min-width:180px;">
+      <h2 class="pf-title" style="font-size:1.3rem; color:#fff;">{{ siswa.nama }}</h2>
+      <p style="font-size:.85rem; opacity:.85;">Kelas {{ siswa.kelas }}{% if akses_penuh %} · NIS {{ siswa.nis }}{% endif %}</p>
+    </div>
+    {% if akses_penuh %}<span style="background:rgba(255,255,255,.15); padding:.25rem .8rem; border-radius:9999px; font-size:.78rem;">🏅 {{ jumlah_lencana }} dari {{ lencana|length }} pencapaian</span>{% endif %}
+  </div>
+
+  {% if akses_penuh %}
+  <div class="pf-grid pf-g4" style="margin-top:.75rem;">
+    <div class="pf-card"><p class="pf-sec">Kehadiran</p><p class="pf-kpi">{{ kehadiran }}%</p></div>
+    <div class="pf-card"><p class="pf-sec">Rata-rata</p><p class="pf-kpi">{{ avg_nilai|default:"—" }}</p></div>
+    <div class="pf-card"><p class="pf-sec">Poin Aktif</p><p class="pf-kpi">{{ total_poin }}</p></div>
+    <div class="pf-card"><p class="pf-sec">Penilaian</p><p class="pf-kpi">{{ nilai_list|length }}</p></div>
+  </div>
+
+  <div class="pf-grid pf-g2" style="margin-top:.75rem; align-items:start;">
+    <div class="pf-card">
+      <p class="pf-sec">Perkembangan per Mata Pelajaran</p>
+      {% for m in nilai_per_mapel %}
+      <div style="margin-bottom:.7rem;">
+        <div style="display:flex; justify-content:space-between; font-size:.84rem; margin-bottom:.25rem;"><span>{{ m.mapel }}</span><b>{{ m.rata }}</b></div>
+        <div class="pf-bar"><i style="width:{{ m.lebar }}%;"></i></div>
+      </div>
+      {% empty %}<p class="pf-muted" style="font-size:.85rem;">Belum ada penilaian.</p>{% endfor %}
+      {% if tren_nilai %}
+      <p class="pf-sec" style="margin-top:1rem;">Tren Nilai Terakhir</p>
+      <div class="pf-bars">{% for t in tren_nilai %}<span style="height:{{ t.tinggi }}%;" title="{{ t.topik }}: {{ t.skor }}"></span>{% endfor %}</div>
+      {% endif %}
+    </div>
+
+    <div class="pf-card">
+      <p class="pf-sec">Rekam Jejak Nilai</p>
+      {% for n in nilai_list|slice:":8" %}
+      <div style="display:flex; justify-content:space-between; gap:.5rem; padding:.45rem 0; border-top:1px solid var(--pf-border);">
+        <div style="min-width:0;">
+          <p style="font-size:.84rem; font-weight:600;">{{ n.sesi.mapel }} — {{ n.sesi.topik }}</p>
+          <p class="pf-muted" style="font-size:.72rem;">{{ n.sesi.get_jenis_display }} · {{ n.sesi.tanggal|date:"d M Y" }}</p>
+        </div>
+        <b style="color:{% if n.skor >= 75 %}#137333{% else %}#B42318{% endif %};">{{ n.skor }}</b>
+      </div>
+      {% empty %}<p class="pf-muted" style="font-size:.85rem;">Belum ada penilaian.</p>{% endfor %}
+    </div>
+  </div>
+
+  <div class="pf-grid pf-g2" style="margin-top:.75rem; align-items:start;">
+    <div class="pf-card">
+      <p class="pf-sec">Kehadiran</p>
+      <div style="display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.6rem;">
+        {% for s in status_bars %}<span class="pf-chip {% if not s.n %}pf-chip-off{% endif %}">{{ s.nama }} {{ s.n }}</span>{% endfor %}
+      </div>
+      {% for a in absensi_list %}
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:.82rem; padding:.25rem 0;">
+        <span class="pf-muted">{{ a.tanggal|date:"d M Y" }}</span><span class="badge-{{ a.status }}">{{ a.get_status_display }}</span>
+      </div>
+      {% empty %}<p class="pf-muted" style="font-size:.85rem;">Belum ada data absensi.</p>{% endfor %}
+    </div>
+    <div class="pf-card">
+      <p class="pf-sec">Keaktifan</p>
+      <div style="display:flex; justify-content:space-between; font-size:.8rem; margin-bottom:.25rem;"><span class="pf-muted">Menuju target</span><b>{{ total_poin }} / {{ target_poin }}</b></div>
+      <div class="pf-bar" style="margin-bottom:.7rem;"><i style="width:{{ persen_poin }}%;"></i></div>
+      {% for k in keaktifan_list %}
+      <div style="display:flex; justify-content:space-between; gap:.5rem; font-size:.8rem; padding:.3rem 0; border-top:1px solid var(--pf-border);">
+        <span style="min-width:0;">{% if k.mapel %}<b>{{ k.mapel }}</b> · {% endif %}{{ k.deskripsi|default:"Poin keaktifan" }}<br><span class="pf-muted" style="font-size:.7rem;">{{ k.tanggal|date:"d M Y" }}</span></span>
+        <b class="pf-accent">+{{ k.poin }}</b>
+      </div>
+      {% empty %}<p class="pf-muted" style="font-size:.85rem;">Belum ada poin keaktifan.</p>{% endfor %}
+    </div>
+  </div>
+
+  <div class="pf-card" style="margin-top:.75rem;">
+    <p class="pf-sec">Pencapaian</p>
+    <div style="display:flex; flex-wrap:wrap; gap:.5rem;">
+      {% for l in lencana %}<span class="pf-chip {% if not l.diraih %}pf-chip-off{% endif %}" title="{{ l.ket }}">{{ l.ikon }} {{ l.nama }}</span>{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% include 'portofolio/_karya.html' with judul_karya='Karya' %}
+</div>
+{% endblock %}

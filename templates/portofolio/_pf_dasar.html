@@ -1,0 +1,22 @@
+{# Gaya dasar bersama. Tiap tema mengatur warnanya lewat variabel CSS pada .pf-root. #}
+<style>
+  .pf-root { background:var(--pf-bg); color:var(--pf-text); border-radius:var(--pf-radius-lg,16px); padding:1.25rem; font-family:'Inter',sans-serif; }
+  .pf-root .pf-card { background:var(--pf-card); border:1px solid var(--pf-border); border-radius:var(--pf-radius,12px); padding:1.1rem; }
+  .pf-root .pf-muted { color:var(--pf-muted); }
+  .pf-root .pf-accent { color:var(--pf-accent); }
+  .pf-root .pf-title { font-family:'Lora',serif; font-weight:600; color:var(--pf-text); }
+  .pf-root .pf-btn { background:var(--pf-accent); color:var(--pf-on-accent,#fff); border:none; border-radius:8px; padding:.45rem .9rem; font-size:.78rem; font-weight:600; cursor:pointer; }
+  .pf-root .pf-link { background:none; border:none; padding:0; cursor:pointer; color:var(--pf-accent); font-size:.75rem; text-decoration:none; }
+  .pf-root .pf-input { width:100%; background:var(--pf-input,var(--pf-card)); color:var(--pf-text); border:1px solid var(--pf-border); border-radius:8px; padding:.5rem .75rem; font-size:.85rem; }
+  .pf-root .pf-bar { height:8px; border-radius:9999px; background:var(--pf-track); overflow:hidden; }
+  .pf-root .pf-bar > i { display:block; height:100%; border-radius:9999px; background:var(--pf-accent); }
+  .pf-root .pf-chip { display:inline-flex; align-items:center; gap:.3rem; border-radius:9999px; padding:.15rem .6rem; font-size:.7rem; font-weight:600; background:var(--pf-soft); color:var(--pf-accent); }
+  .pf-root .pf-chip-off { background:var(--pf-track); color:var(--pf-muted); }
+  .pf-root .pf-grid { display:grid; gap:.75rem; }
+  .pf-root .pf-sec { font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--pf-muted); margin-bottom:.6rem; }
+  .pf-root .pf-bars { display:flex; align-items:flex-end; gap:6px; height:64px; }
+  .pf-root .pf-bars > span { flex:1; min-width:6px; background:var(--pf-accent); border-radius:4px 4px 0 0; opacity:.9; }
+  .pf-root .pf-kpi { font-family:'Lora',serif; font-size:1.7rem; font-weight:600; line-height:1; color:var(--pf-text); }
+  @media (min-width:640px) { .pf-root .pf-g2 { grid-template-columns:repeat(2,1fr); } .pf-root .pf-g3 { grid-template-columns:repeat(3,1fr); } .pf-root .pf-g4 { grid-template-columns:repeat(4,1fr); } }
+  @media (max-width:639px) { .pf-root { padding:.9rem; } .pf-root .pf-g4 { grid-template-columns:repeat(2,1fr); } }
+</style>

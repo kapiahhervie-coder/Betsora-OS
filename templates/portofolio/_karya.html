@@ -1,0 +1,96 @@
+{# Bagian karya, dipakai ketiga tema. Alamat gambar/video dibaca dari data-*, bukan onclick. #}
+<section class="pf-card" style="margin-top:.75rem;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:.8rem; gap:.5rem;">
+    <h3 class="pf-title" style="font-size:1rem;">{{ judul_karya|default:"Karya" }}{% if not is_pemilik %} {{ siswa.nama }}{% endif %}</h3>
+    {% if is_pemilik %}
+    <button type="button" class="pf-btn" onclick="document.getElementById('form-tambah-karya').style.display = (document.getElementById('form-tambah-karya').style.display === 'none' ? 'block' : 'none')">+ Tambah Karya</button>
+    {% endif %}
+  </div>
+  {% if is_pemilik %}
+  <form id="form-tambah-karya" method="POST" action="{% url 'portofolio:tambah_karya' %}" enctype="multipart/form-data" style="display:none; margin-bottom:1rem; padding:.9rem; border:1px dashed var(--pf-border); border-radius:10px;">
+    {% csrf_token %}
+    <div class="pf-grid">
+      <input type="text" name="judul" required maxlength="150" placeholder="Judul karya" class="pf-input">
+      <textarea name="deskripsi" rows="2" placeholder="Ceritakan tentang karya ini (opsional)" class="pf-input"></textarea>
+      <textarea name="refleksi" rows="2" placeholder="Refleksi: Apa tantangan terbesarnya? Bagaimana perasaanmu setelah menyelesaikannya?" class="pf-input"></textarea>
+      <div>
+        <input type="file" name="file" accept="{{ file_accept }}" class="pf-muted" style="font-size:.8rem;">
+        <p class="pf-muted" style="font-size:.7rem; margin-top:.25rem;">Maksimal {{ ukuran_maks_mb }} MB. Gambar, PDF, dokumen Office, audio, atau video.</p>
+      </div>
+      <input type="url" name="video_url" maxlength="300" placeholder="Atau tempel link video YouTube/Google Drive (opsional)" class="pf-input">
+      <label class="pf-muted" style="font-size:.82rem; display:flex; gap:.4rem; align-items:center;"><input type="checkbox" name="dibagikan"> Bagikan ke siswa lain</label>
+      <div><button type="submit" class="pf-btn">Unggah</button></div>
+    </div>
+  </form>
+  {% endif %}
+  <div class="pf-grid pf-g3">
+    {% for karya in karya_list %}
+    <div style="border:1px solid var(--pf-border); border-radius:10px; overflow:hidden; background:var(--pf-card);">
+      {% if karya.is_image %}
+      <img src="{{ karya.file.url }}" alt="{{ karya.judul }}" data-lightbox="{{ karya.file.url }}" style="width:100%; height:128px; object-fit:cover; cursor:pointer; display:block;">
+      {% elif karya.has_video %}
+      <button type="button" data-video="{{ karya.get_video_embed }}" aria-label="Putar video {{ karya.judul }}" style="width:100%; height:128px; background:#111; cursor:pointer; display:flex; align-items:center; justify-content:center; border:none;"><span style="font-size:36px;">▶️</span></button>
+      {% endif %}
+      <div style="padding:.7rem;">
+        <p style="font-size:.85rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ karya.judul }}</p>
+        {% if karya.deskripsi %}<p class="pf-muted" style="font-size:.75rem; margin-top:.25rem;">{{ karya.deskripsi }}</p>{% endif %}
+        {% if karya.refleksi %}<p class="pf-muted" style="font-size:.75rem; margin-top:.25rem; font-style:italic;">💭 {{ karya.refleksi }}</p>{% endif %}
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:.5rem;">
+          {% if karya.is_image %}
+          <button type="button" class="pf-link" data-lightbox="{{ karya.file.url }}">Perbesar</button>
+          {% elif karya.has_video %}
+          <button type="button" class="pf-link" data-video="{{ karya.get_video_embed }}">Putar Video</button>
+          {% elif karya.file %}
+          <a href="{{ karya.file.url }}" target="_blank" rel="noopener" class="pf-link">Lihat File</a>
+          {% else %}<span></span>{% endif %}
+          <span class="pf-muted" style="font-size:.7rem;">{% if karya.dibagikan %}Dibagikan{% else %}Privat{% endif %}</span>
+        </div>
+        {% if bisa_hapus %}
+        <form method="POST" action="{% url 'portofolio:hapus_karya' karya.id %}" onsubmit="return confirm('Hapus karya ini?')" style="margin-top:.5rem;">
+          {% csrf_token %}
+          <button type="submit" class="pf-link" style="color:#DC2626;">Hapus</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <p class="pf-muted" style="grid-column:1/-1; text-align:center; font-size:.85rem; padding:1rem 0;">Belum ada karya diunggah.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<div id="lightbox-overlay" onclick="tutupLightbox()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; cursor:zoom-out; align-items:center; justify-content:center;">
+  <img id="lightbox-img" src="" alt="" style="max-width:90%; max-height:90%; border-radius:8px;">
+</div>
+<div id="video-modal-overlay" onclick="tutupVideoModal(event)" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center;">
+  <div style="width:90%; max-width:640px; aspect-ratio:16/9;" onclick="event.stopPropagation()">
+    <iframe id="video-modal-iframe" src="" title="Pemutar video karya" style="width:100%; height:100%; border-radius:8px; border:none;" allowfullscreen></iframe>
+  </div>
+</div>
+<script>
+  document.addEventListener('click', function (e) {
+    var gambar = e.target.closest('[data-lightbox]');
+    if (gambar) { bukaLightbox(gambar.getAttribute('data-lightbox')); return; }
+    var video = e.target.closest('[data-video]');
+    if (video) { bukaVideoModal(video.getAttribute('data-video')); }
+  });
+  function bukaLightbox(url) {
+    document.getElementById('lightbox-img').src = url;
+    document.getElementById('lightbox-overlay').style.display = 'flex';
+  }
+  function tutupLightbox() {
+    document.getElementById('lightbox-overlay').style.display = 'none';
+    document.getElementById('lightbox-img').src = '';
+  }
+  function bukaVideoModal(url) {
+    var sah = url.indexOf('https://www.youtube.com/embed/') === 0 || url.indexOf('https://drive.google.com/file/d/') === 0;
+    if (!sah) { return; }
+    document.getElementById('video-modal-iframe').src = url;
+    document.getElementById('video-modal-overlay').style.display = 'flex';
+  }
+  function tutupVideoModal(e) {
+    if (e.target.id !== 'video-modal-overlay') return;
+    document.getElementById('video-modal-overlay').style.display = 'none';
+    document.getElementById('video-modal-iframe').src = '';
+  }
+</script>

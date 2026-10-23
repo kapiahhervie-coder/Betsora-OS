@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Portofolio {{ siswa.nama }}{% endblock %}
+{% block page_title %}Portofolio Siswa{% endblock %}
+{% block content %}
+{% include 'portofolio/_pratinjau.html' %}
+{% include 'portofolio/_pf_dasar.html' %}
+<style>
+  .pf-sd { --pf-bg:#FBF3E3; --pf-card:#FFFFFF; --pf-border:#F0E3C4; --pf-text:#2B3A2B; --pf-muted:#7A7466; --pf-accent:#3C8C1F; --pf-soft:#EAF7DE; --pf-track:#F0E8D2; --pf-radius:20px; --pf-radius-lg:24px; }
+  .pf-sd .sd-tile { text-align:center; padding:1rem .5rem; }
+  .pf-sd .sd-tile .ikon { font-size:1.9rem; }
+  .pf-sd .sd-lencana { text-align:center; padding:.7rem .4rem; border-radius:16px; border:2px solid var(--pf-border); background:#fff; }
+  .pf-sd .sd-lencana.on { border-color:#C8A35A; background:#FFF8E6; }
+  .pf-sd .sd-lencana.off { opacity:.45; filter:grayscale(1); }
+  .pf-sd .sd-lencana .ikon { font-size:2rem; }
+  .pf-sd .pf-bar { height:16px; }
+  @media (max-width:639px) { .pf-sd .sd-tiles { grid-template-columns:repeat(3,1fr); gap:.5rem; } .pf-sd .sd-tiles .pf-kpi { font-size:1.35rem; } .pf-sd .sd-lencanas { grid-template-columns:repeat(2,1fr); } }
+</style>
+<div class="pf-root pf-sd">
+  {% if request.user.is_staff_role %}
+  <div style="margin-bottom:.6rem;"><a href="{% url 'portofolio:daftar' %}" class="pf-link">← Kembali ke daftar</a></div>
+  {% endif %}
+
+  <div class="pf-card" style="display:flex; align-items:center; gap:1rem; background:linear-gradient(135deg,#EAF7DE,#FFF8E6);">
+    <div style="width:68px; height:68px; border-radius:9999px; background:#C8A35A; color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.6rem; font-weight:700; flex-shrink:0;">{{ siswa.nama|slice:":1"|upper }}</div>
+    <div>
+      <h2 class="pf-title" style="font-size:1.5rem;">Halo, {{ siswa.nama }}! 👋</h2>
+      <p class="pf-muted" style="font-size:.9rem;">Kelas {{ siswa.kelas }}{% if akses_penuh %} · {{ jumlah_lencana }} lencana terkumpul 🏅{% endif %}</p>
+    </div>
+  </div>
+
+  {% if akses_penuh %}
+  <div class="pf-grid pf-g3 sd-tiles" style="margin-top:.75rem;">
+    <div class="pf-card sd-tile"><div class="ikon">📅</div><p class="pf-kpi">{{ kehadiran }}%</p><p class="pf-muted" style="font-size:.78rem;">Kehadiran</p></div>
+    <div class="pf-card sd-tile"><div class="ikon">⭐</div><p class="pf-kpi">{{ avg_nilai|default:"—" }}</p><p class="pf-muted" style="font-size:.78rem;">Rata-rata Nilai</p></div>
+    <div class="pf-card sd-tile"><div class="ikon">⚡</div><p class="pf-kpi">{{ total_poin }}</p><p class="pf-muted" style="font-size:.78rem;">Poin Aktif</p></div>
+  </div>
+
+  <div class="pf-card" style="margin-top:.75rem;">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.5rem;">
+      <h3 class="pf-title" style="font-size:1rem;">🚀 Perjalanan Poinmu</h3>
+      <span class="pf-muted" style="font-size:.8rem;">{{ total_poin }} / {{ target_poin }} poin</span>
+    </div>
+    <div class="pf-bar"><i style="width:{{ persen_poin }}%;"></i></div>
+    {% if persen_poin >= 100 %}<p style="font-size:.85rem; margin-top:.5rem;">Hebat! Kamu sudah mencapai targetnya 🎉</p>
+    {% else %}<p class="pf-muted" style="font-size:.8rem; margin-top:.5rem;">Terus semangat! Sedikit lagi menuju target.</p>{% endif %}
+  </div>
+
+  <div class="pf-card" style="margin-top:.75rem;">
+    <h3 class="pf-title" style="font-size:1rem; margin-bottom:.7rem;">🏅 Lencanamu</h3>
+    <div class="pf-grid pf-g3 sd-lencanas">
+      {% for l in lencana %}
+      <div class="sd-lencana {% if l.diraih %}on{% else %}off{% endif %}">
+        <div class="ikon">{% if l.diraih %}{{ l.ikon }}{% else %}🔒{% endif %}</div>
+        <p style="font-size:.82rem; font-weight:700;">{{ l.nama }}</p>
+        <p class="pf-muted" style="font-size:.7rem;">{{ l.ket }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="pf-card" style="margin-top:.75rem;">
+    <h3 class="pf-title" style="font-size:1rem; margin-bottom:.7rem;">📝 Nilai Terbarumu</h3>
+    {% for n in nilai_list|slice:":6" %}
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:.5rem 0; border-top:1px dashed var(--pf-border);">
+      <div>
+        <p style="font-size:.88rem; font-weight:600;">{{ n.sesi.mapel }}</p>
+        <p class="pf-muted" style="font-size:.75rem;">{{ n.sesi.topik }} · {{ n.sesi.tanggal|date:"d M Y" }}</p>
+      </div>
+      <div style="text-align:right;">
+        <p style="font-size:1.05rem; font-weight:700; color:{% if n.skor >= 75 %}#3C8C1F{% else %}#C2410C{% endif %};">{{ n.skor }}</p>
+        <p style="font-size:.75rem;">{% if n.skor >= 90 %}⭐⭐⭐{% elif n.skor >= 75 %}⭐⭐{% else %}⭐{% endif %}</p>
+      </div>
+    </div>
+    {% empty %}<p class="pf-muted" style="text-align:center; font-size:.85rem; padding:.8rem 0;">Belum ada penilaian. Yuk semangat belajar! 💪</p>{% endfor %}
+  </div>
+  {% endif %}
+
+  {% include 'portofolio/_karya.html' with judul_karya='🎨 Karya' %}
+</div>
+{% endblock %}

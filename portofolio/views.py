@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 from accounts.models import Siswa
 from kelas.models import Absensi, Keaktifan
 from penilaian.models import Nilai
+from . import jenjang
 from .models import KaryaSiswa
 from .validasi import accept_html, cek_file_karya, UKURAN_MAKS_BYTE
 
@@ -103,6 +104,15 @@ def daftar_portofolio(request):
     return render(request, 'portofolio/daftar.html', {'data': data, 'kelas_list': kelas_list, 'kelas_filter': kelas_filter})
 
 
+def pilih_tema(request, siswa):
+    """Tema mengikuti jenjang siswa. Staf boleh melihat pratinjau lewat ?tema=sd|smp|sma."""
+    asli = jenjang.jenjang_dari_kelas(siswa.kelas)
+    pilihan = request.GET.get('tema', '')
+    if request.user.is_staff_role() and pilihan in jenjang.JENJANG:
+        return pilihan, asli
+    return asli, asli
+
+
 @login_required
 def detail_portofolio(request, siswa_id):
     siswa = get_object_or_404(Siswa, id=siswa_id)
@@ -116,38 +126,63 @@ def detail_portofolio(request, siswa_id):
         ORANG_TUA_LIHAT_KARYA_PRIVAT and adalah_orang_tua_dari(request.user, siswa.id)
     )
     if lihat_privat:
-        karya_list = KaryaSiswa.objects.filter(siswa=siswa)
+        karya_qs = KaryaSiswa.objects.filter(siswa=siswa)
     else:
-        karya_list = KaryaSiswa.objects.filter(siswa=siswa, dibagikan=True)
+        karya_qs = KaryaSiswa.objects.filter(siswa=siswa, dibagikan=True)
+    karya_list = list(karya_qs)
 
+    tema, tema_asli = pilih_tema(request, siswa)
     context = {
         'siswa': siswa,
         'akses_penuh': akses == AKSES_PENUH,
         'karya_list': karya_list,
+        'jumlah_karya': len(karya_list),
         'is_pemilik': is_pemilik,
         'bisa_hapus': is_pemilik or is_staff_role,
         'ukuran_maks_mb': UKURAN_MAKS_BYTE // (1024 * 1024),
         'file_accept': accept_html(),
+        'tema': tema,
+        'tema_asli': tema_asli,
+        'bisa_pratinjau': is_staff_role,
+        'target_poin': jenjang.TARGET_POIN,
+        'daftar_tema': [('sd', 'SD'), ('smp', 'SMP'), ('sma', 'SMA')],
     }
 
     if akses == AKSES_PENUH:
         absensi_list = Absensi.objects.filter(siswa=siswa).order_by('-tanggal')
-        total_hari = absensi_list.count()
-        hadir = absensi_list.filter(status='hadir').count()
-        nilai_list = Nilai.objects.filter(siswa=siswa).select_related('sesi').order_by('-sesi__tanggal')
-        avg_nilai = nilai_list.aggregate(avg=Avg('skor'))['avg']
+        per_status = {r['status']: r['n'] for r in absensi_list.order_by().values('status').annotate(n=Count('id'))}
+        total_hari = sum(per_status.values())
+        hadir = per_status.get('hadir', 0)
+        nilai_list = list(Nilai.objects.filter(siswa=siswa).select_related('sesi').order_by('-sesi__tanggal'))
+        avg_nilai = round(sum(float(n.skor) for n in nilai_list) / len(nilai_list), 1) if nilai_list else None
         total_poin = Keaktifan.objects.filter(siswa=siswa).aggregate(t=Sum('poin'))['t'] or 0
+        kehadiran = round(hadir / total_hari * 100) if total_hari else 0
+        lencana = jenjang.hitung_lencana(
+            kehadiran, total_hari, avg_nilai, total_poin,
+            len(karya_list), any(k.refleksi.strip() for k in karya_list),
+        )
         context.update({
-            'kehadiran': round(hadir / total_hari * 100) if total_hari else 0,
-            'avg_nilai': round(avg_nilai, 1) if avg_nilai else None,
+            'kehadiran': kehadiran,
+            'avg_nilai': avg_nilai if avg_nilai else None,
             'nilai_list': nilai_list,
+            'nilai_per_mapel': jenjang.ringkas_nilai(nilai_list),
+            'tren_nilai': jenjang.tren_nilai(nilai_list),
             'total_poin': total_poin,
+            'persen_poin': jenjang.persen_poin(total_poin),
             'absensi_list': absensi_list[:10],
-            'formatif': nilai_list.filter(sesi__jenis='formatif'),
-            'sumatif': nilai_list.filter(sesi__jenis='sumatif'),
+            'per_status': per_status,
+            'status_bars': [
+                {'kode': k, 'nama': nama, 'n': per_status.get(k, 0),
+                 'lebar': int(per_status.get(k, 0) * 100 // total_hari) if total_hari else 0}
+                for k, nama in Absensi.STATUS
+            ],
+            'total_hari': total_hari,
+            'keaktifan_list': Keaktifan.objects.filter(siswa=siswa).order_by('-tanggal', '-id')[:8],
+            'lencana': lencana,
+            'jumlah_lencana': sum(1 for l in lencana if l['diraih']),
         })
 
-    return render(request, 'portofolio/detail.html', context)
+    return render(request, f'portofolio/detail_{tema}.html', context)
 
 
 def galat_unggahan(judul, video_url, file):
