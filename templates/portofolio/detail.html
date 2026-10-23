@@ -1,21 +1,26 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block title %}Portofolio {{ siswa.nama }}{% endblock %}
 {% block page_title %}Portofolio Siswa{% endblock %}
 {% block content %}
+{% if request.user.is_staff_role %}
 <div class="mb-4"><a href="{% url 'portofolio:daftar' %}" class="text-sm text-green-700 hover:underline">← Kembali ke daftar</a></div>
+{% endif %}
 <div class="bg-green-800 rounded-xl p-6 flex items-center gap-5 mb-5 text-white">
   <div class="w-16 h-16 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-2xl font-bold">{{ siswa.nama|slice:":2"|upper }}</div>
   <div>
     <h2 class="text-xl font-bold">{{ siswa.nama }}</h2>
-    <p class="text-green-300 text-sm">Kelas {{ siswa.kelas }} · NIS: {{ siswa.nis }}</p>
+    <p class="text-green-300 text-sm">Kelas {{ siswa.kelas }}{% if akses_penuh %} · NIS: {{ siswa.nis }}{% endif %}</p>
+    {% if akses_penuh %}
     <div class="flex gap-6 mt-3">
       <div><p class="text-2xl font-bold">{{ kehadiran }}%</p><p class="text-green-300 text-xs">Kehadiran</p></div>
       <div><p class="text-2xl font-bold">{{ avg_nilai|default:"—" }}</p><p class="text-green-300 text-xs">Rata-rata</p></div>
       <div><p class="text-2xl font-bold">{{ total_poin }}</p><p class="text-green-300 text-xs">Poin Aktif</p></div>
       <div><p class="text-2xl font-bold">{{ nilai_list|length }}</p><p class="text-green-300 text-xs">Penilaian</p></div>
     </div>
+    {% endif %}
   </div>
 </div>
+{% if akses_penuh %}
 <div class="grid grid-cols-2 gap-4">
   <div class="card p-5">
     <h3 class="font-semibold text-gray-800 mb-4">📝 Rekam Jejak Nilai</h3>
@@ -50,21 +55,25 @@
     </div>
   </div>
 </div>
-<div class="card p-5 mt-4">
+{% endif %}
+<div class="card p-5 {% if akses_penuh %}mt-4{% endif %}">
   <div class="flex items-center justify-between mb-4">
-    <h3 class="font-semibold text-gray-800">Karya Saya</h3>
+    <h3 class="font-semibold text-gray-800">{% if is_pemilik %}Karya Saya{% else %}Karya {{ siswa.nama }}{% endif %}</h3>
     {% if is_pemilik %}
-    <button onclick="document.getElementById('form-tambah-karya').classList.toggle('hidden')" class="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-medium">+ Tambah Karya</button>
+    <button type="button" onclick="document.getElementById('form-tambah-karya').classList.toggle('hidden')" class="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-medium">+ Tambah Karya</button>
     {% endif %}
   </div>
   {% if is_pemilik %}
   <form id="form-tambah-karya" method="POST" action="{% url 'portofolio:tambah_karya' %}" enctype="multipart/form-data" class="hidden mb-5 p-4 bg-gray-50 rounded-lg space-y-3">
     {% csrf_token %}
-    <input type="text" name="judul" required placeholder="Judul karya" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+    <input type="text" name="judul" required maxlength="150" placeholder="Judul karya" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
     <textarea name="deskripsi" rows="2" placeholder="Ceritakan tentang karya ini (opsional)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></textarea>
     <textarea name="refleksi" rows="2" placeholder="Refleksi: Apa tantangan terbesarnya? Bagaimana perasaanmu setelah menyelesaikannya?" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"></textarea>
-    <input type="file" name="file" class="text-sm">
-    <input type="text" name="video_url" placeholder="Atau tempel link video YouTube/Google Drive (opsional)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+    <div>
+      <input type="file" name="file" accept="{{ file_accept }}" class="text-sm">
+      <p class="text-xs text-gray-400 mt-1">Maksimal {{ ukuran_maks_mb }} MB. Gambar, PDF, dokumen Office, audio, atau video.</p>
+    </div>
+    <input type="url" name="video_url" maxlength="300" placeholder="Atau tempel link video YouTube/Google Drive (opsional)" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
     <label class="flex items-center gap-2 text-sm text-gray-600">
       <input type="checkbox" name="dibagikan"> Bagikan ke siswa lain
     </label>
@@ -75,11 +84,11 @@
     {% for karya in karya_list %}
     <div class="border border-gray-200 rounded-lg overflow-hidden">
       {% if karya.is_image %}
-      <img src="{{ karya.file.url }}" alt="{{ karya.judul }}" onclick="bukaLightbox('{{ karya.file.url }}')" class="w-full h-32 object-cover cursor-pointer" style="display:block;">
-      {% elif karya.video_url %}
-      <div onclick="bukaVideoModal('{{ karya.get_video_embed }}')" style="position:relative; width:100%; height:128px; background:#111; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+      <img src="{{ karya.file.url }}" alt="{{ karya.judul }}" data-lightbox="{{ karya.file.url }}" class="w-full h-32 object-cover cursor-pointer" style="display:block;">
+      {% elif karya.has_video %}
+      <button type="button" data-video="{{ karya.get_video_embed }}" aria-label="Putar video {{ karya.judul }}" style="position:relative; width:100%; height:128px; background:#111; cursor:pointer; display:flex; align-items:center; justify-content:center; border:none;">
         <span style="font-size:36px;">▶️</span>
-      </div>
+      </button>
       {% endif %}
       <div class="p-3">
         <p class="text-sm font-medium text-gray-700 truncate">{{ karya.judul }}</p>
@@ -87,15 +96,15 @@
         {% if karya.refleksi %}<p class="text-xs text-gray-500 mt-1 italic">💭 {{ karya.refleksi }}</p>{% endif %}
         <div class="flex items-center justify-between mt-2">
           {% if karya.is_image %}
-          <button onclick="bukaLightbox('{{ karya.file.url }}')" class="text-xs text-blue-600" style="background:none; border:none; padding:0; cursor:pointer;">Perbesar</button>
-          {% elif karya.video_url %}
-          <button onclick="bukaVideoModal('{{ karya.get_video_embed }}')" class="text-xs text-blue-600" style="background:none; border:none; padding:0; cursor:pointer;">Putar Video</button>
+          <button type="button" data-lightbox="{{ karya.file.url }}" class="text-xs text-blue-600" style="background:none; border:none; padding:0; cursor:pointer;">Perbesar</button>
+          {% elif karya.has_video %}
+          <button type="button" data-video="{{ karya.get_video_embed }}" class="text-xs text-blue-600" style="background:none; border:none; padding:0; cursor:pointer;">Putar Video</button>
           {% elif karya.file %}
-          <a href="{{ karya.file.url }}" target="_blank" class="text-xs text-blue-600">Lihat File</a>
+          <a href="{{ karya.file.url }}" target="_blank" rel="noopener" class="text-xs text-blue-600">Lihat File</a>
           {% endif %}
           <span class="text-xs {% if karya.dibagikan %}text-green-600{% else %}text-gray-400{% endif %}">{% if karya.dibagikan %}Dibagikan{% else %}Privat{% endif %}</span>
         </div>
-        {% if is_pemilik or request.user.role != 'siswa' %}
+        {% if bisa_hapus %}
         <form method="POST" action="{% url 'portofolio:hapus_karya' karya.id %}" onsubmit="return confirm('Hapus karya ini?')" class="mt-2">
           {% csrf_token %}
           <button type="submit" class="text-xs text-red-500">Hapus</button>
@@ -110,14 +119,21 @@
 </div>
 
 <div id="lightbox-overlay" onclick="tutupLightbox()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; cursor:zoom-out; align-items:center; justify-content:center;">
-  <img id="lightbox-img" src="" style="max-width:90%; max-height:90%; border-radius:8px;">
+  <img id="lightbox-img" src="" alt="" style="max-width:90%; max-height:90%; border-radius:8px;">
 </div>
 <div id="video-modal-overlay" onclick="tutupVideoModal(event)" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center;">
   <div style="width:90%; max-width:640px; aspect-ratio:16/9;" onclick="event.stopPropagation()">
-    <iframe id="video-modal-iframe" src="" style="width:100%; height:100%; border-radius:8px; border:none;" allowfullscreen></iframe>
+    <iframe id="video-modal-iframe" src="" title="Pemutar video karya" style="width:100%; height:100%; border-radius:8px; border:none;" allowfullscreen></iframe>
   </div>
 </div>
 <script>
+  // Alamat gambar dan video dibaca dari atribut data-*, bukan disisipkan ke dalam kode onclick.
+  document.addEventListener('click', function (e) {
+    var gambar = e.target.closest('[data-lightbox]');
+    if (gambar) { bukaLightbox(gambar.getAttribute('data-lightbox')); return; }
+    var video = e.target.closest('[data-video]');
+    if (video) { bukaVideoModal(video.getAttribute('data-video')); }
+  });
   function bukaLightbox(url) {
     document.getElementById('lightbox-img').src = url;
     document.getElementById('lightbox-overlay').style.display = 'flex';
@@ -127,6 +143,9 @@
     document.getElementById('lightbox-img').src = '';
   }
   function bukaVideoModal(url) {
+    // Server sudah menyaring; dicek sekali lagi di sini sebagai pertahanan berlapis.
+    var sah = url.indexOf('https://www.youtube.com/embed/') === 0 || url.indexOf('https://drive.google.com/file/d/') === 0;
+    if (!sah) { return; }
     document.getElementById('video-modal-iframe').src = url;
     document.getElementById('video-modal-overlay').style.display = 'flex';
   }

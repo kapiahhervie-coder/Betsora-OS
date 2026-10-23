@@ -1,5 +1,12 @@
-﻿from django.db import models
+import re
+from urllib.parse import parse_qs, urlparse
+
+from django.db import models
 from accounts.models import Siswa
+
+_ID_YOUTUBE = re.compile(r'^[\w-]{11}$')
+_ID_DRIVE = re.compile(r'^[\w-]{10,100}$')
+_HOST_YOUTUBE = {'youtube.com', 'www.youtube.com', 'm.youtube.com'}
 
 
 class KaryaSiswa(models.Model):
@@ -31,12 +38,40 @@ class KaryaSiswa(models.Model):
         return ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']
 
     def get_video_embed(self):
-        import re
-        url = self.video_url or ''
-        yt_match = re.search(r'(?:youtu\.be/|youtube\.com/watch\?v=|youtube\.com/embed/)([\w-]+)', url)
-        if yt_match:
-            return f'https://www.youtube.com/embed/{yt_match.group(1)}'
-        gdrive_match = re.search(r'drive\.google\.com/file/d/([\w-]+)', url)
-        if gdrive_match:
-            return f'https://drive.google.com/file/d/{gdrive_match.group(1)}/preview'
-        return url
+        """URL embed yang aman, atau '' jika link bukan YouTube/Google Drive yang sah.
+
+        Hanya alamat https/http dari YouTube dan Google Drive dengan ID yang valid yang
+        dikembalikan. Link lain (termasuk data lama yang tersimpan sebelum aturan ini)
+        dikosongkan, sehingga tidak pernah sampai ke halaman.
+        """
+        url = (self.video_url or '').strip()
+        try:
+            p = urlparse(url)
+            host = (p.hostname or '').lower()
+        except ValueError:
+            return ''
+        if p.scheme not in ('http', 'https'):
+            return ''
+
+        if host == 'youtu.be':
+            vid = p.path.lstrip('/').split('/')[0]
+        elif host in _HOST_YOUTUBE:
+            if p.path == '/watch':
+                vid = (parse_qs(p.query).get('v') or [''])[0]
+            elif p.path.startswith('/embed/'):
+                vid = p.path.split('/')[2] if len(p.path.split('/')) > 2 else ''
+            else:
+                vid = ''
+        else:
+            vid = ''
+        if vid and _ID_YOUTUBE.match(vid):
+            return f'https://www.youtube.com/embed/{vid}'
+
+        if host == 'drive.google.com':
+            m = re.match(r'^/file/d/([\w-]+)', p.path)
+            if m and _ID_DRIVE.match(m.group(1)):
+                return f'https://drive.google.com/file/d/{m.group(1)}/preview'
+        return ''
+
+    def has_video(self):
+        return bool(self.get_video_embed())
