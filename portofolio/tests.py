@@ -1,3 +1,5 @@
+import shutil
+import tempfile
 from unittest import mock
 
 from django.contrib.auth import get_user_model
@@ -33,6 +35,16 @@ def buat_user(username, role, **kw):
 
 
 class DasarPortofolio(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Unggahan saat tes tidak boleh menulis ke folder media yang asli.
+        folder = tempfile.mkdtemp()
+        cls.addClassCleanup(shutil.rmtree, folder, True)
+        ganti = override_settings(MEDIA_ROOT=folder)
+        ganti.enable()
+        cls.addClassCleanup(ganti.disable)
+        super().setUpClass()
+
     @classmethod
     def setUpTestData(cls):
         cls.guru = buat_user("guru1", "guru")

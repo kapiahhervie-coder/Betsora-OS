@@ -2,7 +2,11 @@ from accounts.permissions import hanya_staf
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+import mimetypes
+import os
+
 from django.core.exceptions import PermissionDenied
+from django.http import FileResponse, Http404
 from django.db.models import Avg, Count, Q, Sum
 from django.views.decorators.http import require_POST
 from accounts.models import Siswa
@@ -241,3 +245,58 @@ def hapus_karya(request, karya_id):
         return redirect('portofolio:detail', siswa_id=siswa_id)
     messages.error(request, 'Anda tidak memiliki akses untuk menghapus karya ini.')
     return alihkan_ke_halaman_aman(request.user)
+
+
+# Jenis berkas yang aman dibuka langsung di browser. Selain ini (SVG, HTML, dokumen Office,
+# berkas lama yang tidak dikenal) selalu diunduh, tidak pernah dijalankan di alamat situs ini.
+TIPE_AMAN_INLINE = {
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'application/pdf', 'audio/mpeg', 'video/mp4', 'video/webm',
+}
+
+
+def boleh_lihat_berkas(user, karya):
+    """Aturan sama dengan halaman portofolio: pemilik dan staf semuanya; orang tua dan siswa lain
+    hanya karya yang dibagikan."""
+    if user.is_staff_role() or adalah_pemilik(user, karya.siswa_id):
+        return True
+    if adalah_orang_tua_dari(user, karya.siswa_id):
+        return karya.dibagikan or ORANG_TUA_LIHAT_KARYA_PRIVAT
+    if user.role == 'siswa':
+        return karya.dibagikan
+    return False
+
+
+@login_required
+def berkas_karya(request, karya_id):
+    """Menyajikan berkas karya setelah izin dicek, menggantikan alamat /media/ yang terbuka untuk umum."""
+    karya = get_object_or_404(KaryaSiswa.objects.select_related('siswa'), id=karya_id)
+    if not karya.file:
+        raise Http404
+    if not boleh_lihat_berkas(request.user, karya):
+        raise PermissionDenied
+    try:
+        handle = karya.file.open('rb')
+    except (FileNotFoundError, ValueError):
+        raise Http404
+    tipe = mimetypes.guess_type(karya.file.name)[0] or 'application/octet-stream'
+    respons = FileResponse(
+        handle, content_type=tipe,
+        as_attachment=tipe not in TIPE_AMAN_INLINE,
+        filename=os.path.basename(karya.file.name),
+    )
+    respons['X-Content-Type-Options'] = 'nosniff'
+    respons['Cache-Control'] = 'private, max-age=300'
+    return respons
+
+
+@login_required
+def berkas_langsung(request, nama):
+    """Menangkap alamat lama /media/karya_siswa/<nama> agar tidak terbuka untuk umum."""
+    daftar = list(KaryaSiswa.objects.select_related('siswa').filter(file=f'karya_siswa/{nama}'))
+    if not daftar:
+        raise Http404
+    for karya in daftar:
+        if boleh_lihat_berkas(request.user, karya):
+            return berkas_karya(request, karya.id)
+    raise PermissionDenied

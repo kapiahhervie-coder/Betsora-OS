@@ -2,6 +2,7 @@
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from portofolio.views import berkas_langsung
 
 
 urlpatterns = [
@@ -17,4 +18,5 @@ urlpatterns = [
     path('kreasi/', include('kreasi.urls', namespace='kreasi')),
     path("kuis/", include("kuis.urls")),
     path('misi/', include('misi.urls')),
+    path(settings.MEDIA_URL.lstrip('/') + 'karya_siswa/<path:nama>', berkas_langsung, name='karya_media_langsung'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
