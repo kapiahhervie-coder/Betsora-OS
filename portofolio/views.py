@@ -15,7 +15,7 @@ from penilaian.models import Nilai
 from . import jenjang
 from .lencana_simpan import gabung_lencana
 from .misi_ringkas import ringkasan_misi
-from .models import KaryaSiswa, KomentarKarya
+from .models import KaryaSiswa, KomentarKarya, ProfilSiswa
 from .validasi import accept_html, cek_file_karya, UKURAN_MAKS_BYTE
 
 # Perilaku lama dipertahankan: orang tua hanya melihat karya yang sudah "dibagikan".
@@ -144,11 +144,18 @@ def detail_portofolio(request, siswa_id):
         for karya in karya_list:
             karya.komentar_list = per_karya.get(karya.id, [])
 
+    # Tag dikumpulkan dari karya yang boleh dilihat pengguna ini saja, supaya karya privat tidak bocor lewat tag.
+    daftar_mapel_karya = sorted({k.mapel for k in karya_list if k.mapel}, key=str.lower)
+    mapel_dipilih = request.GET.get('mapel', '')
+    karya_tampil = [k for k in karya_list if k.mapel == mapel_dipilih] if mapel_dipilih else karya_list
+
     tema, tema_asli = pilih_tema(request, siswa)
     context = {
         'siswa': siswa,
         'akses_penuh': akses == AKSES_PENUH,
-        'karya_list': karya_list,
+        'karya_list': karya_tampil,
+        'daftar_mapel_karya': daftar_mapel_karya,
+        'mapel_dipilih': mapel_dipilih,
         'jumlah_karya': len(karya_list),
         'is_pemilik': is_pemilik,
         'bisa_hapus': is_pemilik or is_staff_role,
@@ -178,6 +185,7 @@ def detail_portofolio(request, siswa_id):
             misi['total_selesai'] if misi else None,
         )
         lencana = gabung_lencana(siswa, lencana)
+        profil = ProfilSiswa.objects.filter(siswa=siswa).first()
         context.update({
             'kehadiran': kehadiran,
             'avg_nilai': avg_nilai if avg_nilai else None,
@@ -196,6 +204,10 @@ def detail_portofolio(request, siswa_id):
             'total_hari': total_hari,
             'keaktifan_list': Keaktifan.objects.filter(siswa=siswa).order_by('-tanggal', '-id')[:8],
             'misi': misi,
+            'bio': profil.bio if profil else '',
+            'bisa_ubah_bio': is_pemilik or is_staff_role,
+            'maks_bio': MAKS_BIO,
+            'saran_mapel': sorted({n.sesi.mapel for n in nilai_list} | set(daftar_mapel_karya), key=str.lower),
             'lencana': lencana,
             'jumlah_lencana': sum(1 for l in lencana if l['diraih']),
         })
@@ -231,9 +243,12 @@ def tambah_karya(request):
         judul = request.POST.get('judul', '').strip()
         file = request.FILES.get('file')
         video_url = request.POST.get('video_url', '').strip()
+        mapel = ' '.join(request.POST.get('mapel', '').split())
         galat = galat_unggahan(judul, video_url, file)
         if galat:
             messages.error(request, galat)
+        elif len(mapel) > MAKS_MAPEL:
+            messages.error(request, f'Tag mata pelajaran maksimal {MAKS_MAPEL} karakter.')
         else:
             KaryaSiswa.objects.create(
                 siswa=siswa_obj,
@@ -243,6 +258,7 @@ def tambah_karya(request):
                 video_url=video_url,
                 dibagikan=request.POST.get('dibagikan') == 'on',
                 refleksi=request.POST.get('refleksi', ''),
+                mapel=mapel,
             )
             messages.success(request, 'Karya berhasil diunggah.')
     return redirect('portofolio:detail', siswa_id=siswa_obj.id)
@@ -261,6 +277,8 @@ def hapus_karya(request, karya_id):
     return alihkan_ke_halaman_aman(request.user)
 
 
+MAKS_MAPEL = KaryaSiswa._meta.get_field('mapel').max_length
+MAKS_BIO = ProfilSiswa._meta.get_field('bio').max_length
 MAKS_KOMENTAR = KomentarKarya._meta.get_field('teks').max_length
 MAKS_UNGGULAN = 3
 
@@ -314,6 +332,42 @@ def hapus_komentar(request, komentar_id):
     komentar.delete()
     messages.success(request, 'Komentar dihapus.')
     return redirect('portofolio:detail', siswa_id=siswa_id)
+
+
+@login_required
+@require_POST
+def atur_mapel(request, karya_id):
+    """Pasang, ganti, atau kosongkan tag mata pelajaran sebuah karya (pemilik atau staf)."""
+    karya = get_object_or_404(KaryaSiswa, id=karya_id)
+    if not (adalah_pemilik(request.user, karya.siswa_id) or request.user.is_staff_role()):
+        raise PermissionDenied
+    mapel = ' '.join(request.POST.get('mapel', '').split())
+    if len(mapel) > MAKS_MAPEL:
+        messages.error(request, f'Tag mata pelajaran maksimal {MAKS_MAPEL} karakter.')
+    else:
+        karya.mapel = mapel
+        karya.save(update_fields=['mapel'])
+        messages.success(request, 'Tag diperbarui.')
+    return redirect('portofolio:detail', siswa_id=karya.siswa_id)
+
+
+@login_required
+@require_POST
+def ubah_bio(request, siswa_id):
+    """Bio singkat. Pemilik atau staf. Mengirim bio kosong menghapus bio."""
+    siswa = get_object_or_404(Siswa, id=siswa_id)
+    if not (adalah_pemilik(request.user, siswa.id) or request.user.is_staff_role()):
+        raise PermissionDenied
+    bio = ' '.join(request.POST.get('bio', '').split())
+    if len(bio) > MAKS_BIO:
+        messages.error(request, f'Bio maksimal {MAKS_BIO} karakter.')
+    elif not bio:
+        ProfilSiswa.objects.filter(siswa=siswa).delete()
+        messages.success(request, 'Bio dihapus.')
+    else:
+        ProfilSiswa.objects.update_or_create(siswa=siswa, defaults={'bio': bio})
+        messages.success(request, 'Bio disimpan.')
+    return redirect('portofolio:detail', siswa_id=siswa.id)
 
 
 # Jenis berkas yang aman dibuka langsung di browser. Selain ini (SVG, HTML, dokumen Office,

@@ -1,0 +1,15 @@
+{# Bio singkat: teks saja. Hanya untuk akses penuh (pemilik, orang tuanya, staf). #}
+<div class="pf-card" data-pf="bio" style="margin-top:.75rem;">
+  <p class="pf-sec">Tentang {% if is_pemilik %}Saya{% else %}{{ siswa.nama }}{% endif %}</p>
+  {% if bio %}<p style="font-size:.88rem; line-height:1.5;">{{ bio }}</p>{% else %}<p class="pf-muted" style="font-size:.85rem;">Belum ada bio.</p>{% endif %}
+  {% if bisa_ubah_bio %}
+  <details style="margin-top:.5rem;">
+    <summary class="pf-link" style="cursor:pointer;">{% if bio %}Ubah bio{% else %}Tulis bio{% endif %}</summary>
+    <form method="POST" action="{% url 'portofolio:ubah_bio' siswa.id %}" style="margin-top:.5rem;">
+      {% csrf_token %}
+      <textarea name="bio" rows="3" maxlength="{{ maks_bio }}" placeholder="Ceritakan sedikit tentang dirimu (maksimal {{ maks_bio }} karakter)" class="pf-input">{{ bio }}</textarea>
+      <button type="submit" class="pf-btn" style="margin-top:.4rem;">Simpan</button>
+    </form>
+  </details>
+  {% endif %}
+</div>

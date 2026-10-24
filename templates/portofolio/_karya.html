@@ -11,6 +11,8 @@
     {% csrf_token %}
     <div class="pf-grid">
       <input type="text" name="judul" required maxlength="150" placeholder="Judul karya" class="pf-input">
+      <input type="text" name="mapel" list="saran-mapel" maxlength="50" placeholder="Mata pelajaran (opsional), mis. IPA" class="pf-input">
+      <datalist id="saran-mapel">{% for m in saran_mapel %}<option value="{{ m }}">{% endfor %}</datalist>
       <textarea name="deskripsi" rows="2" placeholder="Ceritakan tentang karya ini (opsional)" class="pf-input"></textarea>
       <textarea name="refleksi" rows="2" placeholder="Refleksi: Apa tantangan terbesarnya? Bagaimana perasaanmu setelah menyelesaikannya?" class="pf-input"></textarea>
       <div>
@@ -23,6 +25,14 @@
     </div>
   </form>
   {% endif %}
+  {% if daftar_mapel_karya %}
+  <div data-pf="filter-mapel" style="display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.8rem;">
+    <a href="?{% if request.GET.tema %}tema={{ request.GET.tema|urlencode }}{% endif %}" class="pf-chip {% if mapel_dipilih %}pf-chip-off{% endif %}" style="text-decoration:none;">Semua</a>
+    {% for m in daftar_mapel_karya %}
+    <a href="?mapel={{ m|urlencode }}{% if request.GET.tema %}&amp;tema={{ request.GET.tema|urlencode }}{% endif %}" class="pf-chip {% if m != mapel_dipilih %}pf-chip-off{% endif %}" style="text-decoration:none;">{{ m }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
   <div class="pf-grid pf-g3">
     {% for karya in karya_list %}
     <div style="border:1px solid var(--pf-border); border-radius:10px; overflow:hidden; background:var(--pf-card);">
@@ -33,6 +43,7 @@
       {% endif %}
       <div style="padding:.7rem;">
         <p style="font-size:.85rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{% if karya.unggulan %}<span title="Karya unggulan" data-pf="unggulan">⭐ </span>{% endif %}{{ karya.judul }}</p>
+        {% if karya.mapel %}<span class="pf-chip" data-pf="mapel" style="margin-top:.3rem;">{{ karya.mapel }}</span>{% endif %}
         {% if karya.deskripsi %}<p class="pf-muted" style="font-size:.75rem; margin-top:.25rem;">{{ karya.deskripsi }}</p>{% endif %}
         {% if karya.refleksi %}<p class="pf-muted" style="font-size:.75rem; margin-top:.25rem; font-style:italic;">💭 {{ karya.refleksi }}</p>{% endif %}
         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:.5rem;">
@@ -66,6 +77,13 @@
           </form>
           {% endif %}
         </div>
+        {% endif %}
+        {% if bisa_hapus %}
+        <form method="POST" action="{% url 'portofolio:atur_mapel' karya.id %}" style="display:flex; gap:.3rem; margin-top:.5rem;">
+          {% csrf_token %}
+          <input type="text" name="mapel" value="{{ karya.mapel }}" list="saran-mapel" maxlength="50" placeholder="Tag mapel" class="pf-input" style="font-size:.72rem; padding:.25rem .5rem; min-width:0; flex:1;">
+          <button type="submit" class="pf-link" style="white-space:nowrap;">Simpan tag</button>
+        </form>
         {% endif %}
         {% if bisa_hapus %}
         <div style="display:flex; gap:.9rem; align-items:center; margin-top:.5rem;">

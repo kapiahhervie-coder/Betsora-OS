@@ -26,6 +26,7 @@ class KaryaSiswa(models.Model):
     diunggah_pada = models.DateTimeField(auto_now_add=True)
     refleksi = models.TextField(blank=True, help_text='Refleksi siswa: tantangan terbesar & perasaan setelah menyelesaikan karya ini')
     unggulan = models.BooleanField(default=False, help_text='Karya pilihan yang ditampilkan paling atas (maksimal 3 per siswa)')
+    mapel = models.CharField(max_length=50, blank=True, help_text='Tag mata pelajaran (opsional)')
 
     class Meta:
         ordering = ['-diunggah_pada']
@@ -108,3 +109,16 @@ class KomentarKarya(models.Model):
 
     def __str__(self):
         return f"{self.karya_id}: {self.teks[:40]}"
+
+
+class ProfilSiswa(models.Model):
+    """Bio singkat siswa untuk halaman portofolio (teks saja, tanpa tautan luar)."""
+    siswa = models.OneToOneField(Siswa, on_delete=models.CASCADE, related_name='profil_portofolio')
+    bio = models.CharField(max_length=300, blank=True)
+    diperbarui_pada = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = 'Profil Siswa'
+
+    def __str__(self):
+        return f"Profil {self.siswa.nama}"

@@ -30,6 +30,7 @@
   </div>
 
   {% if akses_penuh %}
+  {% include 'portofolio/_bio.html' %}
   <div class="pf-grid pf-g4">
     <div class="pf-card"><p class="pf-sec">Kehadiran</p><p class="pf-kpi">{% if total_hari %}{{ kehadiran }}<span style="font-size:1rem;">%</span>{% else %}—{% endif %}</p></div>
     <div class="pf-card"><p class="pf-sec">Rata-rata Nilai</p><p class="pf-kpi">{{ avg_nilai|default:"—" }}</p></div>

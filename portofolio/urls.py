@@ -11,5 +11,7 @@ urlpatterns = [
     path('karya/<int:karya_id>/unggulan/', views.unggulkan_karya, name='unggulkan_karya'),
     path('karya/<int:karya_id>/komentar/', views.tambah_komentar, name='tambah_komentar'),
     path('komentar/<int:komentar_id>/hapus/', views.hapus_komentar, name='hapus_komentar'),
+    path('karya/<int:karya_id>/mapel/', views.atur_mapel, name='atur_mapel'),
+    path('<int:siswa_id>/bio/', views.ubah_bio, name='ubah_bio'),
     path('karya/<int:karya_id>/berkas/', views.berkas_karya, name='berkas'),
 ]
