@@ -13,6 +13,7 @@ from accounts.models import Siswa
 from kelas.models import Absensi, Keaktifan
 from penilaian.models import Nilai
 from . import jenjang
+from .lencana_simpan import gabung_lencana
 from .misi_ringkas import ringkasan_misi
 from .models import KaryaSiswa
 from .validasi import accept_html, cek_file_karya, UKURAN_MAKS_BYTE
@@ -131,9 +132,9 @@ def detail_portofolio(request, siswa_id):
         ORANG_TUA_LIHAT_KARYA_PRIVAT and adalah_orang_tua_dari(request.user, siswa.id)
     )
     if lihat_privat:
-        karya_qs = KaryaSiswa.objects.filter(siswa=siswa)
+        karya_qs = KaryaSiswa.objects.filter(siswa=siswa).order_by('-unggulan', '-diunggah_pada')
     else:
-        karya_qs = KaryaSiswa.objects.filter(siswa=siswa, dibagikan=True)
+        karya_qs = KaryaSiswa.objects.filter(siswa=siswa, dibagikan=True).order_by('-unggulan', '-diunggah_pada')
     karya_list = list(karya_qs)
 
     tema, tema_asli = pilih_tema(request, siswa)
@@ -168,6 +169,7 @@ def detail_portofolio(request, siswa_id):
             len(karya_list), any(k.refleksi.strip() for k in karya_list),
             misi['total_selesai'] if misi else None,
         )
+        lencana = gabung_lencana(siswa, lencana)
         context.update({
             'kehadiran': kehadiran,
             'avg_nilai': avg_nilai if avg_nilai else None,
@@ -249,6 +251,30 @@ def hapus_karya(request, karya_id):
         return redirect('portofolio:detail', siswa_id=siswa_id)
     messages.error(request, 'Anda tidak memiliki akses untuk menghapus karya ini.')
     return alihkan_ke_halaman_aman(request.user)
+
+
+MAKS_UNGGULAN = 3
+
+
+@login_required
+@require_POST
+def unggulkan_karya(request, karya_id):
+    """Pasang atau lepas tanda 'unggulan' (pemilik atau staf). Maksimal MAKS_UNGGULAN per siswa."""
+    karya = get_object_or_404(KaryaSiswa, id=karya_id)
+    if not (adalah_pemilik(request.user, karya.siswa_id) or request.user.is_staff_role()):
+        messages.error(request, 'Anda tidak memiliki akses untuk mengatur karya ini.')
+        return alihkan_ke_halaman_aman(request.user)
+    if karya.unggulan:
+        karya.unggulan = False
+        karya.save(update_fields=['unggulan'])
+        messages.success(request, 'Karya dilepas dari unggulan.')
+    elif KaryaSiswa.objects.filter(siswa_id=karya.siswa_id, unggulan=True).count() >= MAKS_UNGGULAN:
+        messages.error(request, f'Karya unggulan maksimal {MAKS_UNGGULAN}. Lepas salah satu dulu.')
+    else:
+        karya.unggulan = True
+        karya.save(update_fields=['unggulan'])
+        messages.success(request, 'Karya dijadikan unggulan.')
+    return redirect('portofolio:detail', siswa_id=karya.siswa_id)
 
 
 # Jenis berkas yang aman dibuka langsung di browser. Selain ini (SVG, HTML, dokumen Office,

@@ -32,7 +32,7 @@
       <button type="button" data-video="{{ karya.get_video_embed }}" aria-label="Putar video {{ karya.judul }}" style="width:100%; height:128px; background:#111; cursor:pointer; display:flex; align-items:center; justify-content:center; border:none;"><span style="font-size:36px;">▶️</span></button>
       {% endif %}
       <div style="padding:.7rem;">
-        <p style="font-size:.85rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ karya.judul }}</p>
+        <p style="font-size:.85rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{% if karya.unggulan %}<span title="Karya unggulan" data-pf="unggulan">⭐ </span>{% endif %}{{ karya.judul }}</p>
         {% if karya.deskripsi %}<p class="pf-muted" style="font-size:.75rem; margin-top:.25rem;">{{ karya.deskripsi }}</p>{% endif %}
         {% if karya.refleksi %}<p class="pf-muted" style="font-size:.75rem; margin-top:.25rem; font-style:italic;">💭 {{ karya.refleksi }}</p>{% endif %}
         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:.5rem;">
@@ -46,10 +46,16 @@
           <span class="pf-muted" style="font-size:.7rem;">{% if karya.dibagikan %}Dibagikan{% else %}Privat{% endif %}</span>
         </div>
         {% if bisa_hapus %}
-        <form method="POST" action="{% url 'portofolio:hapus_karya' karya.id %}" onsubmit="return confirm('Hapus karya ini?')" style="margin-top:.5rem;">
-          {% csrf_token %}
-          <button type="submit" class="pf-link" style="color:#DC2626;">Hapus</button>
-        </form>
+        <div style="display:flex; gap:.9rem; align-items:center; margin-top:.5rem;">
+          <form method="POST" action="{% url 'portofolio:unggulkan_karya' karya.id %}">
+            {% csrf_token %}
+            <button type="submit" class="pf-link">{% if karya.unggulan %}Lepas unggulan{% else %}⭐ Jadikan unggulan{% endif %}</button>
+          </form>
+          <form method="POST" action="{% url 'portofolio:hapus_karya' karya.id %}" onsubmit="return confirm('Hapus karya ini?')">
+            {% csrf_token %}
+            <button type="submit" class="pf-link" style="color:#DC2626;">Hapus</button>
+          </form>
+        </div>
         {% endif %}
       </div>
     </div>

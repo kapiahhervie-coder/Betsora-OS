@@ -2,6 +2,7 @@ import re
 from urllib.parse import parse_qs, urlparse
 
 from django.db import models
+from django.utils import timezone
 from accounts.models import Siswa
 
 _ID_YOUTUBE = re.compile(r'^[\w-]{11}$')
@@ -23,6 +24,7 @@ class KaryaSiswa(models.Model):
     dibagikan = models.BooleanField(default=False, help_text='Jika dicentang, siswa lain juga bisa melihat karya ini')
     diunggah_pada = models.DateTimeField(auto_now_add=True)
     refleksi = models.TextField(blank=True, help_text='Refleksi siswa: tantangan terbesar & perasaan setelah menyelesaikan karya ini')
+    unggulan = models.BooleanField(default=False, help_text='Karya pilihan yang ditampilkan paling atas (maksimal 3 per siswa)')
 
     class Meta:
         ordering = ['-diunggah_pada']
@@ -75,3 +77,18 @@ class KaryaSiswa(models.Model):
 
     def has_video(self):
         return bool(self.get_video_embed())
+
+
+class LencanaDiraih(models.Model):
+    """Catatan lencana yang sudah diraih siswa. Sekali diraih, tidak hilang walau data berubah."""
+    siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='lencana_diraih')
+    kode = models.CharField(max_length=30)
+    diraih_pada = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ('siswa', 'kode')
+        ordering = ['diraih_pada']
+        verbose_name_plural = 'Lencana Diraih'
+
+    def __str__(self):
+        return f"{self.siswa.nama} - {self.kode}"

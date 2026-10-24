@@ -52,7 +52,7 @@
       <div class="sd-lencana {% if l.diraih %}on{% else %}off{% endif %}">
         <div class="ikon">{% if l.diraih %}{{ l.ikon }}{% else %}🔒{% endif %}</div>
         <p style="font-size:.82rem; font-weight:700;">{{ l.nama }}</p>
-        <p class="pf-muted" style="font-size:.7rem;">{{ l.ket }}</p>
+        <p class="pf-muted" style="font-size:.7rem;">{% if l.diraih and l.tanggal %}Diraih {{ l.tanggal|date:"d M Y" }}{% else %}{{ l.ket }}{% endif %}</p>
       </div>
       {% endfor %}
     </div>

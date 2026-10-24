@@ -101,7 +101,7 @@
   <div class="pf-card" style="margin-top:.75rem;">
     <p class="pf-sec">Pencapaian</p>
     <div style="display:flex; flex-wrap:wrap; gap:.5rem;">
-      {% for l in lencana %}<span class="pf-chip {% if not l.diraih %}pf-chip-off{% endif %}" title="{{ l.ket }}">{{ l.ikon }} {{ l.nama }}</span>{% endfor %}
+      {% for l in lencana %}<span class="pf-chip {% if not l.diraih %}pf-chip-off{% endif %}" title="{{ l.ket }}{% if l.diraih and l.tanggal %} · diraih {{ l.tanggal|date:"d M Y" }}{% endif %}">{{ l.ikon }} {{ l.nama }}</span>{% endfor %}
     </div>
   </div>
   {% endif %}
