@@ -15,7 +15,7 @@ from penilaian.models import Nilai
 from . import jenjang
 from .lencana_simpan import gabung_lencana
 from .misi_ringkas import ringkasan_misi
-from .models import KaryaSiswa
+from .models import KaryaSiswa, KomentarKarya
 from .validasi import accept_html, cek_file_karya, UKURAN_MAKS_BYTE
 
 # Perilaku lama dipertahankan: orang tua hanya melihat karya yang sudah "dibagikan".
@@ -136,6 +136,13 @@ def detail_portofolio(request, siswa_id):
     else:
         karya_qs = KaryaSiswa.objects.filter(siswa=siswa, dibagikan=True).order_by('-unggulan', '-diunggah_pada')
     karya_list = list(karya_qs)
+    # Komentar guru hanya dibaca pemilik, orang tuanya, dan staf: sama dengan akses penuh.
+    if akses == AKSES_PENUH and karya_list:
+        per_karya = {}
+        for k in KomentarKarya.objects.filter(karya__in=karya_list).select_related('penulis'):
+            per_karya.setdefault(k.karya_id, []).append(k)
+        for karya in karya_list:
+            karya.komentar_list = per_karya.get(karya.id, [])
 
     tema, tema_asli = pilih_tema(request, siswa)
     context = {
@@ -145,6 +152,7 @@ def detail_portofolio(request, siswa_id):
         'jumlah_karya': len(karya_list),
         'is_pemilik': is_pemilik,
         'bisa_hapus': is_pemilik or is_staff_role,
+        'bisa_komentar': is_staff_role,
         'ukuran_maks_mb': UKURAN_MAKS_BYTE // (1024 * 1024),
         'file_accept': accept_html(),
         'tema': tema,
@@ -253,6 +261,7 @@ def hapus_karya(request, karya_id):
     return alihkan_ke_halaman_aman(request.user)
 
 
+MAKS_KOMENTAR = KomentarKarya._meta.get_field('teks').max_length
 MAKS_UNGGULAN = 3
 
 
@@ -275,6 +284,36 @@ def unggulkan_karya(request, karya_id):
         karya.save(update_fields=['unggulan'])
         messages.success(request, 'Karya dijadikan unggulan.')
     return redirect('portofolio:detail', siswa_id=karya.siswa_id)
+
+
+@login_required
+@require_POST
+def tambah_komentar(request, karya_id):
+    """Hanya staf yang boleh menulis komentar pada karya."""
+    if not request.user.is_staff_role():
+        raise PermissionDenied
+    karya = get_object_or_404(KaryaSiswa, id=karya_id)
+    teks = ' '.join(request.POST.get('teks', '').split())
+    if not teks:
+        messages.error(request, 'Komentar tidak boleh kosong.')
+    elif len(teks) > MAKS_KOMENTAR:
+        messages.error(request, f'Komentar maksimal {MAKS_KOMENTAR} karakter.')
+    else:
+        KomentarKarya.objects.create(karya=karya, penulis=request.user, teks=teks)
+        messages.success(request, 'Komentar terkirim.')
+    return redirect('portofolio:detail', siswa_id=karya.siswa_id)
+
+
+@login_required
+@require_POST
+def hapus_komentar(request, komentar_id):
+    if not request.user.is_staff_role():
+        raise PermissionDenied
+    komentar = get_object_or_404(KomentarKarya.objects.select_related('karya'), id=komentar_id)
+    siswa_id = komentar.karya.siswa_id
+    komentar.delete()
+    messages.success(request, 'Komentar dihapus.')
+    return redirect('portofolio:detail', siswa_id=siswa_id)
 
 
 # Jenis berkas yang aman dibuka langsung di browser. Selain ini (SVG, HTML, dokumen Office,

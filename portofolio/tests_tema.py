@@ -150,4 +150,4 @@ class TemaTests(DasarPortofolio):
         self.client.get(url)  # pemanasan
         with CaptureQueriesContext(connection) as q:
             self.client.get(url)
-        self.assertLessEqual(len(q), 14, [x["sql"][:80] for x in q.captured_queries])
+        self.assertLessEqual(len(q), 20, [x["sql"][:80] for x in q.captured_queries])

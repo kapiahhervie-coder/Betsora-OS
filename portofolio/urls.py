@@ -9,5 +9,7 @@ urlpatterns = [
     path('karya/tambah/', views.tambah_karya, name='tambah_karya'),
     path('karya/<int:karya_id>/hapus/', views.hapus_karya, name='hapus_karya'),
     path('karya/<int:karya_id>/unggulan/', views.unggulkan_karya, name='unggulkan_karya'),
+    path('karya/<int:karya_id>/komentar/', views.tambah_komentar, name='tambah_komentar'),
+    path('komentar/<int:komentar_id>/hapus/', views.hapus_komentar, name='hapus_komentar'),
     path('karya/<int:karya_id>/berkas/', views.berkas_karya, name='berkas'),
 ]

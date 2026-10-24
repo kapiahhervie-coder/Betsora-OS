@@ -1,6 +1,7 @@
 import re
 from urllib.parse import parse_qs, urlparse
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from accounts.models import Siswa
@@ -92,3 +93,18 @@ class LencanaDiraih(models.Model):
 
     def __str__(self):
         return f"{self.siswa.nama} - {self.kode}"
+
+
+class KomentarKarya(models.Model):
+    """Komentar/apresiasi guru pada sebuah karya. Hanya staf yang menulis; dibaca pemilik, orang tuanya, dan staf."""
+    karya = models.ForeignKey(KaryaSiswa, on_delete=models.CASCADE, related_name='komentar')
+    penulis = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='komentar_karya')
+    teks = models.CharField(max_length=500)
+    dibuat_pada = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['dibuat_pada', 'id']
+        verbose_name_plural = 'Komentar Karya'
+
+    def __str__(self):
+        return f"{self.karya_id}: {self.teks[:40]}"

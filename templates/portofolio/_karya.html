@@ -45,6 +45,28 @@
           {% else %}<span></span>{% endif %}
           <span class="pf-muted" style="font-size:.7rem;">{% if karya.dibagikan %}Dibagikan{% else %}Privat{% endif %}</span>
         </div>
+        {% if karya.komentar_list or bisa_komentar %}
+        <div data-pf="komentar" style="margin-top:.6rem; padding-top:.5rem; border-top:1px dashed var(--pf-border);">
+          {% for k in karya.komentar_list %}
+          <div style="font-size:.75rem; margin-bottom:.4rem;">
+            <span class="pf-muted">💬 {% if k.penulis %}{{ k.penulis.get_full_name|default:k.penulis.username }}{% else %}Guru{% endif %} · {{ k.dibuat_pada|date:"d M Y" }}</span>
+            <p style="margin-top:.1rem; white-space:pre-line;">{{ k.teks }}</p>
+            {% if bisa_komentar %}
+            <form method="POST" action="{% url 'portofolio:hapus_komentar' k.id %}" onsubmit="return confirm('Hapus komentar ini?')" style="display:inline;">
+              {% csrf_token %}<button type="submit" class="pf-link" style="color:#DC2626;">Hapus komentar</button>
+            </form>
+            {% endif %}
+          </div>
+          {% endfor %}
+          {% if bisa_komentar %}
+          <form method="POST" action="{% url 'portofolio:tambah_komentar' karya.id %}" style="display:flex; gap:.4rem; margin-top:.3rem;">
+            {% csrf_token %}
+            <input type="text" name="teks" required maxlength="500" placeholder="Tulis komentar untuk siswa..." class="pf-input" style="font-size:.78rem;">
+            <button type="submit" class="pf-btn">Kirim</button>
+          </form>
+          {% endif %}
+        </div>
+        {% endif %}
         {% if bisa_hapus %}
         <div style="display:flex; gap:.9rem; align-items:center; margin-top:.5rem;">
           <form method="POST" action="{% url 'portofolio:unggulkan_karya' karya.id %}">
