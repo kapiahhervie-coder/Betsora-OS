@@ -1,0 +1,35 @@
+{# Misi Dunia Nyata. Hanya judul, kategori, tanggal, dan nilai; refleksi/catatan/foto sengaja tidak dibawa. #}
+{% url 'misi:home' as url_misi %}
+<div class="pf-card" data-pf="misi" style="margin-top:.75rem;">
+  {% if tema == 'sd' %}
+  <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:.4rem; margin-bottom:.6rem;">
+    <h3 class="pf-title" style="font-size:1rem;">🧭 Misi Dunia Nyata</h3>
+    <span class="pf-chip">{{ misi.level }}</span>
+  </div>
+  {% else %}
+  <p class="pf-sec">Misi Dunia Nyata</p>
+  <div style="display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.6rem;">
+    <span class="pf-chip">{{ misi.level }}</span>
+    <span class="pf-chip">{{ misi.total_selesai }} selesai</span>
+    {% if misi.menunggu %}<span class="pf-chip pf-chip-off">{{ misi.menunggu }} menunggu konfirmasi</span>{% endif %}
+    {% if misi.rata2_nilai %}<span class="pf-chip pf-chip-off">Rata-rata {{ misi.rata2_nilai }}</span>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if misi.daftar %}
+    {% for m in misi.daftar %}
+    <div style="display:flex; align-items:center; gap:.7rem; padding:.5rem 0; border-top:1px {% if tema == 'sd' %}dashed{% else %}solid{% endif %} var(--pf-border);">
+      <span style="font-size:{% if tema == 'sd' %}1.6rem{% else %}1.2rem{% endif %};">{{ m.emoji }}</span>
+      <div style="flex:1; min-width:0;">
+        <p style="font-size:.88rem; font-weight:600;">{{ m.judul }}</p>
+        <p class="pf-muted" style="font-size:.72rem;">{{ m.kategori }}{% if m.tanggal %} · {{ m.tanggal|date:"d M Y" }}{% endif %}</p>
+      </div>
+      {% if m.nilai is not None %}<b class="pf-accent">{{ m.nilai }}</b>{% endif %}
+    </div>
+    {% endfor %}
+    {% if tema == 'sd' and misi.menunggu %}<p class="pf-muted" style="font-size:.8rem; margin-top:.4rem;">⏳ {{ misi.menunggu }} misi menunggu dikonfirmasi.</p>{% endif %}
+  {% else %}
+    <p class="pf-muted" style="font-size:.85rem; padding:.4rem 0;">{% if tema == 'sd' %}Belum ada misi yang selesai. Yuk mulai petualangan pertamamu! 🌱{% else %}Belum ada misi yang selesai.{% endif %}</p>
+  {% endif %}
+  {% if is_pemilik and url_misi %}<a href="{{ url_misi }}" class="pf-link" style="display:inline-block; margin-top:.4rem;">Buka misi →</a>{% endif %}
+</div>

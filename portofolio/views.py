@@ -8,11 +8,12 @@ import os
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404
 from django.db.models import Avg, Count, Q, Sum
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_safe
 from accounts.models import Siswa
 from kelas.models import Absensi, Keaktifan
 from penilaian.models import Nilai
 from . import jenjang
+from .misi_ringkas import ringkasan_misi
 from .models import KaryaSiswa
 from .validasi import accept_html, cek_file_karya, UKURAN_MAKS_BYTE
 
@@ -161,9 +162,11 @@ def detail_portofolio(request, siswa_id):
         avg_nilai = round(sum(float(n.skor) for n in nilai_list) / len(nilai_list), 1) if nilai_list else None
         total_poin = Keaktifan.objects.filter(siswa=siswa).aggregate(t=Sum('poin'))['t'] or 0
         kehadiran = round(hadir / total_hari * 100) if total_hari else 0
+        misi = ringkasan_misi(siswa)
         lencana = jenjang.hitung_lencana(
             kehadiran, total_hari, avg_nilai, total_poin,
             len(karya_list), any(k.refleksi.strip() for k in karya_list),
+            misi['total_selesai'] if misi else None,
         )
         context.update({
             'kehadiran': kehadiran,
@@ -182,6 +185,7 @@ def detail_portofolio(request, siswa_id):
             ],
             'total_hari': total_hari,
             'keaktifan_list': Keaktifan.objects.filter(siswa=siswa).order_by('-tanggal', '-id')[:8],
+            'misi': misi,
             'lencana': lencana,
             'jumlah_lencana': sum(1 for l in lencana if l['diraih']),
         })
@@ -267,14 +271,10 @@ def boleh_lihat_berkas(user, karya):
     return False
 
 
-@login_required
-def berkas_karya(request, karya_id):
-    """Menyajikan berkas karya setelah izin dicek, menggantikan alamat /media/ yang terbuka untuk umum."""
-    karya = get_object_or_404(KaryaSiswa.objects.select_related('siswa'), id=karya_id)
+def sajikan_berkas(karya):
+    """Mengirim berkas karya. Pemanggil sudah memeriksa izin."""
     if not karya.file:
         raise Http404
-    if not boleh_lihat_berkas(request.user, karya):
-        raise PermissionDenied
     try:
         handle = karya.file.open('rb')
     except (FileNotFoundError, ValueError):
@@ -291,12 +291,29 @@ def berkas_karya(request, karya_id):
 
 
 @login_required
+@require_safe
+def berkas_karya(request, karya_id):
+    """Berkas karya lewat alamat bernomor (dipakai halaman portofolio)."""
+    karya = get_object_or_404(KaryaSiswa.objects.select_related('siswa'), id=karya_id)
+    if not karya.file:
+        raise Http404
+    if not boleh_lihat_berkas(request.user, karya):
+        raise PermissionDenied
+    return sajikan_berkas(karya)
+
+
+@login_required
+@require_safe
 def berkas_langsung(request, nama):
-    """Menangkap alamat lama /media/karya_siswa/<nama> agar tidak terbuka untuk umum."""
+    """Menangkap alamat lama /media/karya_siswa/<nama> supaya tidak lagi terbuka untuk umum.
+
+    Dipasang di urls.py proyek sebelum static(MEDIA_URL). Tidak ada jalur file yang dibentuk dari
+    masukan pengguna: nama hanya dicocokkan dengan catatan di database.
+    """
     daftar = list(KaryaSiswa.objects.select_related('siswa').filter(file=f'karya_siswa/{nama}'))
     if not daftar:
         raise Http404
     for karya in daftar:
         if boleh_lihat_berkas(request.user, karya):
-            return berkas_karya(request, karya.id)
+            return sajikan_berkas(karya)
     raise PermissionDenied

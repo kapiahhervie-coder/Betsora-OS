@@ -88,9 +88,12 @@ def persen_poin(total_poin):
     return max(0, min(100, int(total_poin * 100 // TARGET_POIN)))
 
 
-def hitung_lencana(kehadiran, total_hari, avg_nilai, total_poin, jumlah_karya, ada_refleksi):
-    """Daftar lencana beserta status diraih atau belum (tanpa tabel baru)."""
-    return [
+def hitung_lencana(kehadiran, total_hari, avg_nilai, total_poin, jumlah_karya, ada_refleksi, jumlah_misi=None):
+    """Daftar lencana beserta status diraih atau belum (tanpa tabel baru).
+
+    `jumlah_misi` None berarti app misi tidak dipakai: lencana misi tidak ditampilkan.
+    """
+    daftar = [
         {'kode': 'hadir', 'nama': 'Rajin Hadir', 'ikon': '📅',
          'ket': f'Kehadiran {AMBANG_HADIR}% atau lebih',
          'diraih': total_hari > 0 and kehadiran >= AMBANG_HADIR},
@@ -110,3 +113,8 @@ def hitung_lencana(kehadiran, total_hari, avg_nilai, total_poin, jumlah_karya, a
          'ket': 'Menulis refleksi pada sebuah karya',
          'diraih': bool(ada_refleksi)},
     ]
+    if jumlah_misi is not None:
+        daftar.append({'kode': 'misi', 'nama': 'Penjelajah Nyata', 'ikon': '🧭',
+                       'ket': 'Menuntaskan misi dunia nyata',
+                       'diraih': jumlah_misi >= 1})
+    return daftar

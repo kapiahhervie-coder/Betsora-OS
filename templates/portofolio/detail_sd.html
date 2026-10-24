@@ -58,6 +58,8 @@
     </div>
   </div>
 
+  {% if misi %}{% include 'portofolio/_misi.html' %}{% endif %}
+
   <div class="pf-card" style="margin-top:.75rem;">
     <h3 class="pf-title" style="font-size:1rem; margin-bottom:.7rem;">📝 Nilai Terbarumu</h3>
     {% for n in nilai_list|slice:":6" %}

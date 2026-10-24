@@ -27,7 +27,7 @@
     {% for karya in karya_list %}
     <div style="border:1px solid var(--pf-border); border-radius:10px; overflow:hidden; background:var(--pf-card);">
       {% if karya.is_image %}
-      <img src="{{ karya.file.url }}" alt="{{ karya.judul }}" data-lightbox="{{ karya.file.url }}" style="width:100%; height:128px; object-fit:cover; cursor:pointer; display:block;">
+      <img src="{% url 'portofolio:berkas' karya.id %}" alt="{{ karya.judul }}" data-lightbox="{% url 'portofolio:berkas' karya.id %}" style="width:100%; height:128px; object-fit:cover; cursor:pointer; display:block;">
       {% elif karya.has_video %}
       <button type="button" data-video="{{ karya.get_video_embed }}" aria-label="Putar video {{ karya.judul }}" style="width:100%; height:128px; background:#111; cursor:pointer; display:flex; align-items:center; justify-content:center; border:none;"><span style="font-size:36px;">▶️</span></button>
       {% endif %}
@@ -37,11 +37,11 @@
         {% if karya.refleksi %}<p class="pf-muted" style="font-size:.75rem; margin-top:.25rem; font-style:italic;">💭 {{ karya.refleksi }}</p>{% endif %}
         <div style="display:flex; align-items:center; justify-content:space-between; margin-top:.5rem;">
           {% if karya.is_image %}
-          <button type="button" class="pf-link" data-lightbox="{{ karya.file.url }}">Perbesar</button>
+          <button type="button" class="pf-link" data-lightbox="{% url 'portofolio:berkas' karya.id %}">Perbesar</button>
           {% elif karya.has_video %}
           <button type="button" class="pf-link" data-video="{{ karya.get_video_embed }}">Putar Video</button>
           {% elif karya.file %}
-          <a href="{{ karya.file.url }}" target="_blank" rel="noopener" class="pf-link">Lihat File</a>
+          <a href="{% url 'portofolio:berkas' karya.id %}" target="_blank" rel="noopener" class="pf-link">Lihat File</a>
           {% else %}<span></span>{% endif %}
           <span class="pf-muted" style="font-size:.7rem;">{% if karya.dibagikan %}Dibagikan{% else %}Privat{% endif %}</span>
         </div>

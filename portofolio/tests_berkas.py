@@ -9,8 +9,9 @@ ISI_HTML = b"<script>window.__pwned=1</script>"
 
 
 def baca(resp):
-    isi = b"".join(resp.streaming_content)
-    return isi
+    """Habiskan isi respons streaming. Penutupan ditangani klien uji sendiri; memanggil
+    resp.close() lagi akan menutup koneksi database di tengah tes (PostgreSQL)."""
+    return b"".join(resp.streaming_content)
 
 
 class BerkasKaryaTests(DasarPortofolio):
@@ -90,3 +91,66 @@ class BerkasKaryaTests(DasarPortofolio):
             resp = self.buka_detail(user)
             self.assertNotContains(resp, "/media/", msg_prefix=user.username)
             self.assertContains(resp, self.url(self.foto_publik), msg_prefix=user.username)
+
+
+class BerkasLangsungTests(DasarPortofolio):
+    """Alamat lama /media/karya_siswa/<nama> tidak boleh lagi membuka berkas tanpa izin."""
+
+    def setUp(self):
+        self.publik = KaryaSiswa(siswa=self.a, judul="Publik", dibagikan=True)
+        self.publik.file.save("langsung_publik.png", ContentFile(PNG_KECIL), save=True)
+        self.privat = KaryaSiswa(siswa=self.a, judul="Privat", dibagikan=False)
+        self.privat.file.save("langsung_privat.png", ContentFile(PNG_KECIL), save=True)
+
+    def buka(self, user, alamat):
+        if user is not None:
+            self.client.force_login(user)
+        return self.client.get(alamat)
+
+    def test_alamat_media_tetap_sama_dengan_yang_dipakai_django(self):
+        self.assertTrue(self.privat.file.url.startswith("/media/karya_siswa/"))
+
+    def test_anonim_dialihkan_ke_login(self):
+        resp = self.buka(None, self.privat.file.url)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/login/", resp["Location"])
+
+    def test_pemilik_dan_guru_boleh_berkas_privat(self):
+        for user in (self.user_a, self.guru):
+            resp = self.buka(user, self.privat.file.url)
+            self.assertEqual(resp.status_code, 200, msg=user.username)
+            self.assertEqual(baca(resp), PNG_KECIL)
+
+    def test_siswa_lain_ditolak_untuk_berkas_privat_tetapi_boleh_yang_dibagikan(self):
+        self.assertEqual(self.buka(self.user_b, self.privat.file.url).status_code, 403)
+        resp = self.buka(self.user_b, self.publik.file.url)
+        self.assertEqual(resp.status_code, 200)
+        baca(resp)
+
+    @TANPA_BATASAN_ORTU
+    def test_orang_tua_anak_lain_ditolak(self):
+        self.assertEqual(self.buka(self.ortu_b, self.publik.file.url).status_code, 403)
+
+    def test_berkas_yang_dipakai_dua_karya_boleh_jika_salah_satunya_dibagikan(self):
+        KaryaSiswa.objects.create(siswa=self.a, judul="Salinan", dibagikan=True, file=self.privat.file.name)
+        resp = self.buka(self.user_b, self.privat.file.url)
+        self.assertEqual(resp.status_code, 200)
+        baca(resp)
+
+    def test_nama_tidak_dikenal_atau_mencoba_keluar_folder_404(self):
+        for alamat in ("/media/karya_siswa/tidak_ada.png", "/media/karya_siswa/../../settings.py",
+                       "/media/karya_siswa/%2e%2e/rahasia.txt"):
+            self.assertEqual(self.buka(self.guru, alamat).status_code, 404, msg=alamat)
+
+    def test_metode_selain_baca_ditolak(self):
+        self.client.force_login(self.guru)
+        self.assertEqual(self.client.post(self.privat.file.url).status_code, 405)
+
+    def test_berkas_lama_berbahaya_diunduh_bukan_dijalankan(self):
+        lama = KaryaSiswa(siswa=self.a, judul="Lama", dibagikan=True)
+        lama.file.save("lama_langsung.html", ContentFile(ISI_HTML), save=True)
+        resp = self.buka(self.user_b, lama.file.url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp["Content-Disposition"].startswith("attachment"))
+        self.assertEqual(resp["X-Content-Type-Options"], "nosniff")
+        baca(resp)
