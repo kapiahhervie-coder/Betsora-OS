@@ -1,4 +1,6 @@
-﻿from django.shortcuts import redirect
+﻿import re
+
+from django.shortcuts import redirect
 from django.urls import reverse
 
 
@@ -12,6 +14,20 @@ class BatasiAksesOrangTuaMiddleware:
 
     def __init__(self, get_response):
         self.get_response = get_response
+
+    @staticmethod
+    def _portofolio_anak(path, user):
+        """Portofolio, sertifikat, dan berkas karya anak sendiri. Izin rinci tetap dicek di view portofolio."""
+        anak_id = getattr(user, 'anak_id', None)
+        if anak_id is None:
+            return False
+        dasar = reverse('portofolio:daftar')  # '/portofolio/'
+        if path == reverse('portofolio:detail', args=[anak_id]):
+            return True
+        return bool(
+            re.fullmatch(re.escape(dasar) + r'sertifikat/\d+/', path)
+            or re.fullmatch(re.escape(dasar) + r'karya/\d+/berkas/', path)
+        )
 
     def __call__(self, request):
         user = getattr(request, 'user', None)
@@ -36,6 +52,8 @@ class BatasiAksesOrangTuaMiddleware:
                 misi + 'koleksi/',    # buku koleksi anak
                 misi + 'foto/',       # foto catatan (izin per-anak dicek di view)
             ))
-            if request.path not in allowed_paths and not is_media_or_static and not is_misi_orangtua:
+            is_portofolio_anak = request.method in ('GET', 'HEAD') and self._portofolio_anak(request.path, user)
+            if (request.path not in allowed_paths and not is_media_or_static
+                    and not is_misi_orangtua and not is_portofolio_anak):
                 return redirect('accounts:dashboard_orangtua')
         return self.get_response(request)
