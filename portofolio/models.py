@@ -122,3 +122,21 @@ class ProfilSiswa(models.Model):
 
     def __str__(self):
         return f"Profil {self.siswa.nama}"
+
+
+class Sertifikat(models.Model):
+    """Sertifikat yang diterbitkan staf untuk seorang siswa. Dibaca pemilik, orang tuanya, dan staf."""
+    siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='sertifikat')
+    judul = models.CharField(max_length=120)
+    keterangan = models.CharField(max_length=240, blank=True)
+    tanggal = models.DateField(default=timezone.localdate)
+    nomor = models.CharField(max_length=30, unique=True, null=True, blank=True, editable=False)
+    diterbitkan_oleh = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='sertifikat_diterbitkan')
+    dibuat_pada = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-tanggal', '-id']
+        verbose_name_plural = 'Sertifikat'
+
+    def __str__(self):
+        return f"{self.nomor or self.pk}: {self.judul}"

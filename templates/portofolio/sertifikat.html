@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sertifikat {{ s.judul }} - {{ siswa.nama }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #E9E6DC; font-family: 'Inter', sans-serif; color: #1F2D24; }
+  .layar { max-width: 1123px; margin: 0 auto; padding: 16px; }
+  .alat { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; }
+  .alat button { background: #1E6B43; color: #fff; border: 0; border-radius: 8px; padding: 9px 18px; font-weight: 600; cursor: pointer; }
+  .alat a { color: #1E6B43; text-decoration: none; }
+  .kertas { container-type: inline-size; width: 100%; aspect-ratio: 297 / 210; background: #FBF7EC; padding: 2.2cqw; box-shadow: 0 6px 24px rgba(0,0,0,.18); }
+  .bingkai { width: 100%; height: 100%; border: .5cqw solid #C8A35A; padding: .7cqw; }
+  .dalam { width: 100%; height: 100%; border: .18cqw solid #1E6B43; display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; padding: 3cqw 6cqw; }
+  .sekolah { font-size: 2cqw; letter-spacing: .25em; text-transform: uppercase; color: #1E6B43; font-weight: 600; }
+  .judul-besar { font-family: 'Lora', serif; font-size: 6.4cqw; letter-spacing: .12em; color: #1E6B43; line-height: 1; }
+  .kecil { font-size: 1.6cqw; color: #6B7A70; }
+  .nama { font-family: 'Lora', serif; font-style: italic; font-size: 5cqw; color: #1F2D24; border-bottom: .15cqw solid #C8A35A; padding: 0 3cqw .5cqw; line-height: 1.15; }
+  .kelas { font-size: 1.7cqw; color: #6B7A70; }
+  .prestasi { font-family: 'Lora', serif; font-size: 3.2cqw; font-weight: 600; line-height: 1.2; }
+  .ket { font-size: 1.8cqw; color: #4B5A50; max-width: 70cqw; }
+  .kaki { width: 100%; display: flex; justify-content: space-between; align-items: flex-end; }
+  .kaki > div { width: 30cqw; font-size: 1.5cqw; color: #4B5A50; }
+  .ttd { border-top: .12cqw solid #1F2D24; padding-top: .5cqw; margin-top: 5cqw; color: #1F2D24; font-weight: 600; }
+  @media print {
+    html, body { background: #fff; }
+    .layar { max-width: none; padding: 0; }
+    .alat { display: none; }
+    .kertas { width: 297mm; height: 210mm; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+<div class="layar">
+  <div class="alat">
+    <a href="{% url 'portofolio:detail' siswa.id %}">← Kembali ke portofolio</a>
+    <button type="button" onclick="window.print()">Cetak / Simpan PDF</button>
+  </div>
+  <div class="kertas">
+    <div class="bingkai"><div class="dalam">
+      <p class="sekolah">{{ pengaturan.nama_institusi|default:"Sekolah" }}</p>
+      <div>
+        <p class="judul-besar">SERTIFIKAT</p>
+        <p class="kecil" style="margin-top:1cqw;">diberikan kepada</p>
+      </div>
+      <div>
+        <p class="nama">{{ siswa.nama }}</p>
+        <p class="kelas" style="margin-top:.8cqw;">Kelas {{ siswa.kelas }}</p>
+      </div>
+      <div>
+        <p class="kecil">atas pencapaian</p>
+        <p class="prestasi" style="margin-top:.6cqw;">{{ s.judul }}</p>
+        {% if s.keterangan %}<p class="ket" style="margin-top:.8cqw;">{{ s.keterangan }}</p>{% endif %}
+      </div>
+      <div class="kaki">
+        <div style="text-align:left;">
+          <p>{{ s.tanggal|date:"j F Y" }}</p>
+          {% if s.nomor %}<p>No. {{ s.nomor }}</p>{% endif %}
+        </div>
+        <div style="text-align:center;">
+          <p>{% if s.diterbitkan_oleh %}Diterbitkan oleh{% else %}Mengetahui{% endif %}</p>
+          <p class="ttd">{% if s.diterbitkan_oleh %}{{ s.diterbitkan_oleh.get_full_name|default:s.diterbitkan_oleh.username }}{% else %}Kepala Sekolah{% endif %}</p>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+</body>
+</html>

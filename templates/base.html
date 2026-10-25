@@ -98,6 +98,11 @@ tailwind.config = {
       <i class="ti ti-folder" style="font-size:15px"></i>Portofolio Saya
     </a>
     {% endif %}
+    {% if user.role == "orangtua" and user.anak_id %}
+    <a href="{% url 'portofolio:detail' user.anak_id %}" class="nav-link {% if request.resolver_match.app_name == 'portofolio' %}active{% endif %}" style="padding-left:28px; font-size:12.5px;">
+      <i class="ti ti-folder" style="font-size:15px"></i>Portofolio Anak
+    </a>
+    {% endif %}
 
     {% if user.role in "guru,kepsek,admin" %}
     <p class="nav-section">Administrasi Kelas</p>

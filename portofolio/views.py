@@ -2,12 +2,15 @@ from accounts.permissions import hanya_staf
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+import datetime
 import mimetypes
 import os
 
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404
+from django.db import transaction
 from django.db.models import Avg, Count, Q, Sum
+from django.utils import timezone
 from django.views.decorators.http import require_POST, require_safe
 from accounts.models import Siswa
 from kelas.models import Absensi, Keaktifan
@@ -15,7 +18,7 @@ from penilaian.models import Nilai
 from . import jenjang
 from .lencana_simpan import gabung_lencana
 from .misi_ringkas import ringkasan_misi
-from .models import KaryaSiswa, KomentarKarya, ProfilSiswa
+from .models import KaryaSiswa, KomentarKarya, ProfilSiswa, Sertifikat
 from .validasi import accept_html, cek_file_karya, UKURAN_MAKS_BYTE
 
 # Perilaku lama dipertahankan: orang tua hanya melihat karya yang sudah "dibagikan".
@@ -207,6 +210,9 @@ def detail_portofolio(request, siswa_id):
             'bio': profil.bio if profil else '',
             'bisa_ubah_bio': is_pemilik or is_staff_role,
             'maks_bio': MAKS_BIO,
+            'sertifikat_list': list(Sertifikat.objects.filter(siswa=siswa)),
+            'bisa_terbitkan': is_staff_role,
+            'hari_ini': timezone.localdate().isoformat(),
             'saran_mapel': sorted({n.sesi.mapel for n in nilai_list} | set(daftar_mapel_karya), key=str.lower),
             'lencana': lencana,
             'jumlah_lencana': sum(1 for l in lencana if l['diraih']),
@@ -277,6 +283,8 @@ def hapus_karya(request, karya_id):
     return alihkan_ke_halaman_aman(request.user)
 
 
+MAKS_JUDUL_SERTIFIKAT = Sertifikat._meta.get_field('judul').max_length
+MAKS_KET_SERTIFIKAT = Sertifikat._meta.get_field('keterangan').max_length
 MAKS_MAPEL = KaryaSiswa._meta.get_field('mapel').max_length
 MAKS_BIO = ProfilSiswa._meta.get_field('bio').max_length
 MAKS_KOMENTAR = KomentarKarya._meta.get_field('teks').max_length
@@ -368,6 +376,63 @@ def ubah_bio(request, siswa_id):
         ProfilSiswa.objects.update_or_create(siswa=siswa, defaults={'bio': bio})
         messages.success(request, 'Bio disimpan.')
     return redirect('portofolio:detail', siswa_id=siswa.id)
+
+
+@login_required
+@require_POST
+def terbitkan_sertifikat(request, siswa_id):
+    """Hanya staf yang menerbitkan sertifikat. Nomor dibuat otomatis dan unik."""
+    if not request.user.is_staff_role():
+        raise PermissionDenied
+    siswa = get_object_or_404(Siswa, id=siswa_id)
+    judul = ' '.join(request.POST.get('judul', '').split())
+    keterangan = ' '.join(request.POST.get('keterangan', '').split())
+    teks_tanggal = request.POST.get('tanggal', '').strip()
+    hari_ini = timezone.localdate()
+    try:
+        tanggal = datetime.date.fromisoformat(teks_tanggal) if teks_tanggal else hari_ini
+    except ValueError:
+        tanggal = None
+    if not judul:
+        messages.error(request, 'Judul sertifikat wajib diisi.')
+    elif len(judul) > MAKS_JUDUL_SERTIFIKAT:
+        messages.error(request, f'Judul maksimal {MAKS_JUDUL_SERTIFIKAT} karakter.')
+    elif len(keterangan) > MAKS_KET_SERTIFIKAT:
+        messages.error(request, f'Keterangan maksimal {MAKS_KET_SERTIFIKAT} karakter.')
+    elif tanggal is None or tanggal > hari_ini:
+        messages.error(request, 'Tanggal tidak valid (tidak boleh di masa depan).')
+    else:
+        with transaction.atomic():
+            sertifikat = Sertifikat.objects.create(
+                siswa=siswa, judul=judul, keterangan=keterangan, tanggal=tanggal,
+                diterbitkan_oleh=request.user,
+            )
+            sertifikat.nomor = f'SRT/{tanggal.year}/{sertifikat.pk:05d}'
+            sertifikat.save(update_fields=['nomor'])
+        messages.success(request, 'Sertifikat diterbitkan.')
+    return redirect('portofolio:detail', siswa_id=siswa.id)
+
+
+@login_required
+@require_safe
+def lihat_sertifikat(request, sertifikat_id):
+    """Halaman sertifikat siap cetak. Aturan akses sama dengan data lengkap portofolio siswa itu."""
+    sertifikat = get_object_or_404(Sertifikat.objects.select_related('siswa', 'diterbitkan_oleh'), id=sertifikat_id)
+    if tingkat_akses(request.user, sertifikat.siswa) != AKSES_PENUH:
+        raise PermissionDenied
+    return render(request, 'portofolio/sertifikat.html', {'s': sertifikat, 'siswa': sertifikat.siswa})
+
+
+@login_required
+@require_POST
+def hapus_sertifikat(request, sertifikat_id):
+    if not request.user.is_staff_role():
+        raise PermissionDenied
+    sertifikat = get_object_or_404(Sertifikat, id=sertifikat_id)
+    siswa_id = sertifikat.siswa_id
+    sertifikat.delete()
+    messages.success(request, 'Sertifikat dihapus.')
+    return redirect('portofolio:detail', siswa_id=siswa_id)
 
 
 # Jenis berkas yang aman dibuka langsung di browser. Selain ini (SVG, HTML, dokumen Office,

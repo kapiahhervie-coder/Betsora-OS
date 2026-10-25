@@ -1,0 +1,37 @@
+{# Daftar sertifikat. Hanya untuk akses penuh; hanya staf yang melihat form terbit dan tombol hapus. #}
+{% if sertifikat_list or bisa_terbitkan %}
+<div class="pf-card" data-pf="sertifikat" style="margin-top:.75rem;">
+  <p class="pf-sec">Sertifikat</p>
+  {% for s in sertifikat_list %}
+  <div style="display:flex; align-items:center; gap:.7rem; padding:.5rem 0; border-top:1px solid var(--pf-border);">
+    <span style="font-size:1.4rem;">🏆</span>
+    <div style="flex:1; min-width:0;">
+      <p style="font-size:.88rem; font-weight:600;">{{ s.judul }}</p>
+      <p class="pf-muted" style="font-size:.72rem;">{{ s.tanggal|date:"d M Y" }}{% if s.nomor %} · {{ s.nomor }}{% endif %}</p>
+    </div>
+    <a href="{% url 'portofolio:sertifikat' s.id %}" target="_blank" rel="noopener" class="pf-link">Lihat / Cetak</a>
+    {% if bisa_terbitkan %}
+    <form method="POST" action="{% url 'portofolio:hapus_sertifikat' s.id %}" onsubmit="return confirm('Hapus sertifikat ini?')">
+      {% csrf_token %}<button type="submit" class="pf-link" style="color:#DC2626;">Hapus</button>
+    </form>
+    {% endif %}
+  </div>
+  {% empty %}
+  <p class="pf-muted" style="font-size:.85rem;">Belum ada sertifikat.</p>
+  {% endfor %}
+  {% if bisa_terbitkan %}
+  <details style="margin-top:.6rem;">
+    <summary class="pf-link" style="cursor:pointer;">+ Terbitkan sertifikat</summary>
+    <form method="POST" action="{% url 'portofolio:terbitkan_sertifikat' siswa.id %}" style="margin-top:.5rem;">
+      {% csrf_token %}
+      <div class="pf-grid">
+        <input type="text" name="judul" required maxlength="120" placeholder="Judul, mis. Juara 1 Lomba Menggambar" class="pf-input">
+        <input type="text" name="keterangan" maxlength="240" placeholder="Keterangan singkat (opsional)" class="pf-input">
+        <input type="date" name="tanggal" value="{{ hari_ini }}" max="{{ hari_ini }}" class="pf-input">
+        <div><button type="submit" class="pf-btn">Terbitkan</button></div>
+      </div>
+    </form>
+  </details>
+  {% endif %}
+</div>
+{% endif %}
