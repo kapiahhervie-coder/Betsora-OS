@@ -1,9 +1,13 @@
 from django.db import models
+from accounts.tenancy import SekolahManager
 from accounts.models import Siswa, User
 import datetime
 
 
 class SesiPenilaian(models.Model):
+    objects = SekolahManager()
+
+    sekolah = models.ForeignKey('accounts.Sekolah', on_delete=models.PROTECT, null=True, blank=True)
     JENIS = [('formatif', 'Formatif'), ('sumatif', 'Sumatif')]
     mapel = models.CharField(max_length=50)
     jenis = models.CharField(max_length=10, choices=JENIS)
@@ -24,6 +28,8 @@ class SesiPenilaian(models.Model):
 
 
 class Nilai(models.Model):
+    objects = SekolahManager('siswa__sekolah')
+
     sesi = models.ForeignKey(SesiPenilaian, on_delete=models.CASCADE)
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='nilai')
     skor = models.DecimalField(max_digits=5, decimal_places=1)

@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block title %}Rapor {{ siswa.nama }} - {{ ruang.mapel }}{% endblock %}
 {% block page_title %}Rapor Digital{% endblock %}
 {% block content %}
@@ -117,4 +117,5 @@
     {% if catatan_fisik_motorik %}{{ catatan_fisik_motorik }}{% else %}<span style="color:#9ca3af; font-style:italic;">Belum ada catatan dari guru.</span>{% endif %}
   </div>
 </div>
+  {% include "misi/_rapor_misi.html" %}
 {% endblock %}

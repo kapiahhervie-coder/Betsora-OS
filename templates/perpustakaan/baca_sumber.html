@@ -111,6 +111,7 @@
 </div>
 
 {{ glosarium|json_script:"glos-data" }}
+{{ narasi_guru|json_script:"narasi-guru-data" }}
 
 {% verbatim %}
 <script>
@@ -134,6 +135,9 @@
   var texts = [], teksJanji = [], diGambar = [], canvases = [];
   var audioOn = false, token = 0, kal = [], si = 0, halAudio = -1;
   var dilihat = {}, dilihatN = 0, tSimpan = null;
+  var NARASI_GURU = {};
+  try { NARASI_GURU = JSON.parse(document.getElementById('narasi-guru-data').textContent) || {}; } catch (e) { NARASI_GURU = {}; }
+  var narasiEl = null;
 
   function muatSkrip(src) {
     return new Promise(function (res, rej) {
@@ -300,6 +304,18 @@
     token++;
     var my = token;
     speechSynthesis.cancel();
+    if (narasiEl) { narasiEl.pause(); narasiEl = null; }
+    var urlGuru = NARASI_GURU[String(p)];
+    if (urlGuru) {
+      halAudio = p;
+      if (p !== cur) pergi(p, true);
+      statusAudio('Dengarkan narasi Bu/Pak Guru, halaman ' + (p + 1) + '...');
+      narasiEl = new Audio(urlGuru);
+      narasiEl.onended = function () { if (my === token) lanjutHalaman(my); };
+      narasiEl.onerror = function () { if (my === token) lanjutHalaman(my); };
+      narasiEl.play().catch(function () { if (my === token) lanjutHalaman(my); });
+      return;
+    }
     dapatTeks(p).then(function (t) {
       if (my !== token) return;
       kal = pecah(t);
@@ -348,6 +364,7 @@
     audioOn = false;
     token++;
     if ('speechSynthesis' in window) speechSynthesis.cancel();
+    if (narasiEl) { narasiEl.pause(); narasiEl = null; }
     labelAudio();
   }
 

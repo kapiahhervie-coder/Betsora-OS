@@ -89,6 +89,18 @@ let playMode = 'millionaire';
 let currentQIdx = 0;
 let timerInterval = null;
 let soundEnabled = true;
+let viewAktif = 'play';       // tampilan yang sedang dibuka (play / builder / analytics / spec)
+
+// Pengaturan waktu & status permainan.
+// status: idle (belum dimulai) | running | paused | over
+const WAKTU_PILIHAN = [15, 20, 30, 45, 60, 90, 120];
+const WAKTU_DEFAULT = { millionaire: 30, kahoot: 15 };
+const WAKTU_MIN = 5;
+const WAKTU_MAKS = 600;
+const WAKTU_KUNCI = 'betsora_kuis_waktu';
+let waktuSetelan = muatWaktuSetelan();   // detik per soal; 0 = tanpa batas waktu
+let mState = 'idle', mLimit = 30, mTimeLeft = 30, mMenjawab = false;
+let kState = 'idle', kLimit = 15, kMenjawab = false;
 
 // Millionaire State
 let mLifelines = { '5050': true, hint: true, friend: true };
@@ -168,11 +180,122 @@ function escapeHTML(str) {
 }
 
 // ==========================================
-// 1c. NAVIGATION
+// 1c. PENGATURAN WAKTU (manual) & KONTROL TIMER
+// ==========================================
+
+function waktuValid(v) {
+  return Number.isInteger(v) && (v === 0 || (v >= WAKTU_MIN && v <= WAKTU_MAKS));
+}
+
+function muatWaktuSetelan() {
+  const hasil = Object.assign({}, WAKTU_DEFAULT);
+  try {
+    const tersimpan = JSON.parse(localStorage.getItem(WAKTU_KUNCI) || '{}');
+    ['millionaire', 'kahoot'].forEach(m => { if (waktuValid(tersimpan[m])) hasil[m] = tersimpan[m]; });
+  } catch (e) { /* penyimpanan browser tidak tersedia: pakai bawaan */ }
+  return hasil;
+}
+
+function simpanWaktuSetelan() {
+  try { localStorage.setItem(WAKTU_KUNCI, JSON.stringify(waktuSetelan)); } catch (e) { /* abaikan */ }
+}
+
+function labelWaktu(detik) {
+  return detik === 0 ? 'Tanpa batas waktu' : detik + ' detik per soal';
+}
+
+function setWaktu(mode, detik) {
+  if (!waktuValid(detik)) return;
+  playSound('click');
+  waktuSetelan[mode] = detik;
+  simpanWaktuSetelan();
+  renderTimePickers();
+}
+
+function setWaktuKustom(mode, inputId) {
+  const el = document.getElementById(inputId);
+  const detik = parseInt(el.value, 10);
+  if (!waktuValid(detik) || detik === 0) {
+    alert(`Isi waktu antara ${WAKTU_MIN} dan ${WAKTU_MAKS} detik.`);
+    el.focus();
+    return;
+  }
+  setWaktu(mode, detik);
+}
+
+function renderTimePicker(containerId, mode) {
+  const box = document.getElementById(containerId);
+  if (!box) return;
+  const aktif = waktuSetelan[mode];
+  const warna = mode === 'kahoot'
+    ? 'bg-purple-600 text-white border-purple-400'
+    : 'bg-amber-500 text-slate-950 border-amber-400';
+  const chip = (nilai, label) => {
+    const kelas = aktif === nilai
+      ? warna
+      : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-400';
+    return `<button type="button" onclick="setWaktu('${mode}', ${nilai})" class="px-3 py-1.5 rounded-lg border text-xs font-bold transition ${kelas}">${label}</button>`;
+  };
+  const inputId = containerId + 'Kustom';
+  const kustomNilai = (aktif !== 0 && !WAKTU_PILIHAN.includes(aktif)) ? aktif : '';
+  box.innerHTML = `
+    <div class="flex flex-wrap gap-1.5">
+      ${WAKTU_PILIHAN.map(n => chip(n, n + ' dtk')).join('')}
+      ${chip(0, '∞ Tanpa batas')}
+    </div>
+    <div class="flex items-center gap-2 mt-2">
+      <input type="number" id="${inputId}" min="${WAKTU_MIN}" max="${WAKTU_MAKS}" value="${kustomNilai}" placeholder="Kustom (detik)"
+        onkeydown="if(event.key==='Enter'){setWaktuKustom('${mode}','${inputId}')}"
+        class="w-36 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-indigo-500">
+      <button type="button" onclick="setWaktuKustom('${mode}','${inputId}')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition">Pakai</button>
+    </div>
+    <p class="text-[11px] text-slate-400 mt-2">Dipilih: <strong class="text-white">${labelWaktu(aktif)}</strong></p>`;
+}
+
+function renderTimePickers() {
+  renderTimePicker('mTimePicker', 'millionaire');
+  renderTimePicker('kTimePicker', 'kahoot');
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+
+// Jeda: dipakai tombol Jeda dan otomatis saat pengguna pindah ke Game Builder / Analytics / Spec.
+function pauseGame() {
+  if (playMode === 'millionaire' && mState === 'running' && !mMenjawab) {
+    stopTimer();
+    mState = 'paused';
+    syncMUi();
+  } else if (playMode === 'kahoot' && kState === 'running' && !kMenjawab) {
+    stopTimer();
+    kState = 'paused';
+    syncKUi();
+  }
+}
+
+function lanjutkanGame() {
+  playSound('click');
+  if (playMode === 'millionaire' && mState === 'paused') {
+    mState = 'running';
+    syncMUi();
+    jalankanTimerM();
+  } else if (playMode === 'kahoot' && kState === 'paused') {
+    kState = 'running';
+    syncKUi();
+    jalankanTimerK();
+  }
+}
+
+// ==========================================
+// 1d. NAVIGATION
 // ==========================================
 
 function switchView(viewName) {
   playSound('click');
+  viewAktif = viewName;
+  if (viewName !== 'play') pauseGame();   // timer tidak boleh jalan saat mengedit kuis
   ['viewPlay', 'viewBuilder', 'viewAnalytics', 'viewSpec'].forEach(v => {
     document.getElementById(v).classList.add('hidden');
   });
@@ -204,6 +327,9 @@ function toggleMobileMenu() {
 function setPlayMode(mode) {
   playSound('click');
   playMode = mode;
+  stopTimer();
+  mState = 'idle';
+  kState = 'idle';
   document.getElementById('btnModeMillionaire').className = mode === 'millionaire'
     ? 'flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-2 bg-amber-500 text-slate-950 shadow-md'
     : 'flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-2 text-slate-400 hover:text-white';
@@ -214,7 +340,7 @@ function setPlayMode(mode) {
   if (mode === 'millionaire') {
     document.getElementById('playMillionaire').classList.remove('hidden');
     document.getElementById('playKahoot').classList.add('hidden');
-    startMillionaireGame();
+    siapkanMillionaire();
   } else {
     document.getElementById('playMillionaire').classList.add('hidden');
     document.getElementById('playKahoot').classList.remove('hidden');
@@ -238,9 +364,51 @@ function getLadderIdx(qIdx) {
   return Math.round(qIdx * 14 / (n - 1));
 }
 
-function startMillionaireGame() {
+function updateMTimerLabel() {
+  document.getElementById('mTimer').innerText = mLimit ? mTimeLeft : '∞';
+  document.getElementById('mTimerUnit').innerText = mLimit ? 's' : '';
+}
+
+// Menyesuaikan layar dengan status permainan: layar "Siap", layar "Dijeda", atau soal terbuka.
+function syncMUi() {
+  const ov = document.getElementById('mOverlay');
+  const siap = mState === 'idle';
+  if (siap || mState === 'paused') {
+    document.getElementById('mOverlayTitle').innerText = siap ? 'Siap Bermain?' : 'Game Dijeda';
+    document.getElementById('mOverlayIcon').className = siap ? 'fa-solid fa-circle-play' : 'fa-solid fa-pause';
+    document.getElementById('mOverlayBtn').innerText = siap ? '▶ MULAI GAME' : '▶ LANJUTKAN';
+    document.getElementById('mTimeSetting').classList.toggle('hidden', !siap);
+    document.getElementById('mOverlayHint').innerText = siap
+      ? 'Timer baru berjalan setelah tombol Mulai ditekan.'
+      : 'Waktu berhenti. Sisa waktu soal ini tetap tersimpan.';
+    document.getElementById('mOverlayInfo').innerText =
+      `${getActiveCategory()} · ${getMillionaireTotal()} soal`;
+    ov.classList.remove('hidden');
+  } else {
+    ov.classList.add('hidden');
+  }
+  document.getElementById('mPauseBtn').classList.toggle('hidden', mState !== 'running');
+}
+
+function aksiOverlayMillionaire() {
+  if (mState === 'idle') mulaiMillionaire();
+  else lanjutkanGame();
+}
+
+// Menyiapkan permainan baru. TIDAK menjalankan timer: timer baru jalan setelah tombol Mulai.
+function siapkanMillionaire() {
+  stopTimer();
   currentQuestions = getActiveQuestions();
-  if (!currentQuestions || currentQuestions.length === 0) return;
+  mState = 'idle';
+  mMenjawab = false;
+  mLimit = waktuSetelan.millionaire;
+  mTimeLeft = mLimit;
+  renderTimePickers();
+
+  if (!currentQuestions || currentQuestions.length === 0) {
+    syncMUi();
+    return;
+  }
 
   currentQIdx = 0;
   mLifelines = { '5050': true, hint: true, friend: true };
@@ -256,6 +424,35 @@ function startMillionaireGame() {
 
   renderLadder();
   loadMillionaireQuestion();
+  syncMUi();
+}
+
+function mulaiMillionaire() {
+  if (!currentQuestions || currentQuestions.length === 0) {
+    alert('Kuis ini belum punya soal.');
+    return;
+  }
+  playSound('click');
+  mLimit = waktuSetelan.millionaire;   // batas waktu dikunci saat game dimulai
+  mTimeLeft = mLimit;
+  mState = 'running';
+  syncMUi();
+  jalankanTimerM();
+}
+
+function jalankanTimerM() {
+  stopTimer();
+  updateMTimerLabel();
+  if (!mLimit) return;   // tanpa batas waktu
+  timerInterval = setInterval(() => {
+    mTimeLeft--;
+    updateMTimerLabel();
+    if (mTimeLeft <= 5 && mTimeLeft > 0) playSound('tick');
+    if (mTimeLeft <= 0) {
+      stopTimer();
+      gameOverMillionaire("Waktu Habis!");
+    }
+  }, 1000);
 }
 
 function renderLadder() {
@@ -272,12 +469,16 @@ function renderLadder() {
   });
 }
 
+// Menampilkan soal. Timer hanya ikut berjalan bila game sedang berstatus "running".
 function loadMillionaireQuestion() {
   closeLifelineBox();
-  clearInterval(timerInterval);
+  stopTimer();
+  mMenjawab = false;
 
   const total = getMillionaireTotal();
   if (currentQIdx >= total) {
+    mState = 'over';
+    syncMUi();
     showResultModal("SELAMAT! ANDA JUTAWAN!", mCurrentPrize, `Sempurna! Berhasil menjawab seluruh ${total} level!`);
     return;
   }
@@ -309,21 +510,22 @@ function loadMillionaireQuestion() {
     btn.querySelector('.m-ans-text').innerText = opt;
   });
 
-  let timeLeft = 30;
-  document.getElementById('mTimer').innerText = timeLeft;
-  timerInterval = setInterval(() => {
-    timeLeft--;
-    document.getElementById('mTimer').innerText = timeLeft;
-    if (timeLeft <= 5) playSound('tick');
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      gameOverMillionaire("Waktu Habis!");
+  mTimeLeft = mLimit;
+  updateMTimerLabel();
+  if (mState === 'running') {
+    if (viewAktif !== 'play') {   // pemain sedang di Game Builder: tahan timer sampai kembali
+      mState = 'paused';
+      syncMUi();
+    } else {
+      jalankanTimerM();
     }
-  }, 1000);
+  }
 }
 
 function selectMillionaireAnswer(selectedIdx) {
-  clearInterval(timerInterval);
+  if (mState !== 'running' || mMenjawab) return;
+  mMenjawab = true;
+  stopTimer();
   playSound('click');
   const q = currentQuestions[currentQIdx];
   const selectedBtn = document.getElementById(`mAns${selectedIdx}`);
@@ -357,7 +559,7 @@ function selectMillionaireAnswer(selectedIdx) {
 }
 
 function useLifeline(type) {
-  if (!mLifelines[type]) return;
+  if (mState !== 'running' || !mLifelines[type]) return;
   mLifelines[type] = false;
   playSound('lifeline');
 
@@ -392,13 +594,16 @@ function closeLifelineBox() {
 }
 
 function quitMillionaireEarly() {
+  if (mState !== 'running') return;
   if (confirm(`Apakah Anda yakin ingin berhenti sekarang dan mengamankan ${mCurrentPrize}?`)) {
     gameOverMillionaire("Anda Memutuskan Berhenti!");
   }
 }
 
 function gameOverMillionaire(reason) {
-  clearInterval(timerInterval);
+  stopTimer();
+  mState = 'over';
+  syncMUi();
   const quit = reason.includes("Berhenti");
   const finalPrize = quit ? mCurrentPrize : mSafePrize;
   showResultModal(reason, finalPrize, `Pencapaian: Level ${currentQIdx + 1} dari ${getMillionaireTotal()}`);
@@ -408,34 +613,92 @@ function gameOverMillionaire(reason) {
 // 3. LIVE QUIZ BATTLE (KAHOOT STYLE)
 // ==========================================
 
+function updateKTimerLabel() {
+  document.getElementById('kTimer').innerText = kLimit ? kTimeLeft : '∞';
+  document.getElementById('kTimerBar').style.width = kLimit ? `${(kTimeLeft / kLimit) * 100}%` : '100%';
+}
+
+function syncKUi() {
+  document.getElementById('kSetupBar').classList.toggle('hidden', kState !== 'idle');
+  document.getElementById('kOverlay').classList.toggle('hidden', kState !== 'paused');
+  document.getElementById('kPauseBtn').classList.toggle('hidden', kState !== 'running');
+  const mulai = document.getElementById('kStartBtn');
+  mulai.disabled = kState !== 'idle';
+  mulai.classList.toggle('opacity-40', kState !== 'idle');
+  mulai.classList.toggle('pointer-events-none', kState !== 'idle');
+}
+
 function resetKahootGame() {
-  clearInterval(timerInterval);
+  stopTimer();
   kScore = 0;
   kStreak = 0;
   currentQIdx = 0;
+  kState = 'idle';
+  kMenjawab = false;
+  kLimit = waktuSetelan.kahoot;
+  kTimeLeft = kLimit;
   document.getElementById('kScore').innerText = '0';
   document.getElementById('kStreakBadge').classList.add('hidden');
-  document.getElementById('kQuestionText').innerText = "Klik 'MULAI LIVE BATTLE' untuk mensimulasikan permainan Kahoot!";
+  document.getElementById('kQuestionText').innerText = "Atur waktu per soal, lalu klik 'MULAI LIVE BATTLE' untuk mensimulasikan permainan Kahoot bersama siswa!";
   document.getElementById('lbUserPoints').innerText = '0 Pts';
+  for (let i = 0; i < 4; i++) document.getElementById(`kAns${i}`).disabled = true;
+  updateKTimerLabel();
+  renderTimePickers();
+  syncKUi();
 }
 
 function startKahootGame() {
+  if (kState !== 'idle') return;
   currentQuestions = getActiveQuestions();
-  if (!currentQuestions || currentQuestions.length === 0) return;
-
+  if (!currentQuestions || currentQuestions.length === 0) {
+    alert('Kuis ini belum punya soal.');
+    return;
+  }
+  playSound('click');
+  kLimit = waktuSetelan.kahoot;   // batas waktu dikunci saat game dimulai
   currentQIdx = 0;
   kScore = 0;
   kStreak = 0;
+  kState = 'running';
   document.getElementById('kScore').innerText = '0';
+  document.getElementById('lbUserPoints').innerText = '0 Pts';
+  updateKahootStreak();
+  syncKUi();
   loadKahootQuestion();
 }
 
+function jalankanTimerK() {
+  stopTimer();
+  updateKTimerLabel();
+  if (!kLimit) return;   // tanpa batas waktu
+  timerInterval = setInterval(() => {
+    kTimeLeft--;
+    updateKTimerLabel();
+    if (kTimeLeft <= 3 && kTimeLeft > 0) playSound('tick');
+
+    if (kTimeLeft <= 0) {
+      stopTimer();
+      kMenjawab = true;
+      playSound('wrong');
+      kStreak = 0;
+      updateKahootStreak();
+      setTimeout(() => {
+        currentQIdx++;
+        loadKahootQuestion();
+      }, 1200);
+    }
+  }, 1000);
+}
+
 function loadKahootQuestion() {
-  clearInterval(timerInterval);
+  stopTimer();
+  kMenjawab = false;
 
   if (currentQIdx >= currentQuestions.length) {
+    kState = 'over';
+    syncKUi();
     playSound('correct');
-    confetti({ particleCount: 100, spread: 70 });
+    if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 70 });
     showResultModal("LIVE BATTLE SELESAI!", `${kScore.toLocaleString()} Pts`, "Selamat! Seluruh soal kuis berhasil diselesaikan!");
     return;
   }
@@ -450,33 +713,22 @@ function loadKahootQuestion() {
     btn.querySelector('.k-ans-text').innerText = opt;
   });
 
-  kTimeLeft = 15;
-  document.getElementById('kTimer').innerText = kTimeLeft;
-  const timerBar = document.getElementById('kTimerBar');
-  timerBar.style.width = '100%';
-
-  timerInterval = setInterval(() => {
-    kTimeLeft--;
-    document.getElementById('kTimer').innerText = kTimeLeft;
-    timerBar.style.width = `${(kTimeLeft / 15) * 100}%`;
-
-    if (kTimeLeft <= 3) playSound('tick');
-
-    if (kTimeLeft <= 0) {
-      clearInterval(timerInterval);
-      playSound('wrong');
-      kStreak = 0;
-      updateKahootStreak();
-      setTimeout(() => {
-        currentQIdx++;
-        loadKahootQuestion();
-      }, 1200);
+  kTimeLeft = kLimit;
+  updateKTimerLabel();
+  if (kState === 'running') {
+    if (viewAktif !== 'play') {   // pemain sedang di Game Builder: tahan timer sampai kembali
+      kState = 'paused';
+      syncKUi();
+    } else {
+      jalankanTimerK();
     }
-  }, 1000);
+  }
 }
 
 function selectKahootAnswer(selectedIdx) {
-  clearInterval(timerInterval);
+  if (kState !== 'running' || kMenjawab) return;
+  kMenjawab = true;
+  stopTimer();
   playSound('click');
   const q = currentQuestions[currentQIdx];
 
@@ -485,14 +737,15 @@ function selectKahootAnswer(selectedIdx) {
   if (selectedIdx === q.correct) {
     playSound('correct');
     kStreak++;
-    const speedBonus = kTimeLeft * 40;
+    // Bonus kecepatan maksimum 600 poin; menyesuaikan batas waktu yang dipilih. Tanpa batas waktu: tanpa bonus.
+    const speedBonus = kLimit ? Math.round((kTimeLeft / kLimit) * 15 * 40) : 0;
     const streakBonus = Math.min(kStreak * 100, 500);
     const earned = 500 + speedBonus + streakBonus;
 
     kScore += earned;
     document.getElementById('kScore').innerText = kScore.toLocaleString();
     document.getElementById('lbUserPoints').innerText = `${kScore.toLocaleString()} Pts`;
-    confetti({ particleCount: 25, spread: 40 });
+    if (typeof confetti === 'function') confetti({ particleCount: 25, spread: 40 });
   } else {
     playSound('wrong');
     kStreak = 0;
@@ -589,7 +842,9 @@ function exportQuizJSON() {
     alert("Tidak ada soal kustom untuk diekspor!");
     return;
   }
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(customQuestions, null, 2));
+  const judulEl = document.getElementById('bQuizTitle');
+  const judul = (judulEl && judulEl.value.trim()) || 'Kuis Betsora';
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ judul, soal: customQuestions }, null, 2));
   const a = document.createElement('a');
   a.setAttribute("href", dataStr);
   a.setAttribute("download", "betsora_quiz_preset.json");
@@ -598,41 +853,106 @@ function exportQuizJSON() {
   a.remove();
 }
 
+// Mengubah satu butir soal dari berbagai penulisan menjadi {q, a, correct, hint}.
+// Mengembalikan { soal } bila valid, atau { alasan } bila tidak.
+function normalisasiSoal(it) {
+  if (!it || typeof it !== 'object') return { alasan: 'bukan objek soal' };
+  const teks = it.q ?? it.question ?? it.pertanyaan;
+  const pilihan = it.a ?? it.options ?? it.pilihan;
+  let benar = it.correct ?? it.answer ?? it.jawaban ?? it.jawaban_benar;
+  const petunjuk = it.hint ?? it.petunjuk;
+
+  if (typeof teks !== 'string' || !teks.trim()) return { alasan: 'teks pertanyaan ("q") kosong' };
+  if (!Array.isArray(pilihan) || pilihan.length !== 4) return { alasan: 'pilihan ("a") harus tepat 4' };
+  if (!pilihan.every(x => (typeof x === 'string' || typeof x === 'number') && String(x).trim())) {
+    return { alasan: 'ada pilihan yang kosong' };
+  }
+  if (typeof benar === 'string') {
+    const t = benar.trim().toUpperCase();
+    if (/^[A-D]$/.test(t)) benar = t.charCodeAt(0) - 65;
+    else if (/^[0-3]$/.test(t)) benar = parseInt(t, 10);
+  }
+  if (!Number.isInteger(benar) || benar < 0 || benar > 3) {
+    return { alasan: '"correct" harus angka 0-3 (0=A, 1=B, 2=C, 3=D)' };
+  }
+  return {
+    soal: {
+      q: teks.trim(),
+      a: pilihan.map(x => String(x).trim()),
+      correct: benar,
+      hint: typeof petunjuk === 'string' && petunjuk.trim() ? petunjuk.trim() : "Perhatikan pilihan jawaban dengan teliti."
+    }
+  };
+}
+
 function importQuizJSON(event) {
-  const file = event.target.files[0];
+  const input = event.target;
+  const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
+  reader.onerror = function () {
+    alert('Berkas tidak bisa dibaca. Coba pilih ulang berkasnya.');
+    input.value = '';
+  };
   reader.onload = function (e) {
+    input.value = '';   // supaya berkas yang sama bisa dipilih lagi setelah diperbaiki
+    const teks = String(e.target.result || '').replace(/^﻿/, '');
+
+    let isi;
     try {
-      const imported = JSON.parse(e.target.result);
-      if (!Array.isArray(imported)) throw new Error("Bukan array");
-
-      const clean = imported
-        .filter(it =>
-          it && typeof it.q === 'string' && it.q.trim() &&
-          Array.isArray(it.a) && it.a.length === 4 &&
-          it.a.every(x => typeof x === 'string' && x.trim()) &&
-          Number.isInteger(it.correct) && it.correct >= 0 && it.correct <= 3
-        )
-        .map(it => ({
-          q: it.q.trim(),
-          a: it.a.map(x => x.trim()),
-          correct: it.correct,
-          hint: typeof it.hint === 'string' && it.hint.trim() ? it.hint.trim() : "Perhatikan pilihan jawaban dengan teliti."
-        }));
-
-      if (clean.length === 0) throw new Error("Tidak ada soal valid");
-
-      customQuestions = clean;
-      editingQuizId = null;
-      renderCustomBuilderList();
-      updateBuilderInfo();
-      const skipped = imported.length - clean.length;
-      alert(`Berhasil mengimpor ${clean.length} soal.` + (skipped ? ` ${skipped} soal dilewati karena format tidak valid.` : ''));
+      isi = JSON.parse(teks);
     } catch (err) {
-      alert("Format file JSON tidak valid!");
+      alert('Berkas ini bukan JSON yang valid, jadi belum bisa diimpor.\n\n' +
+        'Penyebab yang paling sering:\n' +
+        '• berkas berisi teks perintah/terminal, bukan JSON murni\n' +
+        '• tanda kutip lengkung (“ ”) dari Word/WhatsApp\n' +
+        '• koma berlebih sesudah soal terakhir\n\n' +
+        'Detail: ' + err.message);
+      return;
     }
-    event.target.value = '';
+
+    // Dua bentuk diterima: daftar soal [ ... ] atau objek {"judul": "...", "soal": [ ... ]}
+    let daftar = isi;
+    let judul = '';
+    if (isi && !Array.isArray(isi) && typeof isi === 'object') {
+      daftar = isi.soal ?? isi.questions;
+      if (typeof isi.judul === 'string') judul = isi.judul.trim();
+    }
+    if (!Array.isArray(daftar)) {
+      alert('Struktur JSON tidak dikenali.\n\nGunakan daftar soal:\n[ { "q": "...", "a": ["A","B","C","D"], "correct": 0 } ]\n\natau:\n{ "judul": "...", "soal": [ ... ] }');
+      return;
+    }
+
+    const bersih = [];
+    const masalah = [];
+    daftar.forEach((it, i) => {
+      const hasil = normalisasiSoal(it);
+      if (hasil.soal) bersih.push(hasil.soal);
+      else masalah.push(`Soal ${i + 1}: ${hasil.alasan}`);
+    });
+
+    if (bersih.length === 0) {
+      alert('Tidak ada soal yang valid di berkas ini.\n\n' + masalah.slice(0, 5).join('\n'));
+      return;
+    }
+
+    const batas = 100;
+    const dipotong = bersih.length > batas;
+    customQuestions = bersih.slice(0, batas);
+    editingQuizId = null;
+    const judulEl = document.getElementById('bQuizTitle');
+    if (judulEl && judul) judulEl.value = judul.slice(0, 200);
+    renderCustomBuilderList();
+    updateBuilderInfo();
+
+    let pesan = `Berhasil mengimpor ${customQuestions.length} soal.`;
+    if (dipotong) pesan += `\nHanya ${batas} soal pertama yang dipakai (batas maksimum).`;
+    if (masalah.length) {
+      pesan += `\n\n${masalah.length} soal dilewati:\n` + masalah.slice(0, 5).join('\n');
+      if (masalah.length > 5) pesan += `\n...dan ${masalah.length - 5} lainnya.`;
+    }
+    pesan += '\n\nKlik "Simpan Kuis" untuk menyimpan ke database.';
+    alert(pesan);
   };
   reader.readAsText(file);
 }
@@ -704,7 +1024,7 @@ function showResultModal(title, score, subtitle) {
 
 function closeResultModal() {
   document.getElementById('resultModal').classList.add('hidden');
-  if (playMode === 'millionaire') startMillionaireGame();
+  if (playMode === 'millionaire') siapkanMillionaire();
   if (playMode === 'kahoot') resetKahootGame();
 }
 
@@ -742,11 +1062,10 @@ function chooseWelcome(mode) {
   if (mode === 'kahoot') {
     setPlayMode('kahoot');
   } else if (mode === 'builder') {
-    startMillionaireGame();
-    clearInterval(timerInterval); // timer tidak jalan di belakang Game Builder
+    siapkanMillionaire();   // hanya menyiapkan; timer tidak jalan di belakang Game Builder
     switchView('builder');
   } else {
-    startMillionaireGame();
+    siapkanMillionaire();
   }
 }
 
@@ -805,7 +1124,7 @@ async function changePresetQuiz(val) {
   }
   activePresetKey = val;
   currentQuestions = getActiveQuestions();
-  if (playMode === 'millionaire') startMillionaireGame();
+  if (playMode === 'millionaire') siapkanMillionaire();
   if (playMode === 'kahoot') resetKahootGame();
 }
 

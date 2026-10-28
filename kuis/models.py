@@ -1,8 +1,11 @@
 from django.conf import settings
 from django.db import models
+from accounts.tenancy import SekolahManager
 
 
 class Kuis(models.Model):
+    objects = SekolahManager('pembuat__sekolah')
+
     judul = models.CharField(max_length=200)
     pembuat = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -26,6 +29,8 @@ class Kuis(models.Model):
 
 
 class Soal(models.Model):
+    objects = SekolahManager('kuis__pembuat__sekolah')
+
     kuis = models.ForeignKey(Kuis, on_delete=models.CASCADE, related_name="soal")
     urutan = models.PositiveSmallIntegerField(default=0)
     teks = models.TextField()

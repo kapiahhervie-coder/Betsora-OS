@@ -132,12 +132,25 @@ class PortofolioTest(DasarOrangTua):
         self.assertIn('Lihat berkas', html)
 
     def test_video_youtube_di_embed_lainnya_jadi_tautan(self):
-        KaryaSiswa.objects.create(siswa=self.s_a, judul='Video A', video_url='https://youtu.be/abc123')
+        KaryaSiswa.objects.create(siswa=self.s_a, judul='Video A', video_url='https://youtu.be/abcDEF12345')
         KaryaSiswa.objects.create(siswa=self.s_a, judul='Video B', video_url='https://contoh-mencurigakan.test/x')
         html = self.dashboard(self.ortu_a).content.decode()
-        self.assertIn('<iframe src="https://www.youtube.com/embed/abc123"', html)
+        self.assertIn('<iframe src="https://www.youtube.com/embed/abcDEF12345"', html)
         self.assertNotIn('<iframe src="https://contoh-mencurigakan.test', html)
         self.assertIn('contoh-mencurigakan.test', html)   # tetap tampil, sebagai tautan biasa
+
+    def test_youtube_id_tidak_valid_jadi_tautan_bukan_iframe(self):
+        KaryaSiswa.objects.create(siswa=self.s_a, judul='V', video_url='https://youtu.be/abc123')
+        html = self.dashboard(self.ortu_a).content.decode()
+        self.assertNotIn('<iframe src="https://www.youtube.com/embed/abc123', html)
+        self.assertIn('href="https://youtu.be/abc123"', html)
+
+    def test_tautan_berbahaya_tidak_menjadi_href(self):
+        for u in ('javascript:alert(1)', 'data:text/html,hai', 'ftp://x.test/a', 'vbscript:x'):
+            KaryaSiswa.objects.create(siswa=self.s_a, judul='J', video_url=u)
+        html = self.dashboard(self.ortu_a).content.decode()
+        for skema in ('javascript:', 'data:', 'ftp:', 'vbscript:'):
+            self.assertNotIn('href="' + skema, html)
 
     def test_karya_belum_dibagikan_tetap_tampil_ke_orangtua(self):
         KaryaSiswa.objects.create(siswa=self.s_a, judul='Privat', dibagikan=False, deskripsi='hanya utk guru')

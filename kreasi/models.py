@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from accounts.tenancy import SekolahManager
 from django.urls import reverse
 
 from .fase_config import JENJANG_CHOICES, LEVEL_LABEL
@@ -30,6 +31,8 @@ def _path_refleksi(instance, filename):
 
 class LampiranKarya(models.Model):
     """Satu bagian dari karya siswa. Satu submisi boleh punya banyak lampiran."""
+    objects = SekolahManager('submisi__tugas__ruang_kerja__sekolah')
+
     TIPE_CHOICES = [
         ('foto', 'Foto'),
         ('audio', 'Rekaman Suara'),
@@ -81,6 +84,8 @@ class LampiranKarya(models.Model):
 
 class RefleksiKarya(models.Model):
     """Refleksi siswa atas karyanya. Bentuk isinya mengikuti jenjang (lihat fase_config)."""
+    objects = SekolahManager('submisi__tugas__ruang_kerja__sekolah')
+
     TIPE_CHOICES = [
         ('emoji_suara', 'Emoji + Rekaman Suara'),
         ('teks_terbimbing', 'Teks Terbimbing'),
@@ -153,6 +158,8 @@ class DeskriptorLevel(models.Model):
 
 class SkorDimensi(models.Model):
     """Skor guru (1-4) untuk satu dimensi pada satu submisi karya."""
+    objects = SekolahManager('submisi__tugas__ruang_kerja__sekolah')
+
     submisi = models.ForeignKey('ruang_kerja.SubmisiTugas', on_delete=models.CASCADE, related_name='skor_dimensi')
     dimensi = models.ForeignKey(DimensiPenilaian, on_delete=models.PROTECT, related_name='skor')
     level = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(4)])

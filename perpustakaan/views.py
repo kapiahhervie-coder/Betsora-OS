@@ -709,7 +709,9 @@ def simpan_narasi(request, halaman_id):
         halaman.save(update_fields=['audio_guru'])
         messages.success(request, 'Narasi halaman %d tersimpan.' % halaman.nomor)
     halaman_num = request.GET.get('p', '1')
-    return redirect('%s?p=%s' % (reverse('perpustakaan:kelola_narasi', args=[sumber_id]), halaman_num))
+    from django.shortcuts import redirect as _redirect
+    from django.urls import reverse as _reverse
+    return _redirect('%s?p=%s' % (_reverse('perpustakaan:kelola_narasi', args=[sumber_id]), halaman_num))
 
 
 @login_required
@@ -726,4 +728,5 @@ def hapus_narasi(request, halaman_id):
         halaman.save(update_fields=['audio_guru'])
         messages.success(request, 'Narasi halaman %d dihapus.' % halaman.nomor)
     halaman_num = request.GET.get('p', '1')
-    return redirect('%s?p=%s' % (reverse('perpustakaan:kelola_narasi', args=[sumber_id]), halaman_num))
+    from django.urls import reverse as _reverse
+    return redirect('%s?p=%s' % (_reverse('perpustakaan:kelola_narasi', args=[sumber_id]), halaman_num))

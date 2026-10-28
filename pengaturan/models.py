@@ -2,6 +2,7 @@ from django.db import models
 
 
 class PengaturanSekolah(models.Model):
+    sekolah = models.OneToOneField('accounts.Sekolah', on_delete=models.CASCADE, null=True, blank=True, related_name='pengaturan')
     MODE_CHOICES = [
         ("formal", "Sekolah Formal"),
         ("homeschool", "Homeschooling"),

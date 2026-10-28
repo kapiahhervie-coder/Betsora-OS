@@ -1,9 +1,12 @@
 ﻿from django.db import models
+from accounts.tenancy import SekolahManager
 from django.db.models import Q
 from accounts.models import User
 
 
 class Percakapan(models.Model):
+    objects = SekolahManager('peserta_1__sekolah', 'peserta_2__sekolah')
+
     peserta_1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='percakapan_sebagai_1')
     peserta_2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='percakapan_sebagai_2')
     dibuat_pada = models.DateTimeField(auto_now_add=True)
@@ -33,6 +36,8 @@ class Percakapan(models.Model):
 
 
 class PesanPribadi(models.Model):
+    objects = SekolahManager('percakapan__peserta_1__sekolah')
+
     percakapan = models.ForeignKey(Percakapan, on_delete=models.CASCADE, related_name='pesan')
     pengirim = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pesan_terkirim')
     isi = models.TextField()

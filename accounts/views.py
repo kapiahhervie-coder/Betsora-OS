@@ -6,6 +6,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils.crypto import get_random_string
 from .models import Siswa, User
+from .tenancy import username_unik
 
 
 def login_view(request):
@@ -84,12 +85,8 @@ def buat_akun_siswa(request, siswa_id):
         messages.error(request, f'{siswa.nama} sudah punya akun login.')
         return redirect('accounts:daftar_siswa')
 
-    username = siswa.nis
+    username = username_unik(siswa.nis, siswa.sekolah)
     password = get_random_string(8, allowed_chars='abcdefghjkmnpqrstuvwxyz23456789')
-
-    if User.objects.filter(username=username).exists():
-        messages.error(request, f'Nama pengguna {username} sudah dipakai akun lain.')
-        return redirect('accounts:daftar_siswa')
     user = User.objects.create_user(username=username, password=password, role='siswa', first_name=siswa.nama)
     siswa.user = user
     siswa.save()
@@ -127,12 +124,8 @@ def buat_akun_orangtua(request, siswa_id):
         messages.error(request, f'{siswa.nama} sudah punya akun orang tua yang terhubung.')
         return redirect('accounts:daftar_siswa')
 
-    username = f'ortu{siswa.nis}'
+    username = username_unik(f'ortu{siswa.nis}', siswa.sekolah)
     password = get_random_string(8, allowed_chars='abcdefghjkmnpqrstuvwxyz23456789')
-
-    if User.objects.filter(username=username).exists():
-        messages.error(request, f'Nama pengguna {username} sudah dipakai akun lain.')
-        return redirect('accounts:daftar_siswa')
     User.objects.create_user(username=username, password=password, role='orangtua', anak=siswa, first_name=f'Orang Tua {siswa.nama}')
 
     messages.success(request, f'Akun orang tua untuk {siswa.nama} dibuat. Username: {username} - Password: {password} (catat sekarang, password tidak akan ditampilkan lagi)')

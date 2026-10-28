@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
+from accounts.tenancy import SekolahManager
 from django.utils import timezone
 
 from kreasi.storage import private_storage  # penyimpanan privat yang sama dengan app kreasi
@@ -103,6 +104,7 @@ class Misi(models.Model):
 
 class PenugasanMisi(models.Model):
     """Guru menugaskan satu misi ke satu ruang kerja (kelas/mapel), opsional dikaitkan ke topik."""
+    objects = SekolahManager('ruang_kerja__sekolah')
 
     misi = models.ForeignKey(Misi, on_delete=models.CASCADE, related_name="penugasan")
     ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name="penugasan_misi")
@@ -131,6 +133,8 @@ class PenugasanMisi(models.Model):
 
 
 class PengerjaanMisi(models.Model):
+    objects = SekolahManager('siswa__sekolah')
+
     BERJALAN = "berjalan"
     MENUNGGU = "menunggu"
     SELESAI = "selesai"
@@ -224,6 +228,8 @@ def _path_foto(instance, filename):
 
 
 class CatatanMisi(models.Model):
+    objects = SekolahManager('pengerjaan__siswa__sekolah')
+
     pengerjaan = models.ForeignKey(PengerjaanMisi, on_delete=models.CASCADE, related_name="catatan")
     teks = models.TextField(blank=True)
     angka = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)

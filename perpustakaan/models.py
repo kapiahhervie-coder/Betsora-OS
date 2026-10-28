@@ -1,8 +1,12 @@
 from django.db import models
+from accounts.tenancy import SekolahManager
 from accounts.models import User, Siswa
 
 
 class AlbumAudio(models.Model):
+    objects = SekolahManager()
+
+    sekolah = models.ForeignKey('accounts.Sekolah', on_delete=models.PROTECT, null=True, blank=True)
     judul = models.CharField(max_length=150)
     deskripsi = models.TextField(blank=True)
     dibuat_oleh = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -16,6 +20,8 @@ class AlbumAudio(models.Model):
 
 
 class Audio(models.Model):
+    objects = SekolahManager('album__sekolah')
+
     album = models.ForeignKey(AlbumAudio, on_delete=models.CASCADE, related_name='audio_list')
     judul = models.CharField(max_length=150)
     file = models.FileField(upload_to='perpustakaan_audio/')
@@ -31,6 +37,9 @@ class Audio(models.Model):
 
 
 class Zona(models.Model):
+    objects = SekolahManager()
+
+    sekolah = models.ForeignKey('accounts.Sekolah', on_delete=models.PROTECT, null=True, blank=True)
     nama = models.CharField(max_length=100)
     ikon = models.CharField(max_length=10, blank=True, help_text='Emoji, contoh: (tempel manual di sini)')
     warna = models.CharField(max_length=20, default='#0B3D26')
@@ -47,6 +56,9 @@ class Zona(models.Model):
 
 
 class Lencana(models.Model):
+    objects = SekolahManager()
+
+    sekolah = models.ForeignKey('accounts.Sekolah', on_delete=models.PROTECT, null=True, blank=True)
     nama = models.CharField(max_length=100)
     ikon = models.CharField(max_length=10, blank=True)
     deskripsi = models.TextField(blank=True)
@@ -59,6 +71,8 @@ class Lencana(models.Model):
 
 
 class SumberDigital(models.Model):
+    objects = SekolahManager('zona__sekolah')
+
     JENIS_CHOICES = [
         ('TEKS', 'E-Book / Teks'),
         ('AUDIO', 'Audiobook'),
@@ -95,6 +109,8 @@ class SumberDigital(models.Model):
 
 
 class RefleksiSiswa(models.Model):
+    objects = SekolahManager('siswa__sekolah')
+
     JENIS_CHOICES = [
         ('TEKS', 'Teks'),
         ('AUDIO', 'Rekaman Suara'),
@@ -115,6 +131,8 @@ class RefleksiSiswa(models.Model):
 
 
 class LencanaDiperoleh(models.Model):
+    objects = SekolahManager('siswa__sekolah')
+
     siswa = models.ForeignKey('accounts.Siswa', on_delete=models.CASCADE, related_name='lencana_list')
     lencana = models.ForeignKey(Lencana, on_delete=models.CASCADE)
     sumber = models.ForeignKey(SumberDigital, on_delete=models.SET_NULL, null=True, blank=True)
@@ -129,6 +147,8 @@ class LencanaDiperoleh(models.Model):
 
 
 class HalamanSumber(models.Model):
+    objects = SekolahManager('sumber__zona__sekolah')
+
     sumber = models.ForeignKey(SumberDigital, on_delete=models.CASCADE, related_name='halaman_list')
     nomor = models.PositiveIntegerField()
     gambar = models.ImageField(upload_to='perpustakaan_halaman/')
@@ -144,6 +164,8 @@ class HalamanSumber(models.Model):
 
 
 class RiwayatBaca(models.Model):
+    objects = SekolahManager('siswa__sekolah')
+
     siswa = models.ForeignKey('accounts.Siswa', on_delete=models.CASCADE, related_name='riwayat_baca')
     sumber = models.ForeignKey(SumberDigital, on_delete=models.CASCADE, related_name='riwayat_baca')
     selesai_pada = models.DateTimeField(auto_now=True)
@@ -157,6 +179,8 @@ class RiwayatBaca(models.Model):
 
 
 class ProgresBaca(models.Model):
+    objects = SekolahManager('siswa__sekolah')
+
     siswa = models.ForeignKey('accounts.Siswa', on_delete=models.CASCADE, related_name='progres_baca')
     sumber = models.ForeignKey(SumberDigital, on_delete=models.CASCADE, related_name='progres_list')
     halaman_terakhir = models.PositiveIntegerField(default=1)
@@ -173,6 +197,8 @@ class ProgresBaca(models.Model):
 
 
 class Glosarium(models.Model):
+    objects = SekolahManager('sumber__zona__sekolah')
+
     sumber = models.ForeignKey(SumberDigital, on_delete=models.CASCADE, related_name='glosarium_list')
     istilah = models.CharField(max_length=100)
     arti = models.TextField()

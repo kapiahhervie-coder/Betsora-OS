@@ -3,6 +3,7 @@ from urllib.parse import parse_qs, urlparse
 
 from django.conf import settings
 from django.db import models
+from accounts.tenancy import SekolahManager
 from django.utils import timezone
 from accounts.models import Siswa
 
@@ -17,6 +18,8 @@ class KaryaSiswa(models.Model):
     Field 'dibagikan' mengatur visibilitas: False = hanya siswa itu sendiri
     dan guru yang bisa lihat; True = sesama siswa juga bisa lihat.
     """
+    objects = SekolahManager('siswa__sekolah')
+
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='karya')
     judul = models.CharField(max_length=150)
     deskripsi = models.TextField(blank=True)
@@ -83,6 +86,8 @@ class KaryaSiswa(models.Model):
 
 class LencanaDiraih(models.Model):
     """Catatan lencana yang sudah diraih siswa. Sekali diraih, tidak hilang walau data berubah."""
+    objects = SekolahManager('siswa__sekolah')
+
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='lencana_diraih')
     kode = models.CharField(max_length=30)
     diraih_pada = models.DateTimeField(default=timezone.now)
@@ -98,6 +103,8 @@ class LencanaDiraih(models.Model):
 
 class KomentarKarya(models.Model):
     """Komentar/apresiasi guru pada sebuah karya. Hanya staf yang menulis; dibaca pemilik, orang tuanya, dan staf."""
+    objects = SekolahManager('karya__siswa__sekolah')
+
     karya = models.ForeignKey(KaryaSiswa, on_delete=models.CASCADE, related_name='komentar')
     penulis = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='komentar_karya')
     teks = models.CharField(max_length=500)
@@ -113,6 +120,8 @@ class KomentarKarya(models.Model):
 
 class ProfilSiswa(models.Model):
     """Bio singkat siswa untuk halaman portofolio (teks saja, tanpa tautan luar)."""
+    objects = SekolahManager('siswa__sekolah')
+
     siswa = models.OneToOneField(Siswa, on_delete=models.CASCADE, related_name='profil_portofolio')
     bio = models.CharField(max_length=300, blank=True)
     diperbarui_pada = models.DateTimeField(auto_now=True)
@@ -126,6 +135,8 @@ class ProfilSiswa(models.Model):
 
 class Sertifikat(models.Model):
     """Sertifikat yang diterbitkan staf untuk seorang siswa. Dibaca pemilik, orang tuanya, dan staf."""
+    objects = SekolahManager('siswa__sekolah')
+
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='sertifikat')
     judul = models.CharField(max_length=120)
     keterangan = models.CharField(max_length=240, blank=True)

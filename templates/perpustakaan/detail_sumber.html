@@ -52,6 +52,7 @@ function catatSelesaiBaca(sumberId) {
       {% csrf_token %}
       <button type="submit" style="font-size:12px; background:none; border:none; color:#0369a1; cursor:pointer; padding:0; text-decoration:underline;">Buat tampilan komik dari PDF</button>
     </form>
+    <a href="{% url 'perpustakaan:kelola_narasi' sumber.id %}" style="font-size:12px; color:#0369a1; text-decoration:underline;">&#127908; Kelola Narasi Guru</a>
     {% endif %}
   </p>
   {% endif %}

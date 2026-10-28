@@ -21,13 +21,11 @@ from .izin import (
     siswa_dari_user,
 )
 from .models import CatatanMisi, Misi, PengerjaanMisi, PenugasanMisi
+from .ringkasan import nama_level
 
 
 def _level(jumlah_selesai):
-    for batas, nama in PengerjaanMisi.LEVEL:
-        if jumlah_selesai >= batas:
-            return nama
-    return PengerjaanMisi.LEVEL[-1][1]
+    return nama_level(jumlah_selesai)
 
 
 def _grafik(pengerjaan):

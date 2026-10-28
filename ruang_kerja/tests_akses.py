@@ -175,15 +175,21 @@ class AkunSiswa(Dasar):
         s = Siswa.objects.get(nis='5'); self.assertEqual((s.nama, s.kelas), ('Eka', 'X'))
 
     def test_username_bentrok_tidak_error_500(self):
+        """Sejak Tahap 2 nama pengguna yang bentrok tidak lagi ditolak: akun dibuat dengan awalan kode sekolah
+        (di sini siswa tanpa sekolah, awalannya 'x'). Yang penting: tidak ada error 500 dan akun lama utuh."""
         self.masuk(self.guru)
-        U('2', 'guru')                       # username sama dengan NIS siswa s2
+        lama = U('2', 'guru')                # username sama dengan NIS siswa s2
         r = self.client.post(url('buat_akun_siswa', self.s2.id))
         self.assertEqual(r.status_code, 302)
-        self.s2.refresh_from_db(); self.assertIsNone(self.s2.user)
+        self.s2.refresh_from_db()
+        self.assertIsNotNone(self.s2.user)
+        self.assertEqual(self.s2.user.username, 'x-2')
+        self.assertNotEqual(self.s2.user_id, lama.id)
         U('ortu2', 'guru')
         r = self.client.post(url('buat_akun_orangtua', self.s2.id))
         self.assertEqual(r.status_code, 302)
-        self.assertFalse(User.objects.filter(role='orangtua', anak=self.s2).exists())
+        ortu = User.objects.get(role='orangtua', anak=self.s2)
+        self.assertEqual(ortu.username, 'x-ortu2')
 
     def test_buat_akun_normal_masih_jalan(self):
         self.masuk(self.guru)

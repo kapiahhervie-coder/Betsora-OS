@@ -1,9 +1,12 @@
 from django.db import models
+from accounts.tenancy import SekolahManager
 from accounts.models import Siswa, User
 import datetime
 
 
 class Absensi(models.Model):
+    objects = SekolahManager('siswa__sekolah')
+
     STATUS = [('hadir', 'Hadir'), ('izin', 'Izin'), ('sakit', 'Sakit'), ('alpha', 'Alpha')]
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='absensi')
     tanggal = models.DateField(default=datetime.date.today)
@@ -20,6 +23,8 @@ class Absensi(models.Model):
 
 
 class Keaktifan(models.Model):
+    objects = SekolahManager('siswa__sekolah')
+
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='keaktifan')
     tanggal = models.DateField(default=datetime.date.today)
     poin = models.PositiveIntegerField(default=0)

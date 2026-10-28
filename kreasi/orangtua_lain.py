@@ -100,6 +100,19 @@ def ringkasan_tugas_untuk_orangtua(user):
 
 # ---------------------------------------------------------------- portofolio / galeri
 
+def _tautan_aman(url):
+    """Tautan yang boleh dijadikan href: hanya http/https dengan host. Selain itu '' (tidak ditampilkan)."""
+    from urllib.parse import urlparse
+
+    url = (url or '').strip()
+    try:
+        p = urlparse(url)
+        host = p.hostname
+    except ValueError:
+        return ''
+    return url if p.scheme in ('http', 'https') and host else ''
+
+
 def ringkasan_portofolio_untuk_orangtua(user, semua=False):
     siswa = _anak_orangtua(user)
     if siswa is None:
@@ -114,7 +127,7 @@ def ringkasan_portofolio_untuk_orangtua(user, semua=False):
         embed = k.get_video_embed() if k.video_url else ''
         hasil.append({
             'karya': k, 'is_image': k.is_image(),
-            'embed_aman': embed if embed and embed != k.video_url else '',   # hanya iframe utk youtube/gdrive yg cocok
-            'video_url_mentah': k.video_url if embed == k.video_url else '',  # selain itu, tautan biasa saja
+            'embed_aman': embed,   # get_video_embed() sudah memastikan YouTube/Drive yang sah
+            'video_url_mentah': _tautan_aman(k.video_url) if k.video_url and not embed else '',  # selain itu: tautan biasa, hanya http/https
         })
     return {'daftar': hasil, 'total': total, 'ada_lebih': total > len(daftar), 'semua': semua}
