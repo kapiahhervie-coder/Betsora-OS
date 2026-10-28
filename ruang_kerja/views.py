@@ -7,6 +7,17 @@ from django.db.models import Avg
 from .models import RuangKerja, Materi, SubMateri, Pengumuman, Tugas, SubmisiTugas, AnggotaRuangKerja, MataPelajaran, Kelas, CatatanRapor, RefleksiTopik, PenilaianTopik, SoalPG, OpsiPG, JawabanPG
 
 
+def _bukan_staf(user):
+    """True bila pengguna BUKAN staf (siswa, orang tua, atau belum login).
+
+    Sebelumnya banyak view hanya menolak role == 'siswa', sehingga orang tua lolos
+    sebagai "guru". Pemeriksaan ini menolak semua yang bukan guru/kepsek/admin.
+    """
+    if not user.is_authenticated:
+        return True
+    return not (user.is_staff_role() or user.is_superuser)
+
+
 def get_kelas_siswa(user):
     if hasattr(user, 'profil_siswa'):
         return user.profil_siswa.kelas
@@ -38,7 +49,7 @@ def daftar_ruang_kerja(request):
 @login_required
 def hapus_ruang_kerja(request, ruang_id):
     ruang = get_object_or_404(RuangKerja, id=ruang_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat menghapus ruang kerja.')
         return redirect('ruang_kerja:daftar')
     kelas_id = ruang.kelas_baru_id
@@ -154,7 +165,7 @@ def catat_item_dilihat(request, item_id):
 @login_required
 def tambah_materi(request, ruang_id):
     ruang = get_object_or_404(RuangKerja, id=ruang_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat menambah materi.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     if request.method == 'POST':
@@ -172,7 +183,7 @@ def tambah_materi(request, ruang_id):
 @login_required
 def tambah_pengumuman(request, ruang_id):
     ruang = get_object_or_404(RuangKerja, id=ruang_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat membuat pengumuman.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     if request.method == 'POST':
@@ -196,7 +207,7 @@ def _materi_dari_form(request, ruang):
 @login_required
 def tambah_tugas(request, ruang_id):
     ruang = get_object_or_404(RuangKerja, id=ruang_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat membuat tugas.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     if request.method == 'POST':
@@ -222,7 +233,7 @@ def tambah_tugas(request, ruang_id):
 def edit_tugas(request, tugas_id):
     tugas = get_object_or_404(Tugas, id=tugas_id)
     ruang = tugas.ruang_kerja
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat mengedit tugas.')
         return redirect('ruang_kerja:detail_tugas', tugas_id=tugas.id)
     if request.method == 'POST':
@@ -253,7 +264,7 @@ def edit_tugas(request, tugas_id):
 def hapus_tugas(request, tugas_id):
     tugas = get_object_or_404(Tugas, id=tugas_id)
     ruang_id = tugas.ruang_kerja.id
-    if not request.user.is_staff_role() and request.method == 'POST':
+    if not _bukan_staf(request.user) and request.method == 'POST':
         tugas.delete()
         messages.success(request, 'Tugas berhasil dihapus.')
     return redirect('ruang_kerja:detail', ruang_id=ruang_id)
@@ -340,7 +351,7 @@ def detail_tugas(request, tugas_id):
 @login_required
 def nilai_submisi(request, submisi_id):
     submisi = get_object_or_404(SubmisiTugas, id=submisi_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat memberi nilai.')
         return redirect('ruang_kerja:daftar')
     if request.method == 'POST':
@@ -401,7 +412,7 @@ def detail_diskusi(request, diskusi_id):
 def hapus_materi(request, materi_id):
     materi = get_object_or_404(Materi, id=materi_id)
     ruang_id = materi.ruang_kerja.id
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat menghapus materi.')
         return redirect('ruang_kerja:detail', ruang_id=ruang_id)
     if request.method == 'POST':
@@ -414,7 +425,7 @@ def hapus_materi(request, materi_id):
 def duplikat_materi(request, materi_id):
     materi = get_object_or_404(Materi, id=materi_id)
     ruang_id = materi.ruang_kerja.id
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat menduplikat materi.')
         return redirect('ruang_kerja:detail', ruang_id=ruang_id)
     if request.method == 'POST':
@@ -435,7 +446,7 @@ def duplikat_materi(request, materi_id):
 @login_required
 def tambah_topik(request, ruang_id):
     ruang = get_object_or_404(RuangKerja, id=ruang_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         return redirect('ruang_kerja:detail', ruang_id=ruang_id)
     if request.method == 'POST':
         judul = request.POST.get('judul', '').strip()
@@ -455,7 +466,7 @@ def tambah_topik(request, ruang_id):
 def hapus_topik(request, materi_id):
     materi = get_object_or_404(Materi, id=materi_id)
     ruang_id = materi.ruang_kerja.id
-    if not request.user.is_staff_role() and request.method == 'POST':
+    if not _bukan_staf(request.user) and request.method == 'POST':
         materi.delete()
     return redirect('ruang_kerja:detail', ruang_id=ruang_id)
 
@@ -485,7 +496,7 @@ def simpan_refleksi(request, materi_id):
 def penilaian_topik(request, materi_id):
     materi = get_object_or_404(Materi, id=materi_id)
     ruang = materi.ruang_kerja
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat mengisi penilaian.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
 
@@ -536,7 +547,7 @@ def simpan_penilaian_topik(request, materi_id, siswa_id):
     materi = get_object_or_404(Materi, id=materi_id)
     ruang = materi.ruang_kerja
     siswa = get_object_or_404(Siswa, id=siswa_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat mengisi penilaian.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     if request.method == 'POST':
@@ -565,7 +576,7 @@ def tambah_formatif(request, materi_id, siswa_id):
     materi = get_object_or_404(Materi, id=materi_id)
     ruang = materi.ruang_kerja
     siswa = get_object_or_404(Siswa, id=siswa_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat mengisi penilaian.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     if request.method == 'POST':
@@ -586,7 +597,7 @@ def tambah_formatif(request, materi_id, siswa_id):
 def hapus_formatif(request, penilaian_id):
     p = get_object_or_404(PenilaianTopik, id=penilaian_id, jenis='formatif')
     materi_id = p.materi_id
-    if not request.user.is_staff_role() and request.method == 'POST':
+    if not _bukan_staf(request.user) and request.method == 'POST':
         p.delete()
         messages.success(request, 'Nilai formatif dihapus.')
     return redirect('ruang_kerja:penilaian_topik', materi_id=materi_id)
@@ -597,7 +608,7 @@ def tambah_item(request, materi_id):
     from .models import SubMateri
     materi = get_object_or_404(Materi, id=materi_id)
     ruang = materi.ruang_kerja
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     if request.method == 'POST':
         urutan = materi.sub_materi.count()
@@ -624,7 +635,7 @@ def edit_item(request, item_id):
     item = get_object_or_404(SubMateri, id=item_id)
     materi = item.materi
     ruang = materi.ruang_kerja
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     if request.method == 'POST':
         item.judul = request.POST.get('judul', '')
@@ -648,7 +659,7 @@ def hapus_item(request, item_id):
     from .models import SubMateri
     item = get_object_or_404(SubMateri, id=item_id)
     ruang_id = item.materi.ruang_kerja.id
-    if not request.user.is_staff_role() and request.method == 'POST':
+    if not _bukan_staf(request.user) and request.method == 'POST':
         item.delete()
     return redirect('ruang_kerja:detail', ruang_id=ruang_id)
 
@@ -660,7 +671,7 @@ def hapus_item(request, item_id):
 @login_required
 def kelola_anggota(request, ruang_id):
     ruang = get_object_or_404(RuangKerja, id=ruang_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat mengelola anggota.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
 
@@ -692,7 +703,7 @@ def kelola_anggota(request, ruang_id):
 @login_required
 def tambah_anggota(request, ruang_id):
     ruang = get_object_or_404(RuangKerja, id=ruang_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat menambah anggota.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     if request.method == 'POST':
@@ -718,7 +729,7 @@ def tambah_anggota(request, ruang_id):
 def hapus_anggota(request, anggota_id):
     anggota = get_object_or_404(AnggotaRuangKerja, id=anggota_id)
     ruang_id = anggota.ruang_kerja.id
-    if not request.user.is_staff_role() and request.method == 'POST':
+    if not _bukan_staf(request.user) and request.method == 'POST':
         nama = anggota.siswa.nama
         anggota.delete()
         messages.success(request, f'{nama} dikeluarkan dari ruang kerja.')
@@ -731,7 +742,7 @@ def hapus_anggota(request, anggota_id):
 
 @login_required
 def kelola_mapel(request):
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat mengelola mata pelajaran.')
         return redirect('ruang_kerja:daftar')
     mapel_list = MataPelajaran.objects.all()
@@ -740,7 +751,7 @@ def kelola_mapel(request):
 
 @login_required
 def tambah_mapel(request):
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat menambah mata pelajaran.')
         return redirect('ruang_kerja:daftar')
     if request.method == 'POST':
@@ -759,7 +770,7 @@ def tambah_mapel(request):
 @login_required
 def hapus_mapel(request, mapel_id):
     mapel = get_object_or_404(MataPelajaran, id=mapel_id)
-    if not request.user.is_staff_role() and request.method == 'POST':
+    if not _bukan_staf(request.user) and request.method == 'POST':
         if RuangKerja.objects.filter(mapel=mapel.nama).exists():
             messages.error(request, f'"{mapel.nama}" tidak bisa dihapus karena masih dipakai di ruang kerja yang ada.')
         else:
@@ -769,7 +780,7 @@ def hapus_mapel(request, mapel_id):
 
 @login_required
 def kelola_kelas(request):
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat mengelola kelas.')
         return redirect('ruang_kerja:daftar')
     kelas_qs = Kelas.objects.all()
@@ -778,7 +789,7 @@ def kelola_kelas(request):
 
 @login_required
 def tambah_kelas(request):
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat menambah kelas.')
         return redirect('ruang_kerja:daftar')
     if request.method == 'POST':
@@ -795,7 +806,7 @@ def tambah_kelas(request):
 @login_required
 def hapus_kelas(request, kelas_id):
     kelas_obj = get_object_or_404(Kelas, id=kelas_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat menghapus kelas.')
         return redirect('ruang_kerja:kelola_kelas')
     if request.method == 'POST':
@@ -823,7 +834,7 @@ def detail_kelas(request, kelas_id):
 @login_required
 def tambah_mapel_kelas(request, kelas_id):
     kelas_obj = get_object_or_404(Kelas, id=kelas_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat menambah mata pelajaran.')
         return redirect('ruang_kerja:detail_kelas', kelas_id=kelas_obj.id)
     mapel_list = MataPelajaran.objects.all()
@@ -894,16 +905,21 @@ def _draft_akademik(ruang, siswa, rata2):
     return kalimat
 
 def generate_draft_komentar(ruang, siswa, rata2):
-    """Draf narasi rapor: bagian akademik (mastery topik) + bagian Tugas Kreasi (skor rubrik)."""
+    """Draf narasi rapor: akademik (mastery topik) + Tugas Kreasi (skor rubrik) + Misi Dunia Nyata."""
     from kreasi.narasi import susun_narasi_kreasi
+    from misi.ringkasan import narasi_misi
     akademik = _draft_akademik(ruang, siswa, rata2)
     kreasi = susun_narasi_kreasi(ruang, siswa)
-    if not kreasi:
+    misi = narasi_misi(siswa, ruang)
+    if not (kreasi or misi):
         return akademik
     ada_topik = any(t.hitung_mastery(siswa) is not None for t in ruang.materi.all())
-    if not ada_topik:          # kelas yang hanya memakai Tugas Kreasi
-        return kreasi
-    return akademik + '\n\n' + kreasi
+    bagian = [akademik] if ada_topik else []   # kelas tanpa nilai topik: akademik dilewati
+    if kreasi:
+        bagian.append(kreasi)
+    if misi:
+        bagian.append(misi)
+    return '\n\n'.join(bagian)
 
 
 def generate_draft_fisik_motorik(ruang, siswa):
@@ -915,7 +931,7 @@ def generate_draft_fisik_motorik(ruang, siswa):
 @login_required
 def rapor_ruang_kerja(request, ruang_id):
     ruang = get_object_or_404(RuangKerja, id=ruang_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat melihat halaman rapor kelas.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
 
@@ -952,7 +968,7 @@ def rapor_ruang_kerja(request, ruang_id):
 def simpan_catatan_rapor(request, ruang_id, siswa_id):
     ruang = get_object_or_404(RuangKerja, id=ruang_id)
     siswa = get_object_or_404(Siswa, id=siswa_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat mengisi catatan rapor.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     if request.method == 'POST':
@@ -1015,6 +1031,7 @@ def rapor_siswa(request, ruang_id, siswa_id):
     rata2_mastery = round(sum(mastery_values) / len(mastery_values), 1) if mastery_values else None
     jumlah_topik_mastered = sum(1 for item in penilaian_topik_list if item['is_mastered'])
 
+    from misi.ringkasan import ringkasan_rapor
     return render(request, 'ruang_kerja/rapor_siswa.html', {
         'ruang': ruang,
         'siswa': siswa,
@@ -1027,13 +1044,14 @@ def rapor_siswa(request, ruang_id, siswa_id):
         'rata2_mastery': rata2_mastery,
         'jumlah_topik_mastered': jumlah_topik_mastered,
         'total_topik_dinilai': len(penilaian_topik_list),
+        'misi_rapor': ringkasan_rapor(siswa, ruang),
     })
 
 
 @login_required
 def kelola_soal(request, tugas_id):
     tugas = get_object_or_404(Tugas, id=tugas_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         return redirect('ruang_kerja:detail', ruang_id=tugas.ruang_kerja.id)
     soal_list = tugas.soal_pg.prefetch_related('opsi').all()
     return render(request, 'ruang_kerja/kelola_soal.html', {
@@ -1044,7 +1062,7 @@ def kelola_soal(request, tugas_id):
 @login_required
 def tambah_soal(request, tugas_id):
     tugas = get_object_or_404(Tugas, id=tugas_id)
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         return redirect('ruang_kerja:detail', ruang_id=tugas.ruang_kerja.id)
     if request.method == 'POST':
         urutan = tugas.soal_pg.count()
@@ -1070,7 +1088,7 @@ def tambah_soal(request, tugas_id):
 def hapus_soal(request, soal_id):
     soal = get_object_or_404(SoalPG, id=soal_id)
     tugas_id = soal.tugas.id
-    if request.user.is_staff_role() and request.method == 'POST':
+    if not _bukan_staf(request.user) and request.method == 'POST':
         soal.delete()
         messages.success(request, 'Soal berhasil dihapus.')
     return redirect('ruang_kerja:kelola_soal', tugas_id=tugas_id)
@@ -1080,7 +1098,7 @@ def hapus_soal(request, soal_id):
 def izinkan_ulang(request, submisi_id):
     submisi = get_object_or_404(SubmisiTugas, id=submisi_id)
     tugas = submisi.tugas
-    if request.user.role == 'siswa':
+    if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat mengizinkan pengerjaan ulang.')
         return redirect('ruang_kerja:detail', ruang_id=tugas.ruang_kerja.id)
     if request.method == 'POST':

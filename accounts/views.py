@@ -52,9 +52,22 @@ def tambah_siswa(request):
         messages.error(request, 'Anda tidak punya akses ke halaman ini.')
         return redirect('kelas:dashboard')
     if request.method == 'POST':
+        nama = request.POST.get('nama', '').strip()
+        nis = request.POST.get('nis', '').strip()
+        kelas = request.POST.get('kelas', '').strip()
+        galat = None
+        if not (nama and nis and kelas):
+            galat = 'Nama, NIS, dan kelas wajib diisi.'
+        elif len(nama) > 100 or len(nis) > 20 or len(kelas) > 10:
+            galat = 'Nama maksimal 100 karakter, NIS 20, kelas 10.'
+        elif Siswa.objects.filter(nis=nis).exists():
+            galat = f'NIS {nis} sudah terdaftar.'
+        if galat:
+            messages.error(request, galat)
+            return render(request, 'accounts/tambah_siswa.html')
         Siswa.objects.create(
-            nama=request.POST['nama'], nis=request.POST['nis'], kelas=request.POST['kelas'],
-            no_ortu=request.POST.get('no_ortu', ''), alamat=request.POST.get('alamat', '')
+            nama=nama, nis=nis, kelas=kelas,
+            no_ortu=request.POST.get('no_ortu', '').strip()[:20], alamat=request.POST.get('alamat', '')
         )
         messages.success(request, 'Siswa berhasil ditambahkan.')
         return redirect('accounts:daftar_siswa')
@@ -74,6 +87,9 @@ def buat_akun_siswa(request, siswa_id):
     username = siswa.nis
     password = get_random_string(8, allowed_chars='abcdefghjkmnpqrstuvwxyz23456789')
 
+    if User.objects.filter(username=username).exists():
+        messages.error(request, f'Nama pengguna {username} sudah dipakai akun lain.')
+        return redirect('accounts:daftar_siswa')
     user = User.objects.create_user(username=username, password=password, role='siswa', first_name=siswa.nama)
     siswa.user = user
     siswa.save()
@@ -114,6 +130,9 @@ def buat_akun_orangtua(request, siswa_id):
     username = f'ortu{siswa.nis}'
     password = get_random_string(8, allowed_chars='abcdefghjkmnpqrstuvwxyz23456789')
 
+    if User.objects.filter(username=username).exists():
+        messages.error(request, f'Nama pengguna {username} sudah dipakai akun lain.')
+        return redirect('accounts:daftar_siswa')
     User.objects.create_user(username=username, password=password, role='orangtua', anak=siswa, first_name=f'Orang Tua {siswa.nama}')
 
     messages.success(request, f'Akun orang tua untuk {siswa.nama} dibuat. Username: {username} - Password: {password} (catat sekarang, password tidak akan ditampilkan lagi)')
