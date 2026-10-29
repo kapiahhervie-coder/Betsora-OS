@@ -1,4 +1,4 @@
-"""Tes penyaji /media/ berizin (Tahap 4): berkas sekolah lain, guru lain, dan siswa lain tidak dapat diunduh."""
+﻿"""Tes penyaji /media/ berizin (Tahap 4): berkas sekolah lain, guru lain, dan siswa lain tidak dapat diunduh."""
 import shutil
 import tempfile
 
@@ -22,6 +22,12 @@ def _isi(client, url):
     if r.status_code == 200:
         return r.status_code, b''.join(r.streaming_content) if r.streaming else r.content, r
     return r.status_code, b'', r
+
+
+def _tutup(r):
+    berkas = getattr(r, 'file_to_stream', None)
+    if berkas is not None:
+        berkas.close()
 
 
 @override_settings(MEDIA_ROOT=_MEDIA)
@@ -65,7 +71,7 @@ class MediaBerizinTest(TestCase):
         self.client.force_login(akun)
         r = self.client.get(self.url(berkas))
         if r.status_code == 200 and getattr(r, 'streaming', False):
-            r.close()
+            _tutup(r)
         return r.status_code
 
     def test_harus_login(self):
@@ -112,7 +118,7 @@ class MediaBerizinTest(TestCase):
         self.client.force_login(su)
         r = self.client.get('/media/sisa-lama.txt')
         self.assertEqual(r.status_code, 200)
-        r.close()
+        _tutup(r)
 
     def test_superuser_membuka_berkas_semua_sekolah(self):
         su = User.objects.create_superuser('platform2', password='x')
@@ -130,11 +136,11 @@ class MediaBerizinTest(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r['Content-Disposition'], 'attachment')
         self.assertEqual(r['X-Content-Type-Options'], 'nosniff')
-        r.close()
+        _tutup(r)
         r = self.client.get(self.url(self.a['sis1'].foto))
         self.assertEqual(r['X-Content-Type-Options'], 'nosniff')
         self.assertTrue(r['Cache-Control'].startswith('private'))
-        r.close()
+        _tutup(r)
 
     def test_sekolah_nonaktif_tidak_dapat_membuka(self):
         s = self.a['s']
@@ -151,3 +157,4 @@ class MediaBerizinTest(TestCase):
             self.assertIn(harus, nama)
         self.assertNotIn(('KaryaSiswa', 'file'), nama)           # penyaji portofolio sendiri
         self.assertNotIn(('LampiranKarya', 'file'), nama)        # penyimpanan privat
+
