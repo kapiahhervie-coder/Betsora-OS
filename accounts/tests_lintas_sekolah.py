@@ -220,11 +220,95 @@ class _Dasar(TestCase):
 
 
 def isi_tambahan(d, tanda, tanda2):
-    """KAIT PERLUASAN. Tambahkan di sini data bertanda untuk model lain (portofolio, karya kreasi, kuis, misi,
-    pesan, perpustakaan, rapor). Pakai `tanda` untuk data siswa 1 dan `tanda2` untuk data siswa 2 pada sekolah
-    yang sama. Makin banyak model terisi, makin kuat uji sapuannya. Tidak diisi pun, uji tetap berjalan."""
-    return None
+    """Data bertanda untuk kreasi, kuis, misi, pesan, perpustakaan, penilaian, dan portofolio.
+    `tanda` = data siswa 1, `tanda2` = data siswa 2 (sekolah yang sama). Data perpustakaan milik sekolah, jadi
+    memakai tanda netral di Alfa (boleh dilihat satu sekolah) dan TANDA_BETA di Beta. Setiap blok dibungkus
+    savepoint; kegagalan dicatat di d['galat_seed'] dan dilaporkan oleh IsiTandaTest."""
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    d['galat_seed'] = []
+    s, g1, g2, u1, u2, sis1, sis2 = d['s'], d['g1'], d['g2'], d['u1'], d['u2'], d['sis1'], d['sis2']
+    j1 = SubmisiTugas.objects.get(tugas=d['t1'], siswa=sis1)
+    j2 = SubmisiTugas.objects.get(tugas=d['t2'], siswa=sis2)
+    pasangan = ((sis1, u1, g1, d['r1'], d['m1'], j1, tanda, '4'), (sis2, u2, g2, d['r2'], d['m2'], j2, tanda2, '5'))
+    pustaka = TANDA_BETA if 'BETA' in tanda else 'PERPUS-ALFA'
 
+    def blok(nama):
+        class _B:
+            def __enter__(self_):
+                self_.sp = transaction.atomic()
+                self_.sp.__enter__()
+
+            def __exit__(self_, tipe, nilai, tb):
+                if tipe is not None:
+                    self_.sp.__exit__(tipe, nilai, tb)
+                    d['galat_seed'].append(f'{nama}: {tipe.__name__}: {nilai}')
+                    return True
+                self_.sp.__exit__(None, None, None)
+        return _B()
+
+    with blok('kreasi'):
+        from kreasi.models import DimensiPenilaian, LampiranKarya, RefleksiKarya, SkorDimensi
+        dim, _ = DimensiPenilaian.objects.get_or_create(jenjang='sd', kode='uji-lintas', defaults={'nama': 'Uji lintas'})
+        for sis, u, g, r, m, j, t, kls in pasangan:
+            LampiranKarya.objects.create(submisi=j, tipe='link', url='https://example.com/x',
+                                         nama_asli=f'{t}-lampiran', keterangan=f'{t}-keterangan')
+            RefleksiKarya.objects.create(submisi=j, tipe='teks_terbimbing', jawaban={'q1': f'{t}-refleksi'},
+                                         transkrip=f'{t}-transkrip')
+            SkorDimensi.objects.create(submisi=j, dimensi=dim, level=2, catatan=f'{t}-skor', dinilai_oleh=g)
+
+    with blok('kuis'):
+        from kuis.models import Kuis, Soal
+        for sis, u, g, r, m, j, t, kls in pasangan:
+            k = Kuis.objects.create(judul=f'{t}-kuis', pembuat=g, dibagikan=False)
+            Soal.objects.create(kuis=k, teks=f'{t}-soal', pilihan=['a', 'b', 'c', 'd'], jawaban_benar=0,
+                                petunjuk=f'{t}-petunjuk')
+
+    with blok('misi'):
+        from misi.models import CatatanMisi, Misi, PengerjaanMisi, PenugasanMisi
+        misi, _ = Misi.objects.get_or_create(slug='uji-lintas', defaults=dict(
+            judul='Misi uji', kategori='sains', ringkasan='x', langkah='a', pertanyaan_refleksi='x', judul_kartu='x'))
+        for sis, u, g, r, m, j, t, kls in pasangan:
+            pen = PenugasanMisi.objects.create(misi=misi, ruang_kerja=r, materi=m, ditugaskan_oleh=g)
+            pk = PengerjaanMisi.objects.create(siswa=sis, misi=misi, penugasan=pen, refleksi=f'{t}-refleksi-misi')
+            CatatanMisi.objects.create(pengerjaan=pk, teks=f'{t}-catatan-misi')
+
+    with blok('pesan'):
+        from pesan.models import Percakapan, PesanPribadi
+        for sis, u, g, r, m, j, t, kls in pasangan:
+            pc = Percakapan.objects.create(peserta_1=g, peserta_2=u)
+            PesanPribadi.objects.create(percakapan=pc, pengirim=g, isi=f'{t}-pesan')
+
+    with blok('perpustakaan'):
+        from perpustakaan.models import (AlbumAudio, Audio, Glosarium, HalamanSumber, Lencana, LencanaDiperoleh,
+                                         ProgresBaca, RefleksiSiswa, RiwayatBaca, SumberDigital, Zona)
+        album = AlbumAudio.objects.create(sekolah=s, judul=f'{pustaka}-album', dibuat_oleh=g1)
+        Audio.objects.create(album=album, judul=f'{pustaka}-audio', file=SimpleUploadedFile('a.mp3', b'ID3'))
+        zona = Zona.objects.create(sekolah=s, nama=f'{pustaka}-zona', dibuat_oleh=g1)
+        lencana = Lencana.objects.create(sekolah=s, nama=f'{pustaka}-lencana')
+        sumber = SumberDigital.objects.create(zona=zona, judul=f'{pustaka}-sumber', deskripsi=f'{pustaka}-desk',
+                                              lencana_hadiah=lencana, diunggah_oleh=g1)
+        HalamanSumber.objects.create(sumber=sumber, nomor=1, teks=f'{pustaka}-halaman',
+                                     gambar=SimpleUploadedFile('h.png', b'\x89PNG'))
+        Glosarium.objects.create(sumber=sumber, istilah=f'{pustaka}-istilah', arti=f'{pustaka}-arti')
+        for sis, u, g, r, m, j, t, kls in pasangan:
+            RefleksiSiswa.objects.create(siswa=sis, sumber=sumber, jenis='TEKS', teks=f'{t}-refleksi-pustaka')
+            RiwayatBaca.objects.create(siswa=sis, sumber=sumber)
+            ProgresBaca.objects.create(siswa=sis, sumber=sumber, halaman_terakhir=1, total_halaman=1)
+            LencanaDiperoleh.objects.create(siswa=sis, lencana=lencana, sumber=sumber)
+
+    with blok('penilaian'):
+        from penilaian.models import Nilai, SesiPenilaian
+        for sis, u, g, r, m, j, t, kls in pasangan:
+            sesi = SesiPenilaian.objects.create(sekolah=s, mapel='IPA', jenis='formatif', topik=f'{t}-topik',
+                                                kelas=kls, guru=g)
+            Nilai.objects.create(sesi=sesi, siswa=sis, skor=80, catatan=f'{t}-catatan-nilai')
+
+    with blok('portofolio'):
+        from portofolio.models import KaryaSiswa
+        for sis, u, g, r, m, j, t, kls in pasangan:
+            KaryaSiswa.objects.create(siswa=sis, judul=f'{t}-karya', deskripsi=f'{t}-deskripsi',
+                                      video_url='https://www.youtube.com/watch?v=abcdefghijk',
+                                      dibagikan=False, refleksi=f'{t}-refleksi-karya')
 
 class SapuGetTest(_Dasar):
     def test_alamat_ada(self):
@@ -309,3 +393,10 @@ class SapuTulisTest(_Dasar):
             self.sapu(self.klien(akun), 'post', [], ids, bocor, hitung)
         for n in nama:
             self.assertTrue(os.path.exists(os.path.join(_MEDIA, n)), n)
+
+
+class IsiTandaTest(_Dasar):
+    def test_seluruh_data_bertanda_berhasil_dibuat(self):
+        """Kalau gagal, ada model yang tidak terisi sehingga sapuan tidak menjangkaunya. Perbaiki fungsi isi_tambahan."""
+        self.assertEqual(self.a['galat_seed'], [])
+        self.assertEqual(self.b['galat_seed'], [])
