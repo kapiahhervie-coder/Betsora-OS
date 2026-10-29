@@ -104,7 +104,7 @@ class Misi(models.Model):
 
 class PenugasanMisi(models.Model):
     """Guru menugaskan satu misi ke satu ruang kerja (kelas/mapel), opsional dikaitkan ke topik."""
-    objects = SekolahManager('ruang_kerja__sekolah')
+    objects = SekolahManager('ruang_kerja__sekolah', guru=('ruang', 'ruang_kerja'))
 
     misi = models.ForeignKey(Misi, on_delete=models.CASCADE, related_name="penugasan")
     ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name="penugasan_misi")
@@ -133,7 +133,7 @@ class PenugasanMisi(models.Model):
 
 
 class PengerjaanMisi(models.Model):
-    objects = SekolahManager('siswa__sekolah')
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
 
     BERJALAN = "berjalan"
     MENUNGGU = "menunggu"
@@ -228,7 +228,7 @@ def _path_foto(instance, filename):
 
 
 class CatatanMisi(models.Model):
-    objects = SekolahManager('pengerjaan__siswa__sekolah')
+    objects = SekolahManager('pengerjaan__siswa__sekolah', guru=('siswa', 'pengerjaan__siswa'))
 
     pengerjaan = models.ForeignKey(PengerjaanMisi, on_delete=models.CASCADE, related_name="catatan")
     teks = models.TextField(blank=True)

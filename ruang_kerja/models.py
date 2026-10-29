@@ -34,7 +34,7 @@ class Kelas(models.Model):
 
 
 class RuangKerja(models.Model):
-    objects = SekolahManager()
+    objects = SekolahManager(guru=('ruang', ''))
 
     sekolah = models.ForeignKey('accounts.Sekolah', on_delete=models.PROTECT, null=True, blank=True)
     mapel = models.CharField(max_length=50)
@@ -68,7 +68,7 @@ class RuangKerja(models.Model):
 
 
 class Materi(models.Model):
-    objects = SekolahManager('ruang_kerja__sekolah')
+    objects = SekolahManager('ruang_kerja__sekolah', guru=('ruang', 'ruang_kerja'))
 
     ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name='materi')
     judul = models.CharField(max_length=150)
@@ -169,7 +169,7 @@ class Materi(models.Model):
 
 
 class SubMateri(models.Model):
-    objects = SekolahManager('materi__ruang_kerja__sekolah')
+    objects = SekolahManager('materi__ruang_kerja__sekolah', guru=('ruang', 'materi__ruang_kerja'))
 
     materi = models.ForeignKey(Materi, on_delete=models.CASCADE, related_name='sub_materi')
     judul = models.CharField(max_length=150)
@@ -211,7 +211,7 @@ class SubMateri(models.Model):
 
 
 class Pengumuman(models.Model):
-    objects = SekolahManager('ruang_kerja__sekolah')
+    objects = SekolahManager('ruang_kerja__sekolah', guru=('ruang', 'ruang_kerja'))
 
     ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name='pengumuman')
     isi = models.TextField()
@@ -226,7 +226,7 @@ class Pengumuman(models.Model):
 
 
 class Tugas(models.Model):
-    objects = SekolahManager('ruang_kerja__sekolah')
+    objects = SekolahManager('ruang_kerja__sekolah', guru=('ruang', 'ruang_kerja'))
 
     JENIS_CHOICES = [
         ('esai', 'Esai / Upload File'),
@@ -258,7 +258,7 @@ class Tugas(models.Model):
 
 
 class SubmisiTugas(models.Model):
-    objects = SekolahManager('tugas__ruang_kerja__sekolah')
+    objects = SekolahManager('tugas__ruang_kerja__sekolah', guru=('ruang', 'tugas__ruang_kerja'))
 
     tugas = models.ForeignKey(Tugas, on_delete=models.CASCADE, related_name='submisi')
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='submisi_tugas')
@@ -279,7 +279,7 @@ class SubmisiTugas(models.Model):
 
 
 class Diskusi(models.Model):
-    objects = SekolahManager('ruang_kerja__sekolah')
+    objects = SekolahManager('ruang_kerja__sekolah', guru=('ruang', 'ruang_kerja'))
 
     ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name='diskusi')
     judul = models.CharField(max_length=200)
@@ -296,7 +296,7 @@ class Diskusi(models.Model):
 
 
 class KomentarDiskusi(models.Model):
-    objects = SekolahManager('diskusi__ruang_kerja__sekolah')
+    objects = SekolahManager('diskusi__ruang_kerja__sekolah', guru=('ruang', 'diskusi__ruang_kerja'))
 
     diskusi = models.ForeignKey(Diskusi, on_delete=models.CASCADE, related_name='komentar')
     isi = models.TextField()
@@ -311,7 +311,7 @@ class KomentarDiskusi(models.Model):
 
 
 class PesanChat(models.Model):
-    objects = SekolahManager('ruang_kerja__sekolah')
+    objects = SekolahManager('ruang_kerja__sekolah', guru=('ruang', 'ruang_kerja'))
 
     ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name='pesan_chat')
     isi = models.TextField()
@@ -326,7 +326,7 @@ class PesanChat(models.Model):
 
 
 class StatusBaca(models.Model):
-    objects = SekolahManager('ruang_kerja__sekolah')
+    objects = SekolahManager('ruang_kerja__sekolah', guru=('ruang', 'ruang_kerja'))
 
     ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name='status_baca')
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='status_baca_ruang_kerja')
@@ -340,7 +340,7 @@ class StatusBaca(models.Model):
 
 
 class AnggotaRuangKerja(models.Model):
-    objects = SekolahManager('ruang_kerja__sekolah')
+    objects = SekolahManager('ruang_kerja__sekolah', guru=('ruang', 'ruang_kerja'))
 
     ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name='anggota')
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='ruang_kerja_diikuti')
@@ -376,7 +376,7 @@ class MataPelajaran(models.Model):
 
 class RefleksiTopik(models.Model):
     """Refleksi siswa untuk satu topik (Materi), diisi setelah mempelajari topik tersebut."""
-    objects = SekolahManager('materi__ruang_kerja__sekolah')
+    objects = SekolahManager('materi__ruang_kerja__sekolah', guru=('ruang', 'materi__ruang_kerja'))
 
     materi = models.ForeignKey(Materi, on_delete=models.CASCADE, related_name='refleksi')
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='refleksi_topik')
@@ -394,7 +394,7 @@ class PenilaianTopik(models.Model):
     """Penilaian formatif/sumatif/remedial per siswa untuk satu topik, terpisah dari Tugas.
     Formatif boleh berkali-kali (banyak baris), Sumatif & Remedial biasanya satu baris per siswa
     (diatur di level aplikasi/view, bukan database)."""
-    objects = SekolahManager('materi__ruang_kerja__sekolah')
+    objects = SekolahManager('materi__ruang_kerja__sekolah', guru=('ruang', 'materi__ruang_kerja'))
 
     JENIS_CHOICES = [
         ('formatif', 'Formatif'),
@@ -418,7 +418,7 @@ class PenilaianTopik(models.Model):
 
 
 class CatatanRapor(models.Model):
-    objects = SekolahManager('ruang_kerja__sekolah')
+    objects = SekolahManager('ruang_kerja__sekolah', guru=('ruang', 'ruang_kerja'))
 
     ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name='catatan_rapor')
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='catatan_rapor')
@@ -436,7 +436,7 @@ class CatatanRapor(models.Model):
 
 
 class SoalPG(models.Model):
-    objects = SekolahManager('tugas__ruang_kerja__sekolah')
+    objects = SekolahManager('tugas__ruang_kerja__sekolah', guru=('ruang', 'tugas__ruang_kerja'))
 
     tugas = models.ForeignKey(Tugas, on_delete=models.CASCADE, related_name='soal_pg')
     pertanyaan = models.TextField()
@@ -450,7 +450,7 @@ class SoalPG(models.Model):
 
 
 class OpsiPG(models.Model):
-    objects = SekolahManager('soal__tugas__ruang_kerja__sekolah')
+    objects = SekolahManager('soal__tugas__ruang_kerja__sekolah', guru=('ruang', 'soal__tugas__ruang_kerja'))
 
     soal = models.ForeignKey(SoalPG, on_delete=models.CASCADE, related_name='opsi')
     teks = models.CharField(max_length=255)
@@ -461,7 +461,7 @@ class OpsiPG(models.Model):
 
 
 class JawabanPG(models.Model):
-    objects = SekolahManager('soal__tugas__ruang_kerja__sekolah')
+    objects = SekolahManager('soal__tugas__ruang_kerja__sekolah', guru=('ruang', 'soal__tugas__ruang_kerja'))
 
     soal = models.ForeignKey(SoalPG, on_delete=models.CASCADE, related_name='jawaban')
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='jawaban_pg')
@@ -480,7 +480,7 @@ class MateriPrasyarat(models.Model):
     Relasi prasyarat antar topik (Materi). Guru menentukan manual topik mana
     harus tuntas dulu sebelum topik lain bisa diakses siswa.
     """
-    objects = SekolahManager('materi__ruang_kerja__sekolah')
+    objects = SekolahManager('materi__ruang_kerja__sekolah', guru=('ruang', 'materi__ruang_kerja'))
 
     materi = models.ForeignKey(Materi, on_delete=models.CASCADE, related_name='prasyarat')
     prasyarat = models.ForeignKey(Materi, on_delete=models.CASCADE, related_name='membuka')
@@ -504,7 +504,7 @@ class MateriPrasyarat(models.Model):
 
 class ProgresItem(models.Model):
     """Mencatat item materi yang sudah dibuka/dilihat siswa (syarat membuka topik berikutnya)."""
-    objects = SekolahManager('sub_materi__materi__ruang_kerja__sekolah')
+    objects = SekolahManager('sub_materi__materi__ruang_kerja__sekolah', guru=('ruang', 'sub_materi__materi__ruang_kerja'))
 
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='progres_item')
     sub_materi = models.ForeignKey(SubMateri, on_delete=models.CASCADE, related_name='progres')

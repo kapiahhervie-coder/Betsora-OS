@@ -5,7 +5,7 @@ import datetime
 
 
 class SesiPenilaian(models.Model):
-    objects = SekolahManager()
+    objects = SekolahManager(guru=('ruang', ''))
 
     sekolah = models.ForeignKey('accounts.Sekolah', on_delete=models.PROTECT, null=True, blank=True)
     JENIS = [('formatif', 'Formatif'), ('sumatif', 'Sumatif')]
@@ -28,7 +28,7 @@ class SesiPenilaian(models.Model):
 
 
 class Nilai(models.Model):
-    objects = SekolahManager('siswa__sekolah')
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
 
     sesi = models.ForeignKey(SesiPenilaian, on_delete=models.CASCADE)
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='nilai')

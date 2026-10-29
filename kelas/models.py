@@ -5,7 +5,7 @@ import datetime
 
 
 class Absensi(models.Model):
-    objects = SekolahManager('siswa__sekolah')
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
 
     STATUS = [('hadir', 'Hadir'), ('izin', 'Izin'), ('sakit', 'Sakit'), ('alpha', 'Alpha')]
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='absensi')
@@ -23,7 +23,7 @@ class Absensi(models.Model):
 
 
 class Keaktifan(models.Model):
-    objects = SekolahManager('siswa__sekolah')
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
 
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='keaktifan')
     tanggal = models.DateField(default=datetime.date.today)

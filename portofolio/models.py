@@ -18,7 +18,7 @@ class KaryaSiswa(models.Model):
     Field 'dibagikan' mengatur visibilitas: False = hanya siswa itu sendiri
     dan guru yang bisa lihat; True = sesama siswa juga bisa lihat.
     """
-    objects = SekolahManager('siswa__sekolah')
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
 
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='karya')
     judul = models.CharField(max_length=150)
@@ -86,7 +86,7 @@ class KaryaSiswa(models.Model):
 
 class LencanaDiraih(models.Model):
     """Catatan lencana yang sudah diraih siswa. Sekali diraih, tidak hilang walau data berubah."""
-    objects = SekolahManager('siswa__sekolah')
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
 
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='lencana_diraih')
     kode = models.CharField(max_length=30)
@@ -103,7 +103,7 @@ class LencanaDiraih(models.Model):
 
 class KomentarKarya(models.Model):
     """Komentar/apresiasi guru pada sebuah karya. Hanya staf yang menulis; dibaca pemilik, orang tuanya, dan staf."""
-    objects = SekolahManager('karya__siswa__sekolah')
+    objects = SekolahManager('karya__siswa__sekolah', guru=('siswa', 'karya__siswa'))
 
     karya = models.ForeignKey(KaryaSiswa, on_delete=models.CASCADE, related_name='komentar')
     penulis = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='komentar_karya')
@@ -120,7 +120,7 @@ class KomentarKarya(models.Model):
 
 class ProfilSiswa(models.Model):
     """Bio singkat siswa untuk halaman portofolio (teks saja, tanpa tautan luar)."""
-    objects = SekolahManager('siswa__sekolah')
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
 
     siswa = models.OneToOneField(Siswa, on_delete=models.CASCADE, related_name='profil_portofolio')
     bio = models.CharField(max_length=300, blank=True)
@@ -135,7 +135,7 @@ class ProfilSiswa(models.Model):
 
 class Sertifikat(models.Model):
     """Sertifikat yang diterbitkan staf untuk seorang siswa. Dibaca pemilik, orang tuanya, dan staf."""
-    objects = SekolahManager('siswa__sekolah')
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
 
     siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='sertifikat')
     judul = models.CharField(max_length=120)

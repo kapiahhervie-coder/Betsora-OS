@@ -109,7 +109,7 @@ class SumberDigital(models.Model):
 
 
 class RefleksiSiswa(models.Model):
-    objects = SekolahManager('siswa__sekolah')
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
 
     JENIS_CHOICES = [
         ('TEKS', 'Teks'),
@@ -131,7 +131,7 @@ class RefleksiSiswa(models.Model):
 
 
 class LencanaDiperoleh(models.Model):
-    objects = SekolahManager('siswa__sekolah')
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
 
     siswa = models.ForeignKey('accounts.Siswa', on_delete=models.CASCADE, related_name='lencana_list')
     lencana = models.ForeignKey(Lencana, on_delete=models.CASCADE)
@@ -164,7 +164,7 @@ class HalamanSumber(models.Model):
 
 
 class RiwayatBaca(models.Model):
-    objects = SekolahManager('siswa__sekolah')
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
 
     siswa = models.ForeignKey('accounts.Siswa', on_delete=models.CASCADE, related_name='riwayat_baca')
     sumber = models.ForeignKey(SumberDigital, on_delete=models.CASCADE, related_name='riwayat_baca')
@@ -179,7 +179,7 @@ class RiwayatBaca(models.Model):
 
 
 class ProgresBaca(models.Model):
-    objects = SekolahManager('siswa__sekolah')
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
 
     siswa = models.ForeignKey('accounts.Siswa', on_delete=models.CASCADE, related_name='progres_baca')
     sumber = models.ForeignKey(SumberDigital, on_delete=models.CASCADE, related_name='progres_list')

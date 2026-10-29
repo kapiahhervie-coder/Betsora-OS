@@ -34,7 +34,7 @@ class User(AbstractUser):
 
 
 class Siswa(models.Model):
-    objects = SekolahManager()
+    objects = SekolahManager(guru=('siswa', ''))
 
     sekolah = models.ForeignKey('accounts.Sekolah', on_delete=models.PROTECT, null=True, blank=True)
     user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='profil_siswa')

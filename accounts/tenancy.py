@@ -20,9 +20,18 @@ Nilai "sekolah aktif":
                 produksi: `periksa_sekolah --ketat` memastikannya).
   - `TOLAK`   : tidak melihat apa pun (sekolah dinonaktifkan).
 
+Pembatasan peran (Tahap 3), hanya untuk akun ber-role guru yang punya sekolah:
+  - guru melihat ruang kerja miliknya sendiri (RuangKerja.guru) beserta seluruh isinya;
+  - guru melihat siswa: (a) yang terdaftar di ruang kerjanya, (b) yang sekelas dengan salah satu ruang
+    kerjanya (teks kelas cocok), dan (c) yang ada di kelas yang ia walikan (Kelas.wali_kelas);
+  - sesi penilaian hanya miliknya. Data anak siswa (nilai, absensi, portofolio, ...) mengikuti siswa yang terlihat.
+  Kepala sekolah, admin sekolah, dan superuser tidak dibatasi peran (tetap dibatasi sekolah).
+  Akun tanpa sekolah tidak dibatasi peran: itu hanya keadaan data lama/tes, bukan produksi.
+
 Catatan: query yang dibangun SAAT IMPOR (mis. `queryset=Siswa.objects.all()` di tingkat kelas Form)
 tidak ikut tersaring, karena filter dipasang ketika query dibuat. Buat queryset di dalam fungsi/`__init__`.
 """
+import re
 from contextlib import contextmanager
 from contextvars import ContextVar
 
@@ -30,7 +39,7 @@ from django.contrib.auth.models import UserManager
 from django.core.exceptions import PermissionDenied
 from django.db import models
 from django.db.models import Q
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 
@@ -43,6 +52,61 @@ BEBAS = _Bebas()
 TOLAK = -1  # id sekolah yang tidak pernah ada
 
 _aktif = ContextVar('sekolah_aktif', default=BEBAS)
+_peran = ContextVar('peran_aktif', default=None)  # None = tanpa pembatasan peran, atau PeranGuru
+
+
+def _norm_kelas(teks):
+    """'Kelas 4', ' 4 ', 'IV' dianggap kelas yang sama ('4'). Huruf besar/kecil diabaikan."""
+    t = (teks or '').strip().lower()
+    t = re.sub(r'^kelas\s+', '', t)
+    romawi = {'i': 1, 'ii': 2, 'iii': 3, 'iv': 4, 'v': 5, 'vi': 6, 'vii': 7, 'viii': 8, 'ix': 9, 'x': 10, 'xi': 11, 'xii': 12}
+    if t in romawi:
+        return str(romawi[t])
+    return t
+
+
+class PeranGuru:
+    """Siapa guru yang sedang bertindak, dan siswa mana yang boleh ia lihat (dihitung sekali per permintaan)."""
+
+    def __init__(self, user_id, sekolah_id):
+        self.user_id = user_id
+        self.sekolah_id = sekolah_id
+        self._siswa = None
+
+    def reset(self):
+        self._siswa = None
+
+    @property
+    def siswa_ids(self):
+        if self._siswa is None:
+            self._siswa = self._hitung()
+        return self._siswa
+
+    def _hitung(self):
+        # Memakai _base_manager (tanpa penyaring) agar tidak berputar ke dirinya sendiri.
+        from accounts.models import Siswa
+        from ruang_kerja.models import AnggotaRuangKerja, Kelas, RuangKerja
+
+        ruang = RuangKerja._base_manager.filter(sekolah_id=self.sekolah_id, guru_id=self.user_id)
+        ids = set(AnggotaRuangKerja._base_manager.filter(ruang_kerja__in=ruang).values_list('siswa_id', flat=True))
+        nama = {_norm_kelas(k) for k in ruang.values_list('kelas', flat=True)}
+        nama |= {_norm_kelas(n) for n in ruang.exclude(kelas_baru=None).values_list('kelas_baru__nama', flat=True)}
+        nama |= {_norm_kelas(n) for n in Kelas._base_manager.filter(
+            sekolah_id=self.sekolah_id, wali_kelas_id=self.user_id).values_list('nama', flat=True)}
+        nama.discard('')
+        if nama:
+            for pk, kelas in Siswa._base_manager.filter(sekolah_id=self.sekolah_id).values_list('pk', 'kelas'):
+                if _norm_kelas(kelas) in nama:
+                    ids.add(pk)
+        return ids
+
+    def syarat(self, jenis, jalur):
+        awalan = jalur + '__' if jalur else ''
+        if jenis == 'ruang':
+            return Q(**{awalan + 'guru_id': self.user_id})
+        if jenis == 'siswa':
+            return Q(**{(jalur + '__in') if jalur else 'pk__in': list(self.siswa_ids)})
+        raise ValueError(jenis)
 
 
 class LintasSekolah(PermissionDenied):
@@ -54,14 +118,20 @@ def sekolah_aktif():
 
 
 @contextmanager
-def dalam_sekolah(sekolah):
-    """Menjalankan blok kode dalam lingkup satu sekolah. `sekolah`: objek Sekolah, id, None, atau BEBAS."""
+def dalam_sekolah(sekolah, guru=None):
+    """Menjalankan blok kode dalam lingkup satu sekolah. `sekolah`: objek Sekolah, id, None, atau BEBAS.
+    `guru` (opsional, objek User atau id): terapkan juga pembatasan peran guru."""
     nilai = sekolah if (sekolah is None or sekolah is BEBAS) else getattr(sekolah, 'pk', sekolah)
-    token = _aktif.set(nilai)
+    peran = None
+    if guru is not None and isinstance(nilai, int) and nilai > 0:
+        peran = PeranGuru(getattr(guru, 'pk', guru), nilai)
+    t1 = _aktif.set(nilai)
+    t2 = _peran.set(peran)
     try:
         yield
     finally:
-        _aktif.reset(token)
+        _peran.reset(t2)
+        _aktif.reset(t1)
 
 
 @contextmanager
@@ -82,24 +152,40 @@ class SekolahManagerMixin:
     """`jalur`: satu atau beberapa lintasan ORM menuju kolom `sekolah`, semuanya harus cocok.
     Contoh: 'sekolah' (model akar), 'siswa__sekolah', ('peserta_1__sekolah', 'peserta_2__sekolah')."""
 
-    def __init__(self, *jalur, **kw):
+    def __init__(self, *jalur, guru=None, **kw):
         super().__init__(**kw)
         self._jalur = jalur
+        self._guru = guru
+
+    def _spek(self):
+        if self._jalur:
+            return self._jalur, self._guru
+        # Manajer relasi (mis. ruang.tugas) dibuat tanpa argumen: ambil dari manajer asli model.
+        asli = self.model._default_manager
+        jalur = getattr(asli, '_jalur', None) or ('sekolah',)
+        return jalur, getattr(asli, '_guru', None)
 
     @property
     def jalur(self):
-        if self._jalur:
-            return self._jalur
-        # Manajer relasi (mis. ruang.tugas) dibuat tanpa argumen: ambil lintasan dari manajer asli model.
-        asli = self.model._default_manager
-        return getattr(asli, '_jalur', None) or ('sekolah',)
+        return self._spek()[0]
+
+    @property
+    def guru(self):
+        """(jenis, lintasan) pembatas peran guru, atau None. jenis: 'ruang' (lintasan menuju RuangKerja,
+        kosong bila model itu sendiri / punya kolom guru) atau 'siswa' (lintasan menuju Siswa)."""
+        return self._spek()[1]
 
     def get_queryset(self):
         qs = super().get_queryset()
         sid = _aktif.get()
         if sid is BEBAS:
             return qs
-        return qs.filter(_syarat(self.jalur, sid))
+        jalur, guru = self._spek()
+        qs = qs.filter(_syarat(jalur, sid))
+        peran = _peran.get()
+        if peran is not None and guru:
+            qs = qs.filter(peran.syarat(*guru))
+        return qs
 
     @property
     def punya_kolom_sekolah(self):
@@ -167,6 +253,17 @@ def _jaga_penulisan(sender, instance, raw=False, **kwargs):
                 raise LintasSekolah(f'{sender.__name__}.{f.name} merujuk data sekolah lain.')
 
 
+_MEMENGARUHI_SISWA_TERLIHAT = {'Siswa', 'RuangKerja', 'AnggotaRuangKerja', 'Kelas'}
+
+
+@receiver(post_save, dispatch_uid='betsora_tenancy_post_save')
+@receiver(post_delete, dispatch_uid='betsora_tenancy_post_delete')
+def _segarkan_siswa_terlihat(sender, **kwargs):
+    peran = _peran.get()
+    if peran is not None and sender.__name__ in _MEMENGARUHI_SISWA_TERLIHAT:
+        peran.reset()
+
+
 # ----------------------------------------------------------------------------------------------
 # Middleware
 # ----------------------------------------------------------------------------------------------
@@ -190,10 +287,15 @@ class SekolahMiddleware:
                 nilai = TOLAK
             else:
                 nilai = sekolah.pk
+        peran = None
+        if isinstance(nilai, int) and nilai > 0 and getattr(user, 'role', None) == 'guru':
+            peran = PeranGuru(user.pk, nilai)
         token = _aktif.set(nilai)
+        token_peran = _peran.set(peran)
         try:
             return self.get_response(request)
         finally:
+            _peran.reset(token_peran)
             _aktif.reset(token)
 
 
