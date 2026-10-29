@@ -5,6 +5,7 @@ from django.views.static import serve
 from django.conf import settings
 from django.conf.urls.static import static
 from portofolio.views import berkas_langsung
+from accounts.media_berizin import sajikan_media
 
 
 urlpatterns = [
@@ -27,5 +28,5 @@ urlpatterns = [
 # Rute berizin khusus (mis. /media/karya_siswa/) berada di atas dan tetap didahulukan.
 if not settings.DEBUG:
     urlpatterns += [
-        re_path(r'^media/(?P<path>.*)$', login_required(serve), {'document_root': settings.MEDIA_ROOT}),
+        re_path(r'^media/(?P<path>.*)$', sajikan_media),
     ]

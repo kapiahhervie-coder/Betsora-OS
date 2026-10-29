@@ -28,7 +28,6 @@ class PengaturanSekolah(models.Model):
         verbose_name_plural = "Pengaturan Sekolah"
 
     def save(self, *args, **kwargs):
-        self.pk = 1
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
@@ -36,8 +35,28 @@ class PengaturanSekolah(models.Model):
 
     @classmethod
     def get_settings(cls):
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
+        """Pengaturan milik SEKOLAH AKTIF (dibuat otomatis untuk sekolah baru).
+
+        Tanpa sekolah aktif (halaman login, perintah manajemen): bila hanya ada satu pengaturan, itu yang
+        dipakai; bila ada banyak, tampil netral (tidak disimpan) supaya nama satu sekolah tidak bocor ke
+        sekolah lain."""
+        from accounts.tenancy import TOLAK, sekolah_aktif
+
+        sid = sekolah_aktif()
+        if isinstance(sid, int) and sid > 0:
+            obj = cls._base_manager.filter(sekolah_id=sid).first()
+            if obj is None:
+                from accounts.models import Sekolah
+
+                sekolah = Sekolah._base_manager.filter(pk=sid).first()
+                nama = sekolah.nama if sekolah else cls._meta.get_field('nama_institusi').default
+                obj = cls._base_manager.create(sekolah=sekolah, nama_institusi=nama)
+            return obj
+        if sid != TOLAK:
+            semua = list(cls._base_manager.all()[:2])
+            if len(semua) == 1:
+                return semua[0]
+        return cls()
 
     def __str__(self):
         return self.nama_institusi
