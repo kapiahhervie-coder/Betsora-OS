@@ -17,3 +17,15 @@ kirim_ke_claude.zip
 kreasi_*/
 staticfiles/
 betsora-os/
+
+betsora-*
+betsora_misi*
+_cadangan_*
+BACA-DULU.txt
+kode_inti.txt
+peta_view.txt
+views_audit.txt
+terapkan_*.py
+buat_migrasi_sekolah.py
+pasang_misi.ps1
+perbaiki_video_ortu.py
