@@ -1,0 +1,23 @@
+{# Bagian "Misi Dunia Nyata" untuk halaman rapor siswa. Konteks: misi_rapor (dari misi.ringkasan.ringkasan_rapor). #}
+{# Sengaja tanpa isi refleksi, catatan, atau foto siswa. #}
+{% if misi_rapor.jumlah %}
+<div class="card p-5 mt-5">
+  <h2 class="font-semibold text-gray-800">Misi Dunia Nyata</h2>
+  <p class="text-xs text-gray-500 mt-1">
+    {{ misi_rapor.jumlah }} misi selesai di mata pelajaran ini{% if misi_rapor.rata2_nilai is not None %} · rata-rata nilai formatif {{ misi_rapor.rata2_nilai }}{% endif %}
+  </p>
+  <div class="mt-3">
+    {% for p in misi_rapor.daftar %}
+    <div class="flex justify-between gap-3 text-sm py-1.5 {% if not forloop.first %}border-t border-gray-100{% endif %}">
+      <span>
+        {{ p.misi.emoji_kartu }} {{ p.misi.judul }}
+        <span class="text-xs text-gray-400">· {{ p.misi.get_kategori_display }}{% if p.penugasan.materi %} · topik {{ p.penugasan.materi.judul }}{% endif %}</span>
+      </span>
+      <span class="text-xs text-gray-500 whitespace-nowrap">
+        {% if p.nilai is not None %}nilai {{ p.nilai }} · {% endif %}{{ p.dikonfirmasi_pada|date:"j M Y" }}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

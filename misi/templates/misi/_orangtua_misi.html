@@ -1,0 +1,23 @@
+{# Bagian "Misi Dunia Nyata" untuk dashboard orang tua. Konteks: bagian (dari misi.ringkasan.ringkasan_untuk_orangtua). #}
+{% if bagian %}
+<div class="card p-5 mt-5">
+  <div class="flex items-center justify-between">
+    <h2 class="font-semibold text-gray-800">Misi Dunia Nyata {{ bagian.anak.nama }}</h2>
+    <a class="text-xs text-primary" href="{% url 'misi:panel_orangtua' %}">Buka</a>
+  </div>
+  <p class="text-xs text-gray-500 mt-1"><span class="badge-hadir">{{ bagian.level }}</span> <span class="ml-2">{{ bagian.total_selesai }} kartu terkumpul</span></p>
+  {% if bagian.menunggu %}
+  <a href="{% url 'misi:panel_orangtua' %}" class="card p-3 mt-3 block bg-primary-light text-sm hover:border-primary-mid">
+    {{ bagian.menunggu }} misi menunggu konfirmasi Anda
+  </a>
+  {% endif %}
+  {% for p in bagian.selesai %}
+  <div class="flex justify-between text-sm py-1.5 {% if forloop.first %}mt-2{% else %}border-t border-gray-100{% endif %}">
+    <span>{{ p.misi.emoji_kartu }} {{ p.misi.judul_kartu }}</span>
+    <span class="text-gray-400">{{ p.dikonfirmasi_pada|date:"j M Y" }}</span>
+  </div>
+  {% empty %}
+  <p class="text-sm text-gray-500 mt-3">Belum ada misi selesai.</p>
+  {% endfor %}
+</div>
+{% endif %}
