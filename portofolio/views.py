@@ -1,4 +1,4 @@
-from accounts.permissions import hanya_staf
+﻿from accounts.permissions import hanya_staf
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -52,7 +52,10 @@ def tingkat_akses(user, siswa):
     if user.is_staff_role() or adalah_pemilik(user, siswa.id) or adalah_orang_tua_dari(user, siswa.id):
         return AKSES_PENUH
     if user.role == 'siswa':
-        return AKSES_KARYA
+        # Siswa lain hanya boleh membuka portofolio yang punya karya dibagikan; jika tidak ada, ditolak.
+        if KaryaSiswa.objects.filter(siswa=siswa, dibagikan=True).exists():
+            return AKSES_KARYA
+        return None
     return None
 
 
@@ -501,3 +504,4 @@ def berkas_langsung(request, nama):
         if boleh_lihat_berkas(request.user, karya):
             return sajikan_berkas(karya)
     raise PermissionDenied
+
