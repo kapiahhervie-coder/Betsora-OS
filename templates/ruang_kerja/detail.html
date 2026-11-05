@@ -116,7 +116,7 @@
                 {% if item.file %}📄{% elif item.video_url %}▶{% elif item.link_url %}🔗{% else %}📝{% endif %}
               </div>
               <div style="flex:1; min-width:0;">
-                <p style="font-size:13px; font-weight:500; color:#1f2937; margin:0;{% if item.deskripsi %}cursor:pointer;{% endif %}" {% if item.deskripsi %}onclick="toggleItemDeskripsi('desc-{{ item.id }}', this)"{% endif %}>
+                <p style="font-size:13px; font-weight:500; color:#1f2937; margin:0;{% if item.deskripsi %}cursor:pointer; user-select:none; transform-origin:left center; transition:transform .15s ease, color .15s ease;{% endif %}" {% if item.deskripsi %}onclick="toggleItemDeskripsi('desc-{{ item.id }}', this)" onmouseover="this.style.transform='translateX(4px)'; this.style.color='#3C8C1F'" onmouseout="this.style.transform=''; this.style.color='#1f2937'" onmousedown="this.style.transform='translateX(4px) scale(0.97)'" onmouseup="this.style.transform='translateX(4px)'"{% endif %}>
                   {{ item.judul }}{% if item.deskripsi %} <span id="arrow-desc-{{ item.id }}" style="font-size:12px; color:#9ca3af; font-weight:700;">+</span>{% endif %}
                 </p>
                 <p style="font-size:11px; color:#9ca3af; margin:2px 0 0;">
@@ -138,6 +138,9 @@
                   <source src="{{ item.file.url }}">
                 </audio>
                 {% endif %}
+                {% with nm=item.file.name|lower %}{% if nm|slice:"-4:" == ".jpg" or nm|slice:"-4:" == ".png" or nm|slice:"-4:" == ".gif" or nm|slice:"-5:" == ".jpeg" or nm|slice:"-5:" == ".webp" %}
+                <a href="{{ item.file.url }}" target="_blank"><img src="{{ item.file.url }}" alt="{{ item.judul }}" loading="lazy" style="max-width:100%; width:360px; border-radius:8px; margin-top:8px; display:block;"></a>
+                {% endif %}{% endwith %}
               </div>
               <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
                 
