@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% load ruang_kerja_extras %}
 {% block title %}{{ ruang.mapel }} - Kelas {{ ruang.kelas }}{% endblock %}
 {% block page_title %}{{ ruang.mapel }} - Kelas {{ ruang.kelas }}{% endblock %}
@@ -96,7 +96,7 @@
                 style="font-size:11px; background:#EAF7DE; color:#3C8C1F; padding:4px 10px; border-radius:6px; text-decoration:none; font-weight:500; white-space:nowrap;">+ Item</a>
               <form method="POST" action="{% url 'ruang_kerja:hapus_topik' topik.id %}" onclick="event.stopPropagation()" onsubmit="return confirm('Hapus topik ini?')">
                 {% csrf_token %}
-                <button type="submit" style="font-size:11px; background:#fee2e2; color:#dc2626; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;">Hapus</button>
+                <button type="submit" style="font-size:11px; background:#fee2e2; color:#dc2626; border:none; padding:4px 10px; border-radius:6px; cursor:pointer;" title="Hapus topik" aria-label="Hapus topik">🗑️</button>
               </form>
               {% endif %}
               <span id="arrow-{{ topik.id }}" style="color:#9ca3af; font-size:11px;">▼</span>
@@ -144,10 +144,10 @@
                 {% if item.link_url %}<a href="{{ item.link_url }}" target="_blank" style="font-size:11px; background:#dbeafe; color:#2563eb; border-radius:14px; padding:5px 12px; font-weight:600; text-decoration:none; white-space:nowrap;">Buka</a>{% endif %}
                 {% if item.file and not item.is_video_file and not item.is_audio_file %}<a href="{{ item.file.url }}" target="_blank" style="font-size:11px; background:#f3f4f6; color:#374151; border-radius:14px; padding:5px 12px; font-weight:600; text-decoration:none; white-space:nowrap;">Unduh</a>{% endif %}
                 {% if request.user.is_staff_role %}
-                <a href="{% url 'ruang_kerja:edit_item' item.id %}" style="color:#9ca3af; font-size:13px; text-decoration:none;" onmouseover="this.style.color='#3C8C1F'" onmouseout="this.style.color='#9ca3af'">Edit</a>
+                <a href="{% url 'ruang_kerja:edit_item' item.id %}" style="color:#9ca3af; font-size:13px; text-decoration:none;" onmouseover="this.style.color='#3C8C1F'" onmouseout="this.style.color='#9ca3af'" title="Edit item" aria-label="Edit item">✏️</a>
                 <form method="POST" action="{% url 'ruang_kerja:hapus_item' item.id %}" onsubmit="return confirm('Hapus item ini?')" style="display:inline; margin:0;">
                   {% csrf_token %}
-                  <button type="submit" style="background:none; border:none; cursor:pointer; color:#d1d5db; font-size:13px;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#d1d5db'">Hapus</button>
+                  <button type="submit" style="background:none; border:none; cursor:pointer; color:#d1d5db; font-size:13px;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='#d1d5db'" title="Hapus item" aria-label="Hapus item">🗑️</button>
                 </form>
                 {% endif %}
               </div>
@@ -279,10 +279,10 @@
           </a>
           {% if request.user.is_staff_role %}
           <div style="display:flex; gap:6px; margin-left:14px; flex-shrink:0;">
-            <a href="{% url 'ruang_kerja:edit_tugas' t.id %}" style="font-size:11px; background:#f3f4f6; color:#374151; padding:5px 10px; border-radius:6px; text-decoration:none;">Edit</a>
+            <a href="{% url 'ruang_kerja:edit_tugas' t.id %}" style="font-size:11px; background:#f3f4f6; color:#374151; padding:5px 10px; border-radius:6px; text-decoration:none;" title="Edit tugas" aria-label="Edit tugas">✏️</a>
             <form method="POST" action="{% url 'ruang_kerja:hapus_tugas' t.id %}" onsubmit="return confirm('Hapus tugas {{ t.judul|escapejs }}? Semua submisi siswa untuk tugas ini akan ikut terhapus.')" style="margin:0;">
               {% csrf_token %}
-              <button type="submit" style="font-size:11px; background:#fee2e2; color:#dc2626; border:none; padding:5px 10px; border-radius:6px; cursor:pointer;">Hapus</button>
+              <button type="submit" style="font-size:11px; background:#fee2e2; color:#dc2626; border:none; padding:5px 10px; border-radius:6px; cursor:pointer;" title="Hapus tugas" aria-label="Hapus tugas">🗑️</button>
             </form>
           </div>
           {% endif %}
