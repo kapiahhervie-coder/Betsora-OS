@@ -12,7 +12,7 @@
     <a href="{% url 'portofolio:sertifikat' s.id %}" target="_blank" rel="noopener" class="pf-link">Lihat / Cetak</a>
     {% if bisa_terbitkan %}
     <form method="POST" action="{% url 'portofolio:hapus_sertifikat' s.id %}" onsubmit="return confirm('Hapus sertifikat ini?')">
-      {% csrf_token %}<button type="submit" class="pf-link" style="color:#DC2626;">Hapus</button>
+      {% csrf_token %}<button type="submit" class="pf-link" style="color:#DC2626;" title="Hapus sertifikat" aria-label="Hapus sertifikat">🗑️</button>
     </form>
     {% endif %}
   </div>

@@ -64,7 +64,7 @@
             <p style="margin-top:.1rem; white-space:pre-line;">{{ k.teks }}</p>
             {% if bisa_komentar %}
             <form method="POST" action="{% url 'portofolio:hapus_komentar' k.id %}" onsubmit="return confirm('Hapus komentar ini?')" style="display:inline;">
-              {% csrf_token %}<button type="submit" class="pf-link" style="color:#DC2626;">Hapus komentar</button>
+              {% csrf_token %}<button type="submit" class="pf-link" style="color:#DC2626;" title="Hapus komentar" aria-label="Hapus komentar">🗑️</button>
             </form>
             {% endif %}
           </div>
@@ -93,7 +93,7 @@
           </form>
           <form method="POST" action="{% url 'portofolio:hapus_karya' karya.id %}" onsubmit="return confirm('Hapus karya ini?')">
             {% csrf_token %}
-            <button type="submit" class="pf-link" style="color:#DC2626;">Hapus</button>
+            <button type="submit" class="pf-link" style="color:#DC2626;" title="Hapus karya" aria-label="Hapus karya">🗑️</button>
           </form>
         </div>
         {% endif %}

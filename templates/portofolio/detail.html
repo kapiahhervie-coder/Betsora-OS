@@ -107,7 +107,7 @@
         {% if bisa_hapus %}
         <form method="POST" action="{% url 'portofolio:hapus_karya' karya.id %}" onsubmit="return confirm('Hapus karya ini?')" class="mt-2">
           {% csrf_token %}
-          <button type="submit" class="text-xs text-red-500">Hapus</button>
+          <button type="submit" class="text-xs text-red-500" title="Hapus karya" aria-label="Hapus karya">🗑️</button>
         </form>
         {% endif %}
       </div>
