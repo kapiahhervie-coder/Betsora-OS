@@ -3,24 +3,104 @@
 {% block title %}Tambah Item - {{ materi.judul }}{% endblock %}
 {% block page_title %}Tambah Materi ke Topik{% endblock %}
 {% block content %}
-
 <style>
-  .form-section { background:white; border-radius:12px; border:1px solid #ECEAE0; box-shadow:0 1px 3px rgba(11,61,38,0.04); overflow:hidden; margin-bottom:16px; }
-  .form-section-header { background:#f8f9fa; border-bottom:1px solid #e9ecef; padding:14px 20px; display:flex; align-items:center; gap:10px; }
+  .form-section { background:white; border-radius:12px; border:1px solid #ECEAE0; box-shadow:0 1px 3px rgba(11,61,38,0.04); overflow:hidden; margin-bottom:14px; }
+  .form-section-header { background:#f8f9fa; border-bottom:1px solid #e9ecef; padding:10px 16px; display:flex; align-items:center; gap:10px; }
   .form-section-header h3 { font-size:14px; font-weight:600; color:#374151; margin:0; }
-  .form-section-body { padding:20px; }
-  .form-label { display:block; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px; }
-  .form-input { width:100%; border:1.5px solid #e5e7eb; border-radius:8px; padding:10px 14px; font-size:14px; font-family:inherit; outline:none; transition:border-color .15s, box-shadow .15s; box-sizing:border-box; }
+  .form-section-body { padding:14px 16px; }
+  .form-label { display:block; font-size:11px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px; }
+  .form-input { width:100%; border:1.5px solid #e5e7eb; border-radius:8px; padding:6px 12px; font-size:13px; height:36px; font-family:inherit; outline:none; transition:border-color .15s, box-shadow .15s; box-sizing:border-box; }
   .form-input:focus { border-color:#3C8C1F; box-shadow:0 0 0 3px rgba(11,61,38,0.08); }
   .form-textarea { resize:vertical; min-height:120px; }
   .required { color:#dc2626; }
-  .help-text { font-size:11px; color:#9ca3af; margin-top:4px; }
-  .file-drop { border:2px dashed #d1d5db; border-radius:8px; padding:32px 20px; text-align:center; cursor:pointer; transition:all .2s; background:#fafafa; }
+  .help-text { font-size:11px; color:#9ca3af; margin-top:3px; }
+
+  /* display:block wajib: <label> bawaannya inline, sehingga border putus-putus terpecah jadi kotak-kotak aneh */
+  .file-drop { display:block; box-sizing:border-box; width:100%; border:2px dashed #d1d5db; border-radius:8px; padding:14px 16px; text-align:center; cursor:pointer; transition:all .2s; background:#fafafa; }
   .file-drop:hover { border-color:#3C8C1F; background:#f0f7f0; }
+  .file-drop .file-drop-icon { font-size:22px; margin-bottom:2px; line-height:1.2; }
+  .file-drop .file-drop-title { font-size:13px; font-weight:500; color:#374151; margin:0 0 2px; }
+  .file-drop .file-drop-sub { font-size:11px; color:#9ca3af; margin:0; }
+
   .breadcrumb { font-size:13px; color:#6b7280; margin-bottom:20px; display:flex; align-items:center; gap:6px; }
   .breadcrumb a { color:#3C8C1F; text-decoration:none; }
   .breadcrumb a:hover { text-decoration:underline; }
   .topik-badge { background:#EAF7DE; color:#3C8C1F; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:6px; margin-bottom:20px; }
+  .ql-editor img { max-width:100%; height:auto; }
+  .ql-editor::after { content:''; display:block; clear:both; }
+  .jenis-pilih { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .jenis-kartu { display:flex; align-items:center; gap:10px; border:1.5px solid #e5e7eb; border-radius:10px; padding:10px 12px; cursor:pointer; background:#fff; transition:border-color .15s, background .15s; }
+  .jenis-kartu:hover { border-color:#9ca3af; }
+  .jenis-kartu.dipilih { border-color:#3C8C1F; background:#F0F7F0; box-shadow:0 0 0 3px rgba(60,140,31,.12); }
+  .jenis-kartu input { position:absolute; opacity:0; pointer-events:none; }
+  .jenis-kartu:focus-within { outline:2px solid #3C8C1F; outline-offset:2px; }
+  .jenis-ikon { font-size:22px; line-height:1; }
+  .jenis-teks { display:flex; flex-direction:column; gap:2px; }
+  .jenis-teks strong { font-size:13px; color:#374151; }
+  .jenis-teks small { font-size:11px; color:#6b7280; line-height:1.35; }
+  #bagian-upload.mode-slide { border-color:#3C8C1F; box-shadow:0 0 0 3px rgba(60,140,31,.12); }
+  @media (max-width:560px) { .jenis-pilih { grid-template-columns:1fr; } }
+
+  /* Upload File dan Link Eksternal berdampingan */
+  .baris-dua { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:stretch; margin-bottom:14px; }
+  .baris-dua > .form-section { margin-bottom:0; display:flex; flex-direction:column; }
+  .baris-dua > .form-section > .form-section-body { flex:1; }
+  .baris-dua #file-drop-area, .baris-dua .file-drop { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; box-sizing:border-box; min-height:190px; }
+  @media (max-width:900px) { .baris-dua { grid-template-columns:1fr; } .baris-dua .file-drop { min-height:0; } }
+
+  /* Kotak upload berubah warna setelah file dipilih */
+  .file-drop.terisi, .file-drop.terisi:hover { border-style:solid; border-color:#3C8C1F; background:#e8f5e2; }
+  .file-drop.terisi .file-drop-title { color:#2d6a16; }
+  .file-drop.terisi .file-drop-sub { color:#2d6a16; font-weight:600; word-break:break-all; }
+
+  /* Rekaman suara per slide */
+  .suara-daftar { display:flex; flex-direction:column; gap:10px; }
+  .suara-baris { display:flex; gap:12px; align-items:flex-start; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fafafa; }
+  .suara-baris.merekam { border-color:#dc2626; background:#fef2f2; }
+  .suara-thumb { width:132px; aspect-ratio:16/9; object-fit:contain; background:#fff; border:1px solid #e5e7eb; border-radius:6px; flex:0 0 auto; }
+  .suara-isi { flex:1; min-width:0; }
+  .suara-judul { font-size:13px; font-weight:600; color:#374151; margin-bottom:6px; }
+  .suara-status { font-weight:400; color:#6b7280; font-size:12px; margin-left:6px; }
+  .suara-baris.merekam .suara-status { color:#dc2626; font-weight:600; }
+  .suara-putar { width:100%; max-width:380px; height:36px; margin-bottom:6px; }
+  .suara-aksi { display:flex; flex-wrap:wrap; gap:6px; }
+  .suara-btn { border:none; border-radius:8px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; background:#f3f4f6; color:#374151; }
+  .suara-btn:hover { filter:brightness(.95); }
+  .suara-btn[hidden] { display:none; }
+  .suara-rekam { background:#fee2e2; color:#b91c1c; }
+  .suara-henti { background:#dc2626; color:#fff; }
+  .suara-simpan { background:#3C8C1F; color:#fff; }
+  .suara-hapus { background:#fff; color:#b91c1c; border:1px solid #fecaca; }
+  @media (max-width:560px) { .suara-baris { flex-direction:column; } .suara-thumb { width:100%; max-width:260px; } }
+
+  /* Mode presentasi untuk merekam suara */
+  .suara-presentasi { border:none; border-radius:8px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; background:#1f2937; color:#fff; margin-bottom:10px; }
+  .suara-presentasi:hover { background:#374151; }
+  .suara-thumb { cursor:zoom-in; }
+  .rk-ov { position:fixed; top:0; right:0; bottom:0; left:0; z-index:99999; background:#0b1220; color:#fff; display:flex; flex-direction:column; font-family:inherit; }
+  .rk-ov[hidden] { display:none; }
+  .rk-ov-atas { display:flex; align-items:center; gap:12px; padding:8px 16px; background:#111c33; font-size:14px; }
+  .rk-ov.merekam .rk-ov-atas { background:#7f1d1d; }
+  .rk-ov-judul { font-weight:700; }
+  .rk-ov-status { color:#cbd5e1; font-size:13px; flex:1; }
+  .rk-ov.merekam .rk-ov-status { color:#fff; font-weight:700; }
+  .rk-ov-panggung { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:8px; }
+  .rk-ov-img { max-width:100%; max-height:100%; background:#fff; border-radius:6px; box-shadow:0 4px 24px rgba(0,0,0,.5); }
+  .rk-ov-bar { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:10px 16px; background:#111c33; }
+  .rk-ov-spasi { flex:1; }
+  .rk-b { border:none; border-radius:8px; padding:9px 16px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; background:#1e293b; color:#fff; }
+  .rk-b:hover { background:#334155; }
+  .rk-b[hidden] { display:none; }
+  .rk-b[disabled] { opacity:.35; cursor:default; }
+  .rk-b.rek { background:#dc2626; } .rk-b.simpan { background:#3C8C1F; } .rk-b.henti { background:#b91c1c; }
+  .rk-hitung { font-size:14px; font-weight:700; min-width:64px; text-align:center; }
+  .rk-ov-audio { height:36px; max-width:300px; }
+  .rk-auto { font-size:12px; color:#cbd5e1; display:flex; align-items:center; gap:6px; cursor:pointer; }
+
+  /* Izin unduh */
+  .unduh-pilih { display:flex; gap:8px; align-items:center; padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; background:#fafafa; margin-bottom:6px; cursor:pointer; font-size:13px; color:#374151; }
+  .unduh-pilih input { width:auto; margin:0; }
+  .unduh-mode { margin-left:auto; padding:5px 8px; border:1px solid #d1d5db; border-radius:8px; font-size:13px; width:auto; }
 </style>
 
 <!-- Breadcrumb -->
@@ -49,6 +129,27 @@
           <h3>Informasi Umum</h3>
         </div>
         <div class="form-section-body" style="display:flex; flex-direction:column; gap:16px;">
+          <!-- Jenis item: Materi biasa atau Slide dari PowerPoint -->
+          <div>
+            <label class="form-label">Jenis Item</label>
+            <div class="jenis-pilih" role="radiogroup" aria-label="Jenis item">
+              <label class="jenis-kartu">
+                <input type="radio" name="jenis_item" value="materi" {% if item.jenis_item != 'slide' %}checked{% endif %}>
+                <span class="jenis-ikon">&#128196;</span>
+                <span class="jenis-teks"><strong>Materi</strong><small>Teks, gambar, lembar kerja, file, dan link</small></span>
+              </label>
+              <label class="jenis-kartu">
+                <input type="radio" name="jenis_item" value="slide" {% if item.jenis_item == 'slide' %}checked{% endif %}>
+                <span class="jenis-ikon">&#127902;&#65039;</span>
+                <span class="jenis-teks"><strong>Slide (dari PowerPoint)</strong><small>Unggah file .pptx, otomatis jadi slide untuk siswa</small></span>
+              </label>
+            </div>
+            <div id="slide-info" style="display:none; margin-top:10px; background:#EFF6FF; border:1.5px solid #BFDBFE; border-radius:8px; padding:10px 12px; font-size:12px; line-height:1.55; color:#1E3A8A;">
+              &#127902;&#65039; <strong>Unggah file PowerPoint</strong> (.pptx atau .ppt) pada bagian <strong>Upload File</strong> di bawah.
+              Setiap slide diubah menjadi gambar, dan siswa melihatnya sebagai slide (maju/mundur, layar penuh).
+              Kolom Deskripsi di bawah bersifat opsional, misalnya untuk pengantar singkat.
+            </div>
+          </div>
           <div>
             <label class="form-label">Nama <span class="required">*</span></label>
             <input type="text" name="judul" required class="form-input" placeholder="Contoh: Slide Bab 1 - Pengenalan Bilangan" value="{{ item.judul|default:'' }}">
@@ -62,7 +163,7 @@
                 + Tambah Blok Deskripsi
               </button>
             </div>
-            <p class="help-text" style="margin:0 0 10px;">Gunakan beberapa blok untuk memisahkan beberapa tema/sub-bahasan dalam materi ini.</p>
+            <p class="help-text" style="margin:0 0 10px;">Gunakan beberapa blok untuk memisahkan beberapa tema/sub-bahasan dalam materi ini. Tips gambar: klik gambar untuk mengatur posisi (kiri/kanan/tengah), ukuran, dan teks akan mengalir di sekitarnya.</p>
 
             <div id="deskripsi-blocks-container" style="display:flex; flex-direction:column; gap:14px;"></div>
 
@@ -74,17 +175,18 @@
         </div>
       </div>
 
+      <div class="baris-dua">
       <!-- Upload File -->
-      <div class="form-section">
+      <div class="form-section" id="bagian-upload">
         <div class="form-section-header">
           <span style="font-size:16px;">📎</span>
-          <h3>Upload File</h3>
+          <h3 id="upload-judul">Upload File</h3>
         </div>
         <div class="form-section-body">
           <label class="file-drop" for="file-input" id="file-drop-area">
-            <div style="font-size:32px; margin-bottom:8px;">⬆️</div>
-            <p style="font-size:14px; font-weight:500; color:#374151; margin:0 0 4px;">Klik untuk pilih file atau drag & drop</p>
-            <p style="font-size:12px; color:#9ca3af; margin:0;" id="file-name-display">PDF, Word, PowerPoint, Video, Gambar — maks 50MB</p>
+            <div class="file-drop-icon">⬆️</div>
+            <p class="file-drop-title">Klik untuk pilih file atau drag &amp; drop</p>
+            <p class="file-drop-sub" id="file-name-display">PDF, Word, PowerPoint, Video, Gambar — maks 50MB</p>
           </label>
           <input type="file" name="file" id="file-input" style="display:none;"
             onchange="document.getElementById('file-name-display').textContent = this.files[0] ? this.files[0].name : 'Belum ada file dipilih'">
@@ -97,7 +199,7 @@
           <span style="font-size:16px;">🔗</span>
           <h3>Link Eksternal</h3>
         </div>
-        <div class="form-section-body" style="display:flex; flex-direction:column; gap:16px;">
+        <div class="form-section-body" style="display:flex; flex-direction:column; gap:12px;">
           <div>
             <label class="form-label">Link Artikel / Website</label>
             <input type="url" name="link_url" class="form-input" placeholder="https://contoh.com/artikel" value="{{ item.link_url|default:'' }}">
@@ -110,6 +212,56 @@
           </div>
         </div>
       </div>
+      </div>
+      {% if item and item.get_slides %}
+      <div class="form-section" id="bagian-suara">
+        <div class="form-section-header">
+          <span style="font-size:16px;">&#127908;</span>
+          <h3>Rekaman Suara per Slide</h3>
+        </div>
+        <div class="form-section-body">
+          <p class="help-text" style="margin:0 0 10px;">Rekam penjelasan untuk tiap slide. Siswa akan melihat tombol "Dengar penjelasan" pada slide yang punya rekaman. Rekaman langsung tersimpan saat Anda menekan <strong>Simpan rekaman</strong> (tidak perlu menekan Update Item).</p>
+          <div class="suara-daftar">
+            {% for s in item.get_slide_info %}
+            <div class="suara-baris" data-nomor="{{ s.nomor }}" data-suara="{{ s.suara }}">
+              <img src="{{ s.gambar }}" alt="" class="suara-thumb" loading="lazy">
+              <div class="suara-isi">
+                <div class="suara-judul">Slide {{ s.nomor }} <span class="suara-status"></span></div>
+                <audio class="suara-putar" controls preload="none" controlsList="nodownload" style="display:none;"></audio>
+                <div class="suara-aksi">
+                  <button type="button" class="suara-btn suara-rekam">&#127908; Rekam</button>
+                  <button type="button" class="suara-btn suara-henti" hidden>&#9209; Berhenti</button>
+                  <button type="button" class="suara-btn suara-simpan" hidden>&#128190; Simpan rekaman</button>
+                  <button type="button" class="suara-btn suara-buang" hidden>Buang</button>
+                  <button type="button" class="suara-btn suara-hapus" hidden>Hapus rekaman</button>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      {% if item and item.get_slides %}
+      <div class="form-section" id="bagian-unduh">
+        <div class="form-section-header">
+          <span style="font-size:16px;">&#128229;</span>
+          <h3>Izin Unduh untuk Siswa</h3>
+        </div>
+        <div class="form-section-body">
+          {% with u=item.get_unduh_info %}
+          <p class="help-text" style="margin:0 0 10px;">Pilih file yang boleh diunduh siswa. Kalau tidak dicentang, siswa hanya bisa melihat slide. Tekan <strong>Simpan pengaturan unduh</strong> (tidak perlu menekan Update Item). Setelah rekaman suara diubah, tekan tombol ini lagi supaya video diperbarui.</p>
+          <div class="unduh-pilih"><span>&#128196; <strong>PDF</strong> &ndash; semua slide sebagai dokumen</span><select id="unduh-pdf-mode" class="unduh-mode"><option value="">Tidak dibuat</option><option value="guru" {% if u.pdf_mode == 'guru' %}selected{% endif %}>Hanya guru</option><option value="siswa" {% if u.pdf_mode == 'siswa' %}selected{% endif %}>Guru dan siswa</option></select></div>
+          <div class="unduh-pilih"><span>&#127916; <strong>Video</strong> &ndash; slide + rekaman suara (MP4)</span><select id="unduh-video-mode" class="unduh-mode"><option value="">Tidak dibuat</option><option value="guru" {% if u.video_mode == 'guru' %}selected{% endif %}>Hanya guru</option><option value="siswa" {% if u.video_mode == 'siswa' %}selected{% endif %}>Guru dan siswa</option></select></div>
+          {% if not u.ffmpeg %}<p class="help-text" style="color:#b45309; margin:6px 0;">Video butuh ffmpeg: jalankan <code>pip install imageio-ffmpeg</code> lalu mulai ulang server.</p>{% endif %}
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;">
+            <button type="button" class="suara-btn suara-simpan" id="unduh-simpan" style="display:inline-block;">&#128190; Simpan pengaturan unduh</button>
+            <span id="unduh-status" class="help-text" style="margin:0;">{% if u.video_basi %}Rekaman berubah sejak video dibuat, tekan Simpan agar video diperbarui.{% elif u.video_izin and u.video_ada %}Video siap.{% endif %}</span>
+          </div>
+          {% endwith %}
+        </div>
+      </div>
+      {% endif %}
     </div>
 
     <!-- Aksi -->
@@ -141,7 +293,130 @@
     ['clean']
   ];
 
-  function buatBlokDeskripsi(judulAwal, kontenAwal) {
+  // ===== Atur gambar ala majalah: posisi, teks mengalir, ukuran =====
+  // Toolbar bawaan modul resize (hanya kiri/tengah/kanan) dimatikan; diganti toolbar di bawah.
+  var IMAGE_RESIZE_OPTS = { modules: ['Resize', 'DisplaySize'] };
+
+  function pasangToolbarGambar(quill) {
+    var wadah = quill.container;
+    var gambar = null;
+
+    var bar = document.createElement('div');
+    bar.className = 'gambar-bar';
+    bar.style.cssText = 'display:none; position:absolute; z-index:30; flex-wrap:wrap; align-items:center; gap:2px; background:#1f2937; border-radius:8px; padding:4px; box-shadow:0 4px 14px rgba(0,0,0,.28); max-width:calc(100% - 8px);';
+    wadah.appendChild(bar);
+
+    function lebarIsi() {
+      var cs = window.getComputedStyle(quill.root);
+      return quill.root.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    }
+    function gaya(img, o) {
+      Object.keys(o).forEach(function(k) { img.style.setProperty(k, o[k]); });
+    }
+    function ukuran(img, persen) {
+      img.style.removeProperty('width');
+      img.setAttribute('width', Math.round(lebarIsi() * persen / 100));
+      img.removeAttribute('height');
+      gaya(img, { 'max-width': '100%', height: 'auto' });
+    }
+    var LETAK = {
+      kiri:    { float: 'left',  display: 'inline', margin: '4px 18px 10px 0' },
+      kanan:   { float: 'right', display: 'inline', margin: '4px 0 10px 18px' },
+      tengah:  { float: 'none',  display: 'block',  margin: '10px auto' },
+      penuh:   { float: 'none',  display: 'block',  margin: '10px 0' },
+      sebaris: { float: 'none',  display: 'inline', margin: '0 4px', 'vertical-align': 'middle' }
+    };
+    function letak(img, jenis) {
+      img.style.removeProperty('vertical-align');
+      gaya(img, LETAK[jenis]);
+      gaya(img, { 'max-width': '100%', height: 'auto' });
+      if (jenis === 'penuh') {
+        ukuran(img, 100);
+      } else if ((jenis === 'kiri' || jenis === 'kanan') && img.getBoundingClientRect().width > lebarIsi() * 0.6) {
+        ukuran(img, 40); // terlalu lebar: teks tidak bisa mengalir di sampingnya
+      }
+    }
+    function reset(img) {
+      img.removeAttribute('width');
+      img.removeAttribute('height');
+      img.setAttribute('style', 'max-width:100%; height:auto;');
+    }
+
+    function letakkan() {
+      if (!gambar || !gambar.isConnected) { bar.style.display = 'none'; return; }
+      bar.style.display = 'flex';
+      var r = gambar.getBoundingClientRect();
+      var c = wadah.getBoundingClientRect();
+      var atas = r.top - c.top - bar.offsetHeight - 6;
+      if (atas < 4) atas = r.top - c.top + 6;
+      var kiri = Math.max(4, Math.min(r.left - c.left, c.width - bar.offsetWidth - 4));
+      bar.style.top = atas + 'px';
+      bar.style.left = kiri + 'px';
+    }
+    function sembunyi() { gambar = null; bar.style.display = 'none'; }
+    // Klik ulang secara otomatis supaya bingkai resize ikut pindah ke posisi/ukuran baru
+    function segarkan(img) {
+      if (!img || !img.isConnected) { sembunyi(); return; }
+      quill.root.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      img.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    function tombol(label, judul, fn) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = label;
+      b.title = judul;
+      b.style.cssText = 'background:transparent; color:#fff; border:none; border-radius:5px; padding:5px 8px; font-size:12px; cursor:pointer; font-family:inherit; white-space:nowrap;';
+      b.addEventListener('mouseenter', function() { b.style.background = '#374151'; });
+      b.addEventListener('mouseleave', function() { b.style.background = 'transparent'; });
+      b.addEventListener('mousedown', function(e) { e.preventDefault(); });
+      b.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!gambar) return;
+        var g = gambar;
+        fn(g);
+        window.requestAnimationFrame(function() { segarkan(g); });
+      });
+      bar.appendChild(b);
+    }
+    function pemisah() {
+      var s = document.createElement('span');
+      s.style.cssText = 'width:1px; height:16px; background:#4b5563; margin:0 3px;';
+      bar.appendChild(s);
+    }
+
+    tombol('◧ Kiri',    'Gambar di kiri, teks mengalir di sebelah kanan', function(i) { letak(i, 'kiri'); });
+    tombol('◨ Kanan',   'Gambar di kanan, teks mengalir di sebelah kiri', function(i) { letak(i, 'kanan'); });
+    tombol('▣ Tengah',  'Gambar di tengah, teks di atas dan di bawahnya', function(i) { letak(i, 'tengah'); });
+    tombol('▭ Penuh',   'Gambar selebar kolom', function(i) { letak(i, 'penuh'); });
+    tombol('↔ Sebaris', 'Gambar kecil sejajar dengan huruf', function(i) { letak(i, 'sebaris'); });
+    pemisah();
+    tombol('25%', 'Ukuran 25% dari lebar kolom', function(i) { ukuran(i, 25); });
+    tombol('33%', 'Ukuran 33% dari lebar kolom', function(i) { ukuran(i, 33); });
+    tombol('50%', 'Ukuran 50% dari lebar kolom', function(i) { ukuran(i, 50); });
+    tombol('75%', 'Ukuran 75% dari lebar kolom', function(i) { ukuran(i, 75); });
+    pemisah();
+    tombol('↺ Reset', 'Kembalikan gambar ke pengaturan awal', reset);
+
+    quill.root.addEventListener('click', function(e) {
+      if (e.target && e.target.tagName === 'IMG') {
+        gambar = e.target;
+        letakkan();
+      } else {
+        sembunyi();
+      }
+    });
+    document.addEventListener('click', function(e) {
+      if (!wadah.contains(e.target)) sembunyi();
+    });
+    quill.on('text-change', function(delta, lama, sumber) {
+      if (sumber === 'user') letakkan();
+    });
+    window.addEventListener('resize', sembunyi);
+  }
+
+  function buatBlokDeskripsi(judulAwal, kontenAwal, lembarAwal, insightAwal) {
     blockCounter++;
     var id = 'blok-' + blockCounter;
 
@@ -160,8 +435,10 @@
 
     var btnHapus = document.createElement('button');
     btnHapus.type = 'button';
-    btnHapus.textContent = '✕ Hapus';
-    btnHapus.style.cssText = 'background:#fee2e2; color:#dc2626; border:none; border-radius:6px; padding:8px 10px; font-size:12px; cursor:pointer; white-space:nowrap;';
+    btnHapus.title = 'Hapus blok';
+    btnHapus.setAttribute('aria-label', 'Hapus blok');
+    btnHapus.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
+    btnHapus.style.cssText = 'background:#fee2e2; border:none; border-radius:6px; padding:8px 10px; cursor:pointer; display:flex; align-items:center; justify-content:center;';
     btnHapus.addEventListener('click', function() {
       if (deskripsiBlocks.length <= 1) {
         alert('Minimal harus ada 1 blok deskripsi.');
@@ -178,19 +455,109 @@
     editorDiv.id = 'quill-' + id;
     editorDiv.style.cssText = 'min-height:150px; border:1.5px solid #e5e7eb; border-radius:8px; background:white;';
 
+    // --- Lembar Kerja Siswa (opsional, dibuka dengan klik tombol) ---
+    var btnLembar = document.createElement('button');
+    btnLembar.type = 'button';
+    btnLembar.style.cssText = 'margin-top:10px; background:#FEF3C7; color:#92400E; border:none; border-radius:6px; padding:7px 12px; font-size:12px; font-weight:600; cursor:pointer;';
+
+    var lembarWrap = document.createElement('div');
+    lembarWrap.style.cssText = 'display:none; margin-top:10px; border:1.5px dashed #F59E0B; border-radius:8px; padding:12px; background:#FFFBEB;';
+
+    var lembarLabel = document.createElement('div');
+    lembarLabel.style.cssText = 'font-size:12px; font-weight:700; color:#92400E; margin-bottom:8px;';
+    lembarLabel.textContent = '📝 Lembar Kerja Siswa (di halaman siswa, bagian ini muncul saat tombolnya diklik)';
+
+    var lembarEditorDiv = document.createElement('div');
+    lembarEditorDiv.id = 'quill-lembar-' + id;
+    lembarEditorDiv.style.cssText = 'min-height:120px; border:1.5px solid #e5e7eb; border-radius:8px; background:white;';
+
+    // --- Insight Guru untuk Siswa (ada di dalam lembar kerja, dibuka dengan klik) ---
+    var btnInsight = document.createElement('button');
+    btnInsight.type = 'button';
+    btnInsight.style.cssText = 'margin-top:10px; background:#DCFCE7; color:#166534; border:none; border-radius:6px; padding:7px 12px; font-size:12px; font-weight:600; cursor:pointer;';
+
+    var insightWrap = document.createElement('div');
+    insightWrap.style.cssText = 'display:none; margin-top:10px; border:1.5px dashed #22C55E; border-radius:8px; padding:12px; background:#F0FDF4;';
+
+    var insightLabel = document.createElement('div');
+    insightLabel.style.cssText = 'font-size:12px; font-weight:700; color:#166534; margin-bottom:8px;';
+    insightLabel.textContent = '💡 Insight Guru / Koreksi untuk Siswa (pembahasan, kunci jawaban, catatan perbaikan, atau pesan semangat)';
+
+    var insightEditorDiv = document.createElement('div');
+    insightEditorDiv.id = 'quill-insight-' + id;
+    insightEditorDiv.style.cssText = 'min-height:100px; border:1.5px solid #e5e7eb; border-radius:8px; background:white;';
+
+    insightWrap.appendChild(insightLabel);
+    insightWrap.appendChild(insightEditorDiv);
+
+    lembarWrap.appendChild(lembarLabel);
+    lembarWrap.appendChild(lembarEditorDiv);
+
+    lembarWrap.appendChild(btnInsight);
+    lembarWrap.appendChild(insightWrap);
+
     wrapper.appendChild(headerRow);
     wrapper.appendChild(editorDiv);
+    wrapper.appendChild(btnLembar);
+    wrapper.appendChild(lembarWrap);
     document.getElementById('deskripsi-blocks-container').appendChild(wrapper);
 
     var quill = new Quill('#quill-' + id, {
       theme: 'snow',
-      modules: { toolbar: QUILL_TOOLBAR, imageResize: {} }
+      modules: { toolbar: QUILL_TOOLBAR, imageResize: IMAGE_RESIZE_OPTS }
     });
+    pasangToolbarGambar(quill);
     if (kontenAwal) {
       quill.root.innerHTML = kontenAwal;
     }
 
-    deskripsiBlocks.push({ id: id, quill: quill, titleInput: titleInput, wrapper: wrapper });
+    var lembarQuill = new Quill('#quill-lembar-' + id, {
+      theme: 'snow',
+      modules: { toolbar: QUILL_TOOLBAR, imageResize: IMAGE_RESIZE_OPTS }
+    });
+    pasangToolbarGambar(lembarQuill);
+
+    function perbaruiTombolLembar() {
+      var terbuka = lembarWrap.style.display !== 'none';
+      btnLembar.textContent = terbuka ? '📝 Sembunyikan Lembar Kerja Siswa ▴' : '📝 Tambah / Lihat Lembar Kerja Siswa ▾';
+    }
+    btnLembar.addEventListener('click', function() {
+      var terbuka = lembarWrap.style.display !== 'none';
+      lembarWrap.style.display = terbuka ? 'none' : 'block';
+      perbaruiTombolLembar();
+      if (!terbuka) lembarQuill.focus();
+    });
+    var insightQuill = new Quill('#quill-insight-' + id, {
+      theme: 'snow',
+      modules: { toolbar: QUILL_TOOLBAR, imageResize: IMAGE_RESIZE_OPTS }
+    });
+    pasangToolbarGambar(insightQuill);
+
+    function perbaruiTombolInsight() {
+      var terbuka = insightWrap.style.display !== 'none';
+      btnInsight.textContent = terbuka ? '💡 Sembunyikan Insight Guru ▴' : '💡 Tambah / Lihat Insight Guru / Koreksi ▾';
+    }
+    btnInsight.addEventListener('click', function() {
+      var terbuka = insightWrap.style.display !== 'none';
+      insightWrap.style.display = terbuka ? 'none' : 'block';
+      perbaruiTombolInsight();
+      if (!terbuka) insightQuill.focus();
+    });
+
+    if (lembarAwal) {
+      lembarQuill.root.innerHTML = lembarAwal;
+    }
+    if (insightAwal) {
+      insightQuill.root.innerHTML = insightAwal;
+      insightWrap.style.display = 'block';
+    }
+    if (lembarAwal || insightAwal) {
+      lembarWrap.style.display = 'block';
+    }
+    perbaruiTombolLembar();
+    perbaruiTombolInsight();
+
+    deskripsiBlocks.push({ id: id, quill: quill, lembarQuill: lembarQuill, insightQuill: insightQuill, titleInput: titleInput, wrapper: wrapper });
   }
 
   document.getElementById('btn-tambah-deskripsi').addEventListener('click', function() {
@@ -206,7 +573,17 @@
     subtemaNodes.forEach(function(blokNode) {
       var judulNode = blokNode.previousElementSibling;
       var judulTeks = (judulNode && judulNode.classList.contains('desk-subtema')) ? judulNode.textContent : '';
-      buatBlokDeskripsi(judulTeks, blokNode.innerHTML);
+      // Lembar kerja (kalau ada) tersimpan tepat setelah blok materinya
+      var lembarNode = blokNode.nextElementSibling;
+      var lembarTeks = '';
+      var insightTeks = '';
+      if (lembarNode && lembarNode.classList.contains('desk-lembar')) {
+        var isiNode = lembarNode.querySelector('.desk-lembar-isi');
+        lembarTeks = isiNode ? isiNode.innerHTML : '';
+        var insightNode = lembarNode.querySelector('.desk-insight-isi');
+        insightTeks = insightNode ? insightNode.innerHTML : '';
+      }
+      buatBlokDeskripsi(judulTeks, blokNode.innerHTML, lembarTeks, insightTeks);
     });
   } else {
     var kontenLama = kontenLamaWrapper.innerHTML.trim();
@@ -220,16 +597,371 @@
       var judul = b.titleInput.value.trim();
       var konten = b.quill.root.innerHTML;
       var isiKosong = konten.replace(/<(.|\n)*?>/g, '').trim() === '';
-      if (isiKosong && !judul) return; // lewati blok yang benar-benar kosong
+      var lembar = b.lembarQuill.root.innerHTML;
+      var lembarKosong = lembar.replace(/<(.|\n)*?>/g, '').trim() === '';
+      var insight = b.insightQuill.root.innerHTML;
+      var insightKosong = insight.replace(/<(.|\n)*?>/g, '').trim() === '';
+      if (isiKosong && lembarKosong && insightKosong && !judul) return; // lewati blok yang benar-benar kosong
 
       if (judul) {
         var judulAman = judul.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         htmlGabungan += '<h4 class="desk-subtema" style="margin:0 0 6px; color:#3C8C1F; font-size:14px;">' + judulAman + '</h4>';
       }
-      htmlGabungan += '<div class="desk-blok" style="margin-bottom:16px;">' + konten + '</div>';
+      htmlGabungan += '<div class="desk-blok" style="margin-bottom:16px; display:flow-root;">' + konten + '</div>';
+
+      // Lembar Kerja Siswa: tersembunyi dulu, terbuka saat diklik (tanpa JavaScript, memakai <details>)
+      if (!lembarKosong || !insightKosong) {
+        htmlGabungan += '<details class="desk-lembar" style="margin:0 0 16px; border:1.5px dashed #F59E0B; border-radius:10px; background:#FFFBEB;">'
+          + '<summary style="cursor:pointer; padding:10px 14px; font-weight:700; color:#92400E; font-size:14px;">📝 Lembar Kerja Siswa — klik untuk membuka</summary>'
+          + '<div class="desk-lembar-isi" style="padding:4px 14px 12px; display:flow-root;">' + (lembarKosong ? '' : lembar) + '</div>';
+        // Insight Guru: tersembunyi di dalam lembar kerja, terbuka saat diklik
+        if (!insightKosong) {
+          htmlGabungan += '<details class="desk-insight" style="margin:0 14px 12px; border:1.5px solid #86EFAC; border-radius:8px; background:#F0FDF4;">'
+            + '<summary style="cursor:pointer; padding:8px 12px; font-weight:700; color:#166534; font-size:13px;">💡 Insight Guru / Koreksi untuk Siswa — klik untuk membaca</summary>'
+            + '<div class="desk-insight-isi" style="padding:4px 12px 10px; display:flow-root;">' + insight + '</div>'
+            + '</details>';
+        }
+        htmlGabungan += '</details>';
+      }
     });
     document.getElementById('deskripsi-hidden').value = htmlGabungan;
   });
+  // ===== Jenis item: Materi / Slide (dari PowerPoint) =====
+  (function () {
+    var radios = document.querySelectorAll('input[name="jenis_item"]');
+    var info = document.getElementById('slide-info');
+    var inputFile = document.getElementById('file-input');
+    var bagianUpload = document.getElementById('bagian-upload');
+    var judulUpload = document.getElementById('upload-judul');
+    var keterangan = document.getElementById('file-name-display');
+    var teksAwal = keterangan.textContent;
+    var buatBaru = {% if item %}false{% else %}true{% endif %};
+    var EKSTENSI = ['.pptx', '.ppt', '.ppsx', '.pps', '.odp'];
+
+    function jenisSekarang() {
+      for (var k = 0; k < radios.length; k++) { if (radios[k].checked) return radios[k].value; }
+      return 'materi';
+    }
+    function ekstensiSah(nama) {
+      nama = (nama || '').toLowerCase();
+      return EKSTENSI.some(function (e) { return nama.slice(-e.length) === e; });
+    }
+    function terapkan() {
+      var slide = (jenisSekarang() === 'slide');
+      Array.prototype.forEach.call(radios, function (r) { r.parentNode.classList.toggle('dipilih', r.checked); });
+      info.style.display = slide ? 'block' : 'none';
+      bagianUpload.classList.toggle('mode-slide', slide);
+      judulUpload.textContent = slide ? 'Upload File PowerPoint' : 'Upload File';
+      if (slide) { inputFile.setAttribute('accept', EKSTENSI.join(',')); } else { inputFile.removeAttribute('accept'); }
+      if (!inputFile.files || !inputFile.files.length) {
+        keterangan.textContent = slide ? 'File PowerPoint (.pptx atau .ppt) \u2014 maks 50MB' : teksAwal;
+      }
+    }
+    Array.prototype.forEach.call(radios, function (r) { r.addEventListener('change', terapkan); });
+
+    inputFile.addEventListener('change', function () {
+      if (jenisSekarang() === 'slide' && inputFile.files.length && !ekstensiSah(inputFile.files[0].name)) {
+        alert('Untuk jenis Slide, pilih file PowerPoint (.pptx atau .ppt).');
+        inputFile.value = '';
+        terapkan();
+      }
+    });
+
+    document.querySelector('form').addEventListener('submit', function (e) {
+      if (jenisSekarang() !== 'slide') return;
+      var ada = inputFile.files && inputFile.files.length;
+      if (!ada && buatBaru) {
+        e.preventDefault();
+        alert('Pilih file PowerPoint (.pptx) pada bagian Upload File untuk membuat slide.');
+        bagianUpload.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (ada && !ekstensiSah(inputFile.files[0].name)) {
+        e.preventDefault();
+        alert('Untuk jenis Slide, pilih file PowerPoint (.pptx atau .ppt).');
+      }
+    });
+
+    terapkan();
+  })();
+</script>
+<script>
+  // ===== Kotak upload: beri warna saat ada file =====
+  (function () {
+    var input = document.getElementById('file-input');
+    var kotak = document.getElementById('file-drop-area');
+    if (!input || !kotak) return;
+    var ikon = kotak.querySelector('.file-drop-icon');
+    var judul = kotak.querySelector('.file-drop-title');
+    var ikonAwal = ikon ? ikon.innerHTML : '';
+    var judulAwal = judul ? judul.innerHTML : '';
+    function segarkan() {
+      var ada = input.files && input.files.length > 0;
+      kotak.classList.toggle('terisi', ada);
+      if (ikon) ikon.innerHTML = ada ? '&#9989;' : ikonAwal;
+      if (judul) judul.innerHTML = ada ? 'File siap diunggah &mdash; klik untuk mengganti' : judulAwal;
+    }
+    input.addEventListener('change', segarkan);
+    segarkan();
+  })();
+</script>
+<script>
+(function () {
+  var wadah = document.getElementById('bagian-suara');
+  if (!wadah) return;
+  var tokenEl = document.querySelector('input[name=csrfmiddlewaretoken]');
+  var token = tokenEl ? tokenEl.value : '';
+  var mendukung = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  var sedangMerekam = null;
+  var MAKS_DETIK = 600;
+  var MODE = {
+    '.suara-rekam': ['kosong', 'ada'], '.suara-henti': ['rekam'],
+    '.suara-simpan': ['siap'], '.suara-buang': ['siap'], '.suara-hapus': ['ada']
+  };
+  var TEKS = { kosong: '(belum ada rekaman)', ada: '(sudah ada rekaman)', rekam: '(sedang merekam)', siap: '(belum disimpan)' };
+
+  function q(b, s) { return b.querySelector(s); }
+  function atur(b, mode, pesan) {
+    for (var k in MODE) { q(b, k).hidden = MODE[k].indexOf(mode) < 0; }
+    q(b, '.suara-rekam').innerHTML = (mode === 'ada') ? '&#127908; Rekam ulang' : '&#127908; Rekam';
+    q(b, '.suara-status').textContent = pesan || TEKS[mode];
+    b.classList.toggle('merekam', mode === 'rekam');
+    q(b, '.suara-putar').style.display = (mode === 'ada' || mode === 'siap') ? 'block' : 'none';
+    b._mode = mode;
+  }
+  function kirim(b, aksi, blob) {
+    var fd = new FormData();
+    fd.append('aksi', aksi);
+    fd.append('nomor', b.getAttribute('data-nomor'));
+    if (blob) {
+      var tipe = (blob.type || '').toLowerCase();
+      var ext = tipe.indexOf('ogg') >= 0 ? '.ogg' : (tipe.indexOf('mp4') >= 0 ? '.m4a' : '.webm');
+      fd.append('suara', blob, 'suara' + ext);
+    }
+    return fetch(window.location.pathname, { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-CSRFToken': token } })
+      .then(function (r) { return r.json().catch(function () { return { ok: false, pesan: 'Server memberi jawaban yang tidak dikenal (kode ' + r.status + ').' }; }); });
+  }
+  function siapkan(b) {
+    var putar = q(b, '.suara-putar');
+    var url = b.getAttribute('data-suara') || '';
+    if (url) { putar.src = url; atur(b, 'ada'); } else { atur(b, 'kosong'); }
+    if (!mendukung) {
+      q(b, '.suara-rekam').disabled = true;
+      q(b, '.suara-status').textContent = '(browser ini tidak mendukung perekaman; gunakan Chrome/Edge/Firefox terbaru)';
+      return;
+    }
+    q(b, '.suara-rekam').addEventListener('click', function () {
+      if (sedangMerekam) { alert('Selesaikan dulu rekaman pada slide lain.'); return; }
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (strim) {
+        var kandidat = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+        var mime = '';
+        for (var i = 0; i < kandidat.length; i++) { if (MediaRecorder.isTypeSupported(kandidat[i])) { mime = kandidat[i]; break; } }
+        var rec = mime ? new MediaRecorder(strim, { mimeType: mime }) : new MediaRecorder(strim);
+        var potongan = [];
+        var mulai = Date.now();
+        rec.ondataavailable = function (e) { if (e.data && e.data.size) potongan.push(e.data); };
+        rec.onstop = function () {
+          clearInterval(b._timer);
+          strim.getTracks().forEach(function (t) { t.stop(); });
+          sedangMerekam = null;
+          var blob = new Blob(potongan, { type: rec.mimeType || mime || 'audio/webm' });
+          if (!blob.size) { alert('Rekaman kosong. Periksa mikrofon Anda lalu coba lagi.'); atur(b, b.getAttribute('data-suara') ? 'ada' : 'kosong'); return; }
+          b._blob = blob;
+          putar.src = URL.createObjectURL(blob);
+          atur(b, 'siap');
+        };
+        b._rec = rec;
+        sedangMerekam = b;
+        rec.start();
+        atur(b, 'rekam');
+        b._timer = setInterval(function () {
+          var d = Math.floor((Date.now() - mulai) / 1000);
+          q(b, '.suara-status').textContent = '(sedang merekam ' + Math.floor(d / 60) + ':' + ('0' + (d % 60)).slice(-2) + ')';
+          if (d >= MAKS_DETIK && rec.state === 'recording') rec.stop();
+        }, 500);
+      }).catch(function () {
+        alert('Mikrofon tidak bisa dipakai. Izinkan akses mikrofon pada browser (ikon gembok di kolom alamat), lalu coba lagi.');
+      });
+    });
+    q(b, '.suara-henti').addEventListener('click', function () { if (b._rec && b._rec.state === 'recording') b._rec.stop(); });
+    q(b, '.suara-buang').addEventListener('click', function () {
+      b._blob = null;
+      var lama = b.getAttribute('data-suara') || '';
+      if (lama) { putar.src = lama; atur(b, 'ada'); } else { putar.removeAttribute('src'); atur(b, 'kosong'); }
+    });
+    q(b, '.suara-simpan').addEventListener('click', function () {
+      if (!b._blob) return;
+      atur(b, 'siap', '(menyimpan...)');
+      kirim(b, 'simpan_suara', b._blob).then(function (j) {
+        if (j.ok) {
+          b.setAttribute('data-suara', j.url);
+          b._blob = null;
+          putar.src = j.url + '?t=' + Date.now();
+          atur(b, 'ada', '(tersimpan)');
+        } else { atur(b, 'siap'); alert(j.pesan || 'Rekaman gagal disimpan.'); }
+      }).catch(function () { atur(b, 'siap'); alert('Rekaman gagal dikirim. Periksa koneksi lalu coba lagi.'); });
+    });
+    q(b, '.suara-hapus').addEventListener('click', function () {
+      if (!confirm('Hapus rekaman suara pada slide ini?')) return;
+      kirim(b, 'hapus_suara').then(function (j) {
+        if (j.ok) { b.setAttribute('data-suara', ''); putar.removeAttribute('src'); atur(b, 'kosong'); }
+        else { alert(j.pesan || 'Rekaman gagal dihapus.'); }
+      }).catch(function () { alert('Gagal menghubungi server.'); });
+    });
+  }
+  Array.prototype.forEach.call(wadah.querySelectorAll('.suara-baris'), siapkan);
+})();
+</script>
+<script>
+(function () {
+  var wadah = document.getElementById('bagian-suara');
+  if (!wadah) return;
+  var baris = Array.prototype.slice.call(wadah.querySelectorAll('.suara-baris'));
+  if (!baris.length) return;
+  var n = baris.length;
+  var idx = 0;
+
+  var ov = document.createElement('div');
+  ov.className = 'rk-ov';
+  ov.hidden = true;
+  ov.innerHTML =
+    '<div class="rk-ov-atas"><span class="rk-ov-judul"></span><span class="rk-ov-status"></span>' +
+    '<button type="button" class="rk-b rk-tutup">Tutup (Esc)</button></div>' +
+    '<div class="rk-ov-panggung"><img class="rk-ov-img" alt=""></div>' +
+    '<div class="rk-ov-bar">' +
+    '<button type="button" class="rk-b rk-prev">&#9664; Sebelumnya</button>' +
+    '<span class="rk-hitung"></span>' +
+    '<button type="button" class="rk-b rk-next">Berikutnya &#9654;</button>' +
+    '<span class="rk-ov-spasi"></span>' +
+    '<audio class="rk-ov-audio" controls controlsList="nodownload" style="display:none;"></audio>' +
+    '<button type="button" class="rk-b rek" data-s=".suara-rekam">&#127908; Rekam</button>' +
+    '<button type="button" class="rk-b henti" data-s=".suara-henti">&#9209; Berhenti</button>' +
+    '<button type="button" class="rk-b simpan" data-s=".suara-simpan">&#128190; Simpan</button>' +
+    '<button type="button" class="rk-b" data-s=".suara-buang">Buang</button>' +
+    '<button type="button" class="rk-b" data-s=".suara-hapus">Hapus rekaman</button>' +
+    '<label class="rk-auto"><input type="checkbox" class="rk-auto-cb" checked> Lanjut otomatis setelah simpan</label>' +
+    '</div>';
+  document.body.appendChild(ov);
+
+  function q(s) { return ov.querySelector(s); }
+  var img = q('.rk-ov-img'), audio = q('.rk-ov-audio'), status = q('.rk-ov-status');
+  var tombolMap = Array.prototype.slice.call(ov.querySelectorAll('[data-s]'));
+  var auto = q('.rk-auto-cb');
+
+  function sedangRekam() { return baris.some(function (b) { return b._mode === 'rekam'; }); }
+  function sinkron() {
+    var b = baris[idx];
+    tombolMap.forEach(function (t) {
+      var asal = b.querySelector(t.getAttribute('data-s'));
+      t.hidden = asal.hidden;
+      if (t.classList.contains('rek')) t.innerHTML = asal.innerHTML;
+    });
+    status.textContent = b.querySelector('.suara-status').textContent;
+    var p = b.querySelector('.suara-putar');
+    var ada = (b._mode === 'ada' || b._mode === 'siap') && p.getAttribute('src');
+    if (ada) { if (audio.getAttribute('src') !== p.getAttribute('src')) audio.src = p.getAttribute('src'); audio.style.display = ''; }
+    else { audio.pause(); audio.removeAttribute('src'); audio.style.display = 'none'; }
+    var rekam = sedangRekam();
+    ov.classList.toggle('merekam', rekam);
+    q('.rk-prev').disabled = rekam || idx === 0;
+    q('.rk-next').disabled = rekam || idx === n - 1;
+  }
+  function tampil(k) {
+    if (k < 0 || k >= n) return;
+    idx = k;
+    var b = baris[idx];
+    img.src = b.querySelector('.suara-thumb').getAttribute('src');
+    q('.rk-ov-judul').textContent = 'Slide ' + (idx + 1);
+    q('.rk-hitung').textContent = (idx + 1) + ' / ' + n;
+    audio.pause();
+    sinkron();
+  }
+  function buka(k) {
+    ov.hidden = false;
+    document.body.style.overflow = 'hidden';
+    tampil(k || 0);
+    if (ov.requestFullscreen) { var r = ov.requestFullscreen(); if (r && r.catch) r.catch(function () {}); }
+  }
+  function tutup() {
+    if (sedangRekam()) { alert('Hentikan dulu rekaman yang sedang berjalan.'); return; }
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    ov.hidden = true;
+    document.body.style.overflow = '';
+    audio.pause();
+  }
+
+  tombolMap.forEach(function (t) {
+    t.addEventListener('click', function () { baris[idx].querySelector(t.getAttribute('data-s')).click(); setTimeout(sinkron, 50); });
+  });
+  q('.rk-prev').addEventListener('click', function () { tampil(idx - 1); });
+  q('.rk-next').addEventListener('click', function () { tampil(idx + 1); });
+  q('.rk-tutup').addEventListener('click', tutup);
+  document.addEventListener('keydown', function (e) {
+    if (ov.hidden) return;
+    var tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'AUDIO') { if (e.key !== 'Escape') return; }
+    if (e.key === 'Escape') { if (!document.fullscreenElement) tutup(); }
+    else if (e.key === 'ArrowRight') { if (!sedangRekam()) tampil(idx + 1); }
+    else if (e.key === 'ArrowLeft') { if (!sedangRekam()) tampil(idx - 1); }
+    else if (e.key === 'r' || e.key === 'R') {
+      var b = baris[idx];
+      var tb = b._mode === 'rekam' ? '.suara-henti' : ((b._mode === 'kosong' || b._mode === 'ada') ? '.suara-rekam' : null);
+      if (tb) { e.preventDefault(); b.querySelector(tb).click(); setTimeout(sinkron, 50); }
+    }
+  });
+
+  var tersimpanSebelumnya = {};
+  baris.forEach(function (b, k) {
+    new MutationObserver(function () {
+      if (!ov.hidden && k === idx) {
+        sinkron();
+        var s = b.querySelector('.suara-status').textContent;
+        if (s === '(tersimpan)' && tersimpanSebelumnya[k] !== true) {
+          tersimpanSebelumnya[k] = true;
+          if (auto.checked && idx < n - 1) setTimeout(function () { if (!ov.hidden && idx === k) tampil(k + 1); }, 900);
+        } else if (s !== '(tersimpan)') { tersimpanSebelumnya[k] = false; }
+      }
+    }).observe(b, { attributes: true, childList: true, subtree: true, characterData: true, attributeFilter: ['hidden', 'src', 'style', 'class'] });
+    b.querySelector('.suara-thumb').title = 'Klik untuk memperbesar';
+    b.querySelector('.suara-thumb').addEventListener('click', function () { buka(k); });
+  });
+
+  var tombol = document.createElement('button');
+  tombol.type = 'button';
+  tombol.className = 'suara-presentasi';
+  tombol.innerHTML = '&#128421;&#65039; Mode presentasi (layar penuh)';
+  tombol.addEventListener('click', function () { buka(0); });
+  var daftar = wadah.querySelector('.suara-daftar');
+  daftar.parentNode.insertBefore(tombol, daftar);
+})();
+</script>
+<script>
+(function () {
+  var tombol = document.getElementById('unduh-simpan');
+  if (!tombol) return;
+  var tokenEl = document.querySelector('input[name=csrfmiddlewaretoken]');
+  var token = tokenEl ? tokenEl.value : '';
+  var status = document.getElementById('unduh-status');
+  tombol.addEventListener('click', function () {
+    var data = new FormData();
+    data.append('csrfmiddlewaretoken', token);
+    data.append('aksi', 'simpan_unduh');
+    data.append('pdf', document.getElementById('unduh-pdf-mode').value);
+    data.append('video', document.getElementById('unduh-video-mode').value);
+    tombol.disabled = true;
+    status.textContent = 'Sedang membuat file, mohon tunggu (video bisa memakan waktu beberapa menit)...';
+    fetch(window.location.pathname, { method: 'POST', body: data, credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        tombol.disabled = false;
+        status.textContent = j.pesan || (j.ok ? 'Tersimpan.' : 'Gagal.');
+        status.style.color = j.ok ? '#166534' : '#b91c1c';
+        if (j.info) {
+          document.getElementById('unduh-pdf-mode').value = j.info.pdf_mode || '';
+          document.getElementById('unduh-video-mode').value = j.info.video_mode || '';
+        }
+      })
+      .catch(function () { tombol.disabled = false; status.textContent = 'Gagal menghubungi server.'; status.style.color = '#b91c1c'; });
+  });
+})();
 </script>
 
 {% endblock %}

@@ -603,6 +603,82 @@ def hapus_formatif(request, penilaian_id):
     return redirect('ruang_kerja:penilaian_topik', materi_id=materi_id)
 
 
+def _kelola_suara_slide(request, item):
+    """Simpan atau hapus rekaman suara satu slide. Dipanggil dari edit_item lewat fetch (balasan JSON)."""
+    import glob
+    import os
+    from django.http import JsonResponse
+    aksi = request.POST.get('aksi')
+    try:
+        nomor = int(request.POST.get('nomor', ''))
+    except ValueError:
+        return JsonResponse({'ok': False, 'pesan': 'Nomor slide tidak valid.'}, status=400)
+    if nomor < 1 or nomor > len(item.get_slides()):
+        return JsonResponse({'ok': False, 'pesan': 'Slide tidak ditemukan.'}, status=400)
+    folder = item.folder_slide()
+    if aksi == 'hapus_suara':
+        for lama in glob.glob(os.path.join(folder, 'suara-%03d.*' % nomor)):
+            os.remove(lama)
+        return JsonResponse({'ok': True})
+    berkas = request.FILES.get('suara')
+    if not berkas:
+        return JsonResponse({'ok': False, 'pesan': 'Tidak ada rekaman yang dikirim.'}, status=400)
+    if berkas.size > 20 * 1024 * 1024:
+        return JsonResponse({'ok': False, 'pesan': 'Rekaman terlalu besar (maksimum 20 MB).'}, status=400)
+    tipe = (berkas.content_type or '').split(';')[0].strip().lower()
+    peta_ekstensi = {'audio/webm': '.webm', 'video/webm': '.webm', 'audio/ogg': '.ogg', 'audio/mp4': '.m4a',
+                     'video/mp4': '.m4a', 'audio/mpeg': '.mp3', 'audio/wav': '.wav', 'audio/x-wav': '.wav'}
+    ekstensi = peta_ekstensi.get(tipe)
+    if not ekstensi:
+        return JsonResponse({'ok': False, 'pesan': 'Format rekaman tidak didukung (%s).' % (tipe or 'tidak diketahui')}, status=400)
+    os.makedirs(folder, exist_ok=True)
+    for lama in glob.glob(os.path.join(folder, 'suara-%03d.*' % nomor)):
+        os.remove(lama)
+    nama = 'suara-%03d%s' % (nomor, ekstensi)
+    with open(os.path.join(folder, nama), 'wb') as f:
+        for potongan in berkas.chunks():
+            f.write(potongan)
+    from django.conf import settings
+    return JsonResponse({'ok': True, 'url': '%sslides/item_%d/%s' % (settings.MEDIA_URL, item.pk, nama)})
+
+
+def _kelola_unduh_slide(request, item):
+    """Simpan izin unduh (PDF/Video) lalu buat atau hapus filenya. Balasan JSON."""
+    from django.http import JsonResponse
+    from . import slide_unduh
+    if not item.get_slides():
+        return JsonResponse({'ok': False, 'pesan': 'Item ini belum punya slide.'}, status=400)
+    pdf = request.POST.get('pdf', '')
+    video = request.POST.get('video', '')
+    try:
+        pesan, galat = slide_unduh.terapkan(item.folder_slide(), pdf, video)
+    except Exception as e:
+        return JsonResponse({'ok': False, 'pesan': 'Gagal: %s' % e}, status=500)
+    info = slide_unduh.info(item.folder_slide())
+    if not (pdf or video):
+        pesan = ['Unduhan dimatikan. Siswa tidak melihat tombol unduh.']
+    return JsonResponse({'ok': not galat, 'pesan': ' '.join(pesan + galat), 'info': info})
+
+
+def _buat_slide_item(request, item):
+    """Ubah file PowerPoint milik item menjadi gambar slide. Galat ditampilkan ke guru sebagai pesan."""
+    from .slide_konversi import konversi_pptx, KonversiSlideError
+    if not item.file:
+        messages.warning(request, 'Jenis Slide dipilih, tetapi belum ada file PowerPoint yang diunggah.')
+        return
+    try:
+        konversi_pptx(item.file.path, item.folder_slide())
+    except KonversiSlideError as e:
+        messages.error(request, 'Item tersimpan, tetapi slide belum dibuat. %s' % e)
+    try:   # ambil video tertanam supaya bisa diputar di penampil slide
+        import os
+        from .slide_video import ekstrak_video
+        if os.path.isdir(item.folder_slide()):
+            ekstrak_video(item.file.path, item.folder_slide())
+    except Exception:
+        pass
+
+
 @login_required
 def tambah_item(request, materi_id):
     from .models import SubMateri
@@ -612,7 +688,7 @@ def tambah_item(request, materi_id):
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     if request.method == 'POST':
         urutan = materi.sub_materi.count()
-        SubMateri.objects.create(
+        item = SubMateri.objects.create(
             materi=materi,
             judul=request.POST.get('judul', ''),
             deskripsi=request.POST.get('deskripsi', ''),
@@ -621,6 +697,8 @@ def tambah_item(request, materi_id):
             video_url=request.POST.get('video_url') or None,
             urutan=urutan,
         )
+        if request.POST.get('jenis_item') == 'slide':
+            _buat_slide_item(request, item)
         messages.success(request, 'Item berhasil ditambahkan.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     return render(request, 'ruang_kerja/tambah_item.html', {
@@ -638,13 +716,24 @@ def edit_item(request, item_id):
     if _bukan_staf(request.user):
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     if request.method == 'POST':
+        if request.POST.get('aksi') == 'simpan_unduh':
+            return _kelola_unduh_slide(request, item)
+        if request.POST.get('aksi') in ('simpan_suara', 'hapus_suara'):
+            return _kelola_suara_slide(request, item)
         item.judul = request.POST.get('judul', '')
         item.deskripsi = request.POST.get('deskripsi', '')
-        if request.FILES.get('file'):
-            item.file = request.FILES.get('file')
+        file_baru = request.FILES.get('file')
+        if file_baru:
+            item.file = file_baru
         item.link_url = request.POST.get('link_url') or None
         item.video_url = request.POST.get('video_url') or None
         item.save()
+        jenis = request.POST.get('jenis_item')
+        if jenis == 'slide':
+            if file_baru or not item.get_slides():
+                _buat_slide_item(request, item)
+        elif jenis == 'materi':
+            item.hapus_slide()
         messages.success(request, 'Item berhasil diperbarui.')
         return redirect('ruang_kerja:detail', ruang_id=ruang.id)
     return render(request, 'ruang_kerja/tambah_item.html', {

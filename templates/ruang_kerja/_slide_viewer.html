@@ -1,0 +1,282 @@
+{% comment %}
+  Penampil slide ala PowerPoint untuk siswa.
+
+  Pemakaian di halaman siswa (misalnya detail item):
+      {% include 'ruang_kerja/_slide_viewer.html' with slides=daftar_url_slide judul=item.judul uid=item.id %}
+
+  - slides : daftar URL gambar slide, berurutan (list of string)
+  - judul  : judul item (dipakai untuk label aksesibilitas)
+  - uid    : angka/teks unik per item, supaya beberapa penampil bisa ada dalam satu halaman
+{% endcomment %}
+{% if slides %}
+<div class="sv" id="sv-{{ uid }}" tabindex="0" role="region" aria-label="Slide: {{ judul }}" data-suara="{{ suara|join:'|' }}" data-video="{{ video|default:'' }}">
+  <div class="sv-stage">
+    <img class="sv-img" alt="" draggable="false">
+    <div class="sv-vlayer"></div>
+  </div>
+
+  <div class="sv-bar">
+    <div class="sv-progress"><span></span></div>
+    <div class="sv-ctl">
+      <button type="button" class="sv-btn sv-prev" aria-label="Slide sebelumnya">&#9664;</button>
+      <span class="sv-count" aria-live="polite">1 / {{ slides|length }}</span>
+      <button type="button" class="sv-btn sv-next" aria-label="Slide berikutnya">&#9654;</button>
+      <button type="button" class="sv-btn sv-suara" hidden>&#127911; Dengar penjelasan</button>
+      <span class="sv-spacer"></span>
+      <button type="button" class="sv-btn sv-full" aria-label="Layar penuh">&#9974; Layar penuh</button>
+    </div>
+  </div>
+
+  <div class="sv-thumbs">
+    {% for url in slides %}
+    <button type="button" class="sv-thumb" data-src="{{ url }}" aria-label="Slide {{ forloop.counter }}">
+      <img src="{{ url }}" alt="" loading="lazy" draggable="false"><span>{{ forloop.counter }}</span>
+    </button>
+    {% endfor %}
+  </div>
+  {% if request.user.is_staff_role %}
+  <div class="sv-unduh">
+    <span>Unduh (guru):</span>
+    {% for u in unduh_guru %}<a href="{{ u.url }}" download="{{ u.nama }}">{{ u.ikon|safe }} {{ u.label }}</a>{% if u.basi %}<em class="sv-basi">perlu diperbarui</em>{% endif %}{% empty %}<em class="sv-basi">belum dibuat &ndash; atur di Edit Item &rarr; Izin Unduh</em>{% endfor %}
+  </div>
+  {% elif unduh %}
+  <div class="sv-unduh">
+    <span>Unduh:</span>
+    {% for u in unduh %}<a href="{{ u.url }}" download="{{ u.nama }}">{{ u.ikon|safe }} {{ u.label }}</a>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<style>
+  .sv { --rasio:1.7778; background:#0f172a; border-radius:14px; overflow:hidden; outline:none; color:#fff; font-family:inherit; }
+  .sv:focus-visible { box-shadow:0 0 0 3px rgba(60,140,31,.55); }
+  /* lebar panggung dibatasi supaya satu slide + tombol + miniatur muat dalam satu layar */
+  .sv-stage { position:relative; width:min(100%, max(360px, calc((100dvh - 300px) * var(--rasio)))); margin:0 auto; aspect-ratio:var(--rasio); background:#fff; display:flex; align-items:center; justify-content:center; user-select:none; }
+  .sv-img { max-width:100%; max-height:100%; width:100%; height:100%; object-fit:contain; display:block; cursor:pointer; }
+
+  .sv-bar { background:#111c33; }
+  .sv-progress { height:4px; background:#1e293b; }
+  .sv-progress span { display:block; height:100%; width:0; background:#3C8C1F; transition:width .2s; }
+  .sv-ctl { display:flex; align-items:center; gap:8px; padding:6px 12px; }
+  .sv-spacer { flex:1; }
+  .sv-count { font-size:13px; font-weight:600; min-width:56px; text-align:center; font-variant-numeric:tabular-nums; }
+  .sv-btn { background:#1e293b; color:#fff; border:none; border-radius:8px; padding:7px 12px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .sv-btn:hover { background:#334155; }
+  .sv-btn[disabled] { opacity:.35; cursor:default; }
+  .sv-btn[hidden] { display:none; }
+  .sv-suara { background:#3C8C1F; }
+  .sv-suara:hover { background:#2f7318; }
+  .sv-vlayer { position:absolute; top:0; right:0; bottom:0; left:0; pointer-events:none; }
+  .sv-vid { position:absolute; pointer-events:auto; background:#000; border-radius:4px; overflow:hidden; }
+  .sv-vbtn { width:100%; height:100%; border:none; padding:0; background:rgba(0,0,0,.10); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .sv-vbtn:hover { background:rgba(0,0,0,.28); }
+  .sv-vplay { width:56px; height:56px; max-width:60%; max-height:60%; border-radius:50%; background:rgba(15,23,42,.82); color:#fff; border:2px solid #fff; font-size:22px; display:flex; align-items:center; justify-content:center; padding-left:4px; box-sizing:border-box; }
+  .sv-vpesan { color:#fff; background:#1e293b; font-size:12px; line-height:1.4; padding:10px; width:100%; height:100%; box-sizing:border-box; overflow:auto; display:flex; align-items:center; text-align:center; }
+  .sv-vid video, .sv-vid iframe { width:100%; height:100%; border:0; background:#000; display:block; }
+  .sv-thumb.ada-video::before { content:"\25B6"; position:absolute; left:4px; top:4px; font-size:9px; background:rgba(60,140,31,.9); border-radius:6px; padding:1px 5px; z-index:1; }
+  .sv-thumb.ada-suara::after { content:"\1F50A"; position:absolute; right:4px; top:4px; font-size:10px; background:rgba(15,23,42,.75); border-radius:6px; padding:1px 4px; }
+
+  .sv-thumbs { display:flex; gap:8px; padding:8px 12px 10px; overflow-x:auto; background:#0f172a; scrollbar-width:thin; }
+  .sv-thumb { position:relative; flex:0 0 auto; width:92px; aspect-ratio:16/9; border:2px solid transparent; border-radius:8px; padding:0; background:#fff; cursor:pointer; overflow:hidden; }
+  .sv-thumb img { width:100%; height:100%; object-fit:contain; display:block; }
+  .sv-thumb span { position:absolute; left:4px; bottom:4px; background:rgba(15,23,42,.75); color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:6px; }
+  .sv-thumb.aktif { border-color:#3C8C1F; box-shadow:0 0 0 2px rgba(60,140,31,.35); }
+
+  .sv:fullscreen { border-radius:0; display:flex; flex-direction:column; width:100vw; height:100vh; }
+  .sv:fullscreen .sv-stage { flex:1; width:100%; margin:0; aspect-ratio:auto; min-height:0; background:#0f172a; }
+  .sv:fullscreen .sv-img { background:#fff; width:auto; height:auto; max-width:100%; max-height:100%; }
+  .sv:fullscreen .sv-thumbs { display:none; }
+
+  .sv.sv-satu .sv-prev, .sv.sv-satu .sv-next, .sv.sv-satu .sv-count, .sv.sv-satu .sv-thumbs, .sv.sv-satu .sv-progress { display:none; }
+  @media (prefers-reduced-motion:reduce) { .sv-progress span { transition:none; } }
+  @media (max-width:560px) { .sv-thumb { width:84px; } .sv-btn { padding:7px 10px; } }
+
+  .sv-unduh { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 12px 10px; background:#0f172a; border-top:1px solid #1e293b; font-size:13px; color:#cbd5e1; }
+  .sv-unduh a { background:#1e293b; color:#fff; text-decoration:none; padding:6px 14px; border-radius:999px; font-weight:600; }
+  .sv-unduh a:hover { background:#3C8C1F; }
+  .sv:fullscreen .sv-unduh { display:none; }
+  .sv-basi { font-size:12px; color:#fbbf24; font-style:normal; }
+</style>
+
+<script>
+(function () {
+  var root = document.getElementById('sv-{{ uid }}');
+  if (!root) return;
+  var img = root.querySelector('.sv-img');
+  var stage = root.querySelector('.sv-stage');
+  var thumbs = Array.prototype.slice.call(root.querySelectorAll('.sv-thumb'));
+  var hitung = root.querySelector('.sv-count');
+  var garis = root.querySelector('.sv-progress span');
+  var tombolPrev = root.querySelectorAll('.sv-prev');
+  var tombolNext = root.querySelectorAll('.sv-next');
+  var n = thumbs.length;
+  var daftarSuara = (root.getAttribute('data-suara') || '').split('|');
+  var tombolSuara = root.querySelector('.sv-suara');
+  var peta = {};
+  try { peta = JSON.parse(root.getAttribute('data-video') || '{}') || {}; } catch (e) { peta = {}; }
+  var lapisan = root.querySelector('.sv-vlayer');
+  thumbs.forEach(function (t, idx) { if (peta[idx + 1]) t.classList.add('ada-video'); });
+  var audio = new Audio();
+  audio.preload = 'none';
+  thumbs.forEach(function (t, idx) { if (daftarSuara[idx]) t.classList.add('ada-suara'); });
+  function labelSuara() {
+    tombolSuara.innerHTML = audio.paused ? '&#127911; Dengar penjelasan' : '&#10074;&#10074; Jeda penjelasan';
+  }
+  function sesuaikanSuara() {
+    audio.pause();
+    var u = daftarSuara[i] || '';
+    if (u) { audio.src = u; tombolSuara.hidden = false; }
+    else { audio.removeAttribute('src'); tombolSuara.hidden = true; }
+    labelSuara();
+  }
+  ['play', 'pause', 'ended'].forEach(function (ev) { audio.addEventListener(ev, labelSuara); });
+  tombolSuara.addEventListener('click', function () {
+    if (audio.paused) { var p = audio.play(); if (p && p.catch) p.catch(function () {}); } else { audio.pause(); }
+  });
+  var i = 0;
+  if (n < 2) root.classList.add('sv-satu');
+
+  function muatDepan(k) {
+    if (k >= 0 && k < n) { var p = new Image(); p.src = thumbs[k].getAttribute('data-src'); }
+  }
+  function tampil(k) {
+    if (k < 0 || k >= n) return;
+    i = k;
+    var srcBaru = thumbs[i].getAttribute('data-src');
+    var sama = img.getAttribute('src') === srcBaru;
+    bersihVideo();
+    img.src = srcBaru;
+    if (sama) aturVideo();
+    img.alt = 'Slide ' + (i + 1) + ' dari ' + n;
+    hitung.textContent = (i + 1) + ' / ' + n;
+    garis.style.width = ((i + 1) / n * 100) + '%';
+    thumbs.forEach(function (t, idx) { t.classList.toggle('aktif', idx === i); });
+    var aktif = thumbs[i];
+    if (aktif.scrollIntoView && !document.fullscreenElement) {
+      var wadah = aktif.parentNode;
+      wadah.scrollLeft = aktif.offsetLeft - (wadah.clientWidth - aktif.clientWidth) / 2;
+    }
+    Array.prototype.forEach.call(tombolPrev, function (b) { b.disabled = (i === 0); });
+    Array.prototype.forEach.call(tombolNext, function (b) { b.disabled = (i === n - 1); });
+    muatDepan(i + 1); muatDepan(i - 1);
+    sesuaikanSuara();
+  }
+  function bersihVideo() { lapisan.innerHTML = ''; }
+  function ytEmbed(u) {
+    var m = String(u).match(/(?:youtu\.be\/|[?&]v=|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
+    return m ? 'https://www.youtube.com/embed/' + m[1] + '?autoplay=1&rel=0' : '';
+  }
+  function pesanVideo(kotak, teks) {
+    kotak.innerHTML = '';
+    var p = document.createElement('div');
+    p.className = 'sv-vpesan';
+    p.textContent = teks;
+    kotak.appendChild(p);
+  }
+  function mainkan(kotak, v) {
+    audio.pause();
+    if (v.t === 'tidakdukung') {
+      pesanVideo(kotak, 'Video ini berformat ' + v.e + ' yang tidak bisa diputar di browser. Ubah ke MP4 di PowerPoint (Berkas > Ekspor > Buat Video, atau sisipkan ulang video MP4) lalu unggah ulang.');
+      return;
+    }
+    if (v.t === 'link') {
+      var e = ytEmbed(v.u);
+      if (e) {
+        kotak.innerHTML = '';
+        var f = document.createElement('iframe');
+        f.src = e; f.allow = 'autoplay; fullscreen; encrypted-media'; f.setAttribute('allowfullscreen', '');
+        kotak.appendChild(f);
+      } else { window.open(v.u, '_blank', 'noopener'); }
+      return;
+    }
+    kotak.innerHTML = '';
+    var vid = document.createElement('video');
+    vid.controls = true; vid.autoplay = true; vid.playsInline = true; vid.preload = 'auto';
+    vid.setAttribute('controlsList', 'nodownload');
+    vid.src = v.u;
+    vid.addEventListener('error', function () { pesanVideo(kotak, 'Video tidak bisa diputar di browser ini. Coba browser lain atau ubah videonya ke format MP4 (H.264).'); });
+    kotak.appendChild(vid);
+  }
+  function posisiVideo() {
+    var kotakKotak = lapisan.children;
+    if (!kotakKotak.length || !img.naturalWidth) return;
+    var r = img.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    var skala = Math.min(r.width / img.naturalWidth, r.height / img.naturalHeight);
+    var cw = img.naturalWidth * skala, ch = img.naturalHeight * skala;
+    var ox = r.left - s.left + (r.width - cw) / 2, oy = r.top - s.top + (r.height - ch) / 2;
+    Array.prototype.forEach.call(kotakKotak, function (k) {
+      var v = k._v;
+      k.style.left = (ox + v.x * cw) + 'px'; k.style.top = (oy + v.y * ch) + 'px';
+      k.style.width = (v.w * cw) + 'px'; k.style.height = (v.h * ch) + 'px';
+    });
+  }
+  function aturVideo() {
+    bersihVideo();
+    var daftar = peta[i + 1] || [];
+    daftar.forEach(function (v) {
+      var k = document.createElement('div');
+      k.className = 'sv-vid';
+      k._v = v;
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'sv-vbtn'; b.setAttribute('aria-label', 'Putar video');
+      b.innerHTML = '<span class="sv-vplay">&#9654;</span>';
+      b.addEventListener('click', function (e) { e.stopPropagation(); mainkan(k, v); });
+      k.appendChild(b);
+      lapisan.appendChild(k);
+    });
+    posisiVideo();
+  }
+  window.addEventListener('resize', posisiVideo);
+  document.addEventListener('fullscreenchange', function () { setTimeout(posisiVideo, 120); });
+  // Samakan bentuk panggung dengan bentuk slide (16:9, 4:3, dst.) setelah gambar termuat
+  img.addEventListener('load', function () {
+    if (img.naturalWidth && !document.fullscreenElement) {
+      root.style.setProperty('--rasio', (img.naturalWidth / img.naturalHeight).toFixed(4));
+    }
+    aturVideo();
+  });
+
+  function maju() { tampil(i + 1); }
+  function mundur() { tampil(i - 1); }
+  function layarPenuh() {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else if (root.requestFullscreen) { root.requestFullscreen(); }
+  }
+
+  Array.prototype.forEach.call(tombolNext, function (b) { b.addEventListener('click', maju); });
+  Array.prototype.forEach.call(tombolPrev, function (b) { b.addEventListener('click', mundur); });
+  root.querySelector('.sv-full').addEventListener('click', layarPenuh);
+  if (!root.requestFullscreen) root.querySelector('.sv-full').style.display = 'none';
+  thumbs.forEach(function (t, idx) { t.addEventListener('click', function () { tampil(idx); root.focus(); }); });
+  img.addEventListener('click', function (e) {
+    var r = img.getBoundingClientRect();
+    if (e.clientX - r.left < r.width * 0.3) mundur(); else maju();
+  });
+
+  root.addEventListener('keydown', function (e) {
+    if (e.target && e.target.tagName === 'VIDEO') return;
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'PageDown' || ((k === ' ' || k === 'Enter') && e.target === root)) { e.preventDefault(); maju(); }
+    else if (k === 'ArrowLeft' || k === 'PageUp') { e.preventDefault(); mundur(); }
+    else if (k === 'Home') { e.preventDefault(); tampil(0); }
+    else if (k === 'End') { e.preventDefault(); tampil(n - 1); }
+    else if (k === 'f' || k === 'F') { e.preventDefault(); layarPenuh(); }
+  });
+
+  var x0 = null;
+  stage.addEventListener('touchstart', function (e) { x0 = e.changedTouches[0].clientX; }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 40) { if (dx < 0) maju(); else mundur(); }
+  }, { passive: true });
+
+  tampil(0);
+})();
+</script>
+{% else %}
+<div style="background:#f8f9fa; border:1.5px dashed #d1d5db; border-radius:12px; padding:28px 16px; text-align:center; color:#6b7280; font-size:14px;">
+  &#127902;&#65039; Slide belum tersedia untuk item ini.
+</div>
+{% endif %}

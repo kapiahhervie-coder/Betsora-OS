@@ -31,3 +31,7 @@ pasang_misi.ps1
 perbaiki_video_ortu.py
 
 model_untuk_saya.txt
+
+*.bak*
+pasang_*.py
+pasang_*.ps1

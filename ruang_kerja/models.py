@@ -209,6 +209,111 @@ class SubMateri(models.Model):
         ext = self.file.name.lower().split('.')[-1]
         return ext in ['mp3', 'wav', 'ogg', 'm4a', 'aac']
 
+    # ---- Slide (hasil konversi PowerPoint) ----
+    def folder_slide(self):
+        """Folder tempat gambar slide item ini disimpan."""
+        import os
+        from django.conf import settings
+        return os.path.join(str(settings.MEDIA_ROOT), 'slides', 'item_%d' % self.pk)
+
+    def get_slides(self):
+        """Daftar URL gambar slide, berurutan. Kosong jika item ini bukan slide."""
+        import glob
+        import os
+        from django.conf import settings
+        daftar = sorted(glob.glob(os.path.join(self.folder_slide(), 'slide-*.png')))
+        return ['%sslides/item_%d/%s' % (settings.MEDIA_URL, self.pk, os.path.basename(p)) for p in daftar]
+
+    @property
+    def jenis_item(self):
+        """'slide' kalau sudah punya gambar slide, selain itu 'materi'. Dipakai oleh form guru."""
+        return 'slide' if self.get_slides() else 'materi'
+
+    def hapus_slide(self):
+        import shutil
+        shutil.rmtree(self.folder_slide(), ignore_errors=True)
+
+    def get_unduh_info(self):
+        """Status unduhan untuk form guru."""
+        from . import slide_unduh
+        return slide_unduh.info(self.folder_slide())
+
+    def get_unduh_guru(self):
+        """Semua file unduhan yang sudah dibuat, untuk guru (tanpa melihat izin siswa)."""
+        from django.conf import settings
+        from . import slide_unduh
+        if not self.get_slides():
+            return []
+        return slide_unduh.daftar_guru(self.folder_slide(), '%sslides/item_%d/' % (settings.MEDIA_URL, self.pk), self.judul)
+
+    def get_unduh_daftar(self):
+        """Tautan unduhan (PDF/Video) yang diizinkan guru, untuk siswa."""
+        from django.conf import settings
+        from . import slide_unduh
+        if not self.get_slides():
+            return []
+        return slide_unduh.daftar_siswa(self.folder_slide(), '%sslides/item_%d/' % (settings.MEDIA_URL, self.pk), self.judul)
+
+    def get_video_json(self):
+        """Data video tertanam per nomor slide, sebagai teks JSON ('' kalau tidak ada). Pemeriksaan dilakukan sekali."""
+        import json
+        import os
+        from django.conf import settings
+        folder = self.folder_slide()
+        if not os.path.isdir(folder) or not self.get_slides():
+            return ''
+        jalur = os.path.join(folder, 'video.json')
+        if not os.path.isfile(jalur):
+            try:
+                from .slide_video import ekstrak_video
+                if self.file and os.path.isfile(self.file.path):
+                    ekstrak_video(self.file.path, folder)
+                else:
+                    with open(jalur, 'w', encoding='utf-8') as f:
+                        json.dump({'slides': {}}, f)
+            except Exception:
+                try:
+                    with open(jalur, 'w', encoding='utf-8') as f:
+                        json.dump({'slides': {}}, f)
+                except OSError:
+                    return ''
+        try:
+            with open(jalur, encoding='utf-8') as f:
+                data = json.load(f).get('slides', {})
+        except (OSError, ValueError):
+            return ''
+        hasil = {}
+        for nomor, daftar in data.items():
+            baris = []
+            for v in daftar:
+                v = dict(v)
+                if 'f' in v:
+                    v['u'] = '%sslides/item_%d/%s' % (settings.MEDIA_URL, self.pk, v.pop('f'))
+                baris.append(v)
+            if baris:
+                hasil[nomor] = baris
+        return json.dumps(hasil) if hasil else ''
+
+    def get_suara_daftar(self):
+        """Daftar URL rekaman suara, sejajar dengan daftar slide ('' kalau slide itu tanpa rekaman)."""
+        import glob
+        import os
+        import re
+        from django.conf import settings
+        jumlah = len(self.get_slides())
+        peta = {}
+        for p in sorted(glob.glob(os.path.join(self.folder_slide(), 'suara-*.*'))):
+            m = re.match(r'suara-(\d+)\.', os.path.basename(p))
+            if m:
+                peta[int(m.group(1))] = '%sslides/item_%d/%s' % (settings.MEDIA_URL, self.pk, os.path.basename(p))
+        return [peta.get(k, '') for k in range(1, jumlah + 1)]
+
+    def get_slide_info(self):
+        """Daftar {nomor, gambar, suara} per slide, dipakai form guru."""
+        gambar = self.get_slides()
+        suara = self.get_suara_daftar()
+        return [{'nomor': k + 1, 'gambar': g, 'suara': suara[k]} for k, g in enumerate(gambar)]
+
 
 class Pengumuman(models.Model):
     objects = SekolahManager('ruang_kerja__sekolah', guru=('ruang', 'ruang_kerja'))
@@ -515,3 +620,13 @@ class ProgresItem(models.Model):
 
     def __str__(self):
         return f"{self.siswa} - {self.sub_materi}"
+
+
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+
+
+@receiver(post_delete, sender=SubMateri)
+def _bersihkan_slide_saat_item_dihapus(sender, instance, **kwargs):
+    """Hapus gambar slide ketika item dihapus (termasuk saat topiknya ikut terhapus)."""
+    instance.hapus_slide()
