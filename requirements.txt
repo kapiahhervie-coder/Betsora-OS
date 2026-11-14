@@ -8,3 +8,6 @@ python-decouple==3.8
 whitenoise==6.12.0
 psycopg[binary]
 dj-database-url
+
+pymupdf
+imageio-ffmpeg
