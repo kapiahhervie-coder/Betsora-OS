@@ -630,3 +630,80 @@ from django.dispatch import receiver
 def _bersihkan_slide_saat_item_dihapus(sender, instance, **kwargs):
     """Hapus gambar slide ketika item dihapus (termasuk saat topiknya ikut terhapus)."""
     instance.hapus_slide()
+
+
+class CatatanWaliKelas(models.Model):
+    """Catatan umum wali kelas untuk Rapor Keseluruhan (satu per siswa)."""
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
+
+    siswa = models.OneToOneField(Siswa, on_delete=models.CASCADE, related_name='catatan_wali_kelas')
+    catatan = models.TextField(blank=True)
+    diperbarui_oleh = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    diperbarui_pada = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Catatan wali kelas - {self.siswa.nama}"
+
+
+class RaporSemester(models.Model):
+    """Data rapor semester satu siswa yang diisi wali kelas: spiritual, ekstrakurikuler, prestasi,
+    pertumbuhan, komentar guru, serta keterangan cetak. Nilai tiap mapel ada di NilaiRaporMapel."""
+    objects = SekolahManager('siswa__sekolah', guru=('siswa', 'siswa'))
+
+    siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='rapor_semester')
+    tahun_ajaran = models.CharField(max_length=9)                      # contoh: 2026/2027
+    semester = models.PositiveSmallIntegerField(default=1)             # 1 atau 2
+
+    nisn = models.CharField(max_length=30, blank=True)
+    alamat_sekolah = models.CharField(max_length=250, blank=True)
+    tempat = models.CharField(max_length=100, blank=True)
+    tanggal_rapor = models.DateField(null=True, blank=True)
+    nama_kepala_sekolah = models.CharField(max_length=150, blank=True)
+
+    spiritual = models.JSONField(default=list, blank=True)             # [{'aspek':..., 'predikat':...}]
+    ekskul = models.JSONField(default=list, blank=True)                # [{'kegiatan','predikat','deskripsi'}]
+    prestasi = models.JSONField(default=list, blank=True)              # [{'kegiatan','catatan'}]
+
+    berat_badan = models.CharField(max_length=30, blank=True)
+    tinggi_badan = models.CharField(max_length=30, blank=True)
+    lingkar_kepala = models.CharField(max_length=30, blank=True)
+    pendengaran = models.CharField(max_length=60, blank=True)
+    penglihatan = models.CharField(max_length=60, blank=True)
+    gigi = models.CharField(max_length=60, blank=True)
+
+    sakit_hari = models.PositiveSmallIntegerField(null=True, blank=True, help_text='Kosong = hitung otomatis dari Absensi')
+    izin_hari = models.PositiveSmallIntegerField(null=True, blank=True)
+    alpha_hari = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    komentar_guru = models.TextField(blank=True)
+    diperbarui_oleh = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    diperbarui_pada = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('siswa', 'tahun_ajaran', 'semester')
+
+    def __str__(self):
+        return f"Rapor {self.siswa.nama} {self.tahun_ajaran} smt {self.semester}"
+
+
+class NilaiRaporMapel(models.Model):
+    """Nilai akhir dan deskripsi satu mata pelajaran untuk satu siswa pada satu semester."""
+    objects = SekolahManager('ruang_kerja__sekolah', guru=('ruang', 'ruang_kerja'))
+
+    ruang_kerja = models.ForeignKey(RuangKerja, on_delete=models.CASCADE, related_name='nilai_rapor')
+    siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name='nilai_rapor')
+    tahun_ajaran = models.CharField(max_length=9)
+    semester = models.PositiveSmallIntegerField(default=1)
+
+    nilai_akhir = models.PositiveSmallIntegerField(null=True, blank=True)
+    bahasa = models.CharField(max_length=2, default='en')              # 'en' atau 'id'
+    nama_tampil = models.CharField(max_length=120, blank=True, help_text='Nama mapel di rapor (kosong = nama ruang kerja)')
+    deskripsi = models.TextField(blank=True)
+    diperbarui_oleh = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    diperbarui_pada = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('ruang_kerja', 'siswa', 'tahun_ajaran', 'semester')
+
+    def __str__(self):
+        return f"{self.ruang_kerja} - {self.siswa.nama} {self.tahun_ajaran} smt {self.semester}"

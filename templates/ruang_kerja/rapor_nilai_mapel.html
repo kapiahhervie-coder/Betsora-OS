@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Nilai Semester {{ siswa.nama }}{% endblock %}
+{% block page_title %}Nilai Semester{% endblock %}
+{% block content %}
+<style>
+  .nm { max-width:760px; margin:0 auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:24px; font-size:13px; }
+  .nm label { display:block; font-size:12px; color:#6b7280; margin-top:12px; }
+  .nm input, .nm select, .nm textarea { width:100%; border:1px solid #d1d5db; border-radius:8px; padding:7px 9px; font-size:13px; }
+  .nm .baris { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+  .nm .tombol { border:none; border-radius:8px; padding:8px 16px; font-weight:600; cursor:pointer; }
+  .nm .hijau { background:#3C8C1F; color:#fff; } .nm .abu { background:#f3f4f6; border:1px solid #d1d5db; color:#374151; }
+  .nm .kotak { background:#f0f7f0; border-radius:10px; padding:12px 14px; margin-top:14px; }
+  @media (max-width:640px){ .nm .baris{grid-template-columns:1fr;} }
+</style>
+<div class="nm">
+  <a href="{% url 'ruang_kerja:rapor_ruang_kerja' ruang.id %}" style="color:#3C8C1F;font-size:13px;">&larr; Kembali ke Rapor {{ ruang.mapel }}</a>
+  <h2 style="font-size:18px;margin:10px 0 2px;">{{ siswa.nama }} &middot; {{ ruang.mapel }}</h2>
+  <p style="color:#6b7280;margin:0;">Tahun ajaran {{ ta }} &middot; Semester {{ sem }}</p>
+  {% if messages %}{% for m in messages %}<div style="margin-top:10px;padding:9px 12px;border-radius:8px;background:#EAF7DE;color:#2f6f18;">{{ m }}</div>{% endfor %}{% endif %}
+
+  <div class="kotak">
+    <b>Saran nilai akhir: {% if saran is not None %}{{ saran }}{% else %}belum ada data{% endif %}</b>
+    <div style="color:#6b7280;margin-top:3px;">Rata-rata nilai tugas dan ketuntasan topik. Boleh diubah.</div>
+    {% for t in topik %}<div style="margin-top:3px;">&bull; {{ t.judul }}: {{ t.mastery|floatformat:0 }}%</div>{% endfor %}
+  </div>
+
+  <form method="post" id="f">
+    {% csrf_token %}<input type="hidden" name="ta" value="{{ ta }}"><input type="hidden" name="sem" value="{{ sem }}">
+    <div class="baris">
+      <label>Nilai akhir (0-100)<input type="number" min="0" max="100" name="nilai_akhir" id="nilai" value="{{ nilai_awal|default_if_none:'' }}"></label>
+      <label>Bahasa rapor<select name="bahasa" id="bahasa"><option value="en"{% if bahasa == 'en' %} selected{% endif %}>English (Final Score / Predicate)</option><option value="id"{% if bahasa == 'id' %} selected{% endif %}>Indonesia (Nilai Akhir / Predikat)</option></select></label>
+    </div>
+    <p id="pred" style="margin:8px 0 0;font-weight:600;"></p>
+    <label>Nama mapel di rapor (kosongkan = {{ ruang.mapel }})<input name="nama_tampil" value="{{ tersimpan.nama_tampil }}"></label>
+
+    <div class="kotak">
+      <b>Draf deskripsi</b> <span style="color:#6b7280;">(pilih lalu tekan "Buat draf"; hasilnya tetap bisa Anda edit atau tulis sendiri)</span>
+      <div class="baris">
+        <label>Gaya<select id="gaya">{% for k, v in gaya_list %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></label>
+        <label>Topik utama<select id="utama"><option value="">(otomatis: terendah)</option>{% for t in topik %}<option value="{{ t.id }}">{{ t.judul }}</option>{% endfor %}</select></label>
+        <label>Topik tambahan<select id="tambahan"><option value="">(otomatis: tertinggi)</option>{% for t in topik %}<option value="{{ t.id }}">{{ t.judul }}</option>{% endfor %}</select></label>
+      </div>
+      <button type="button" class="tombol abu" id="draf" style="margin-top:10px;">Buat draf</button>
+    </div>
+
+    <label>Deskripsi<textarea name="deskripsi" id="deskripsi" rows="7">{{ deskripsi_awal }}</textarea></label>
+    <button type="submit" class="tombol hijau" style="margin-top:16px;">Simpan nilai semester</button>
+  </form>
+</div>
+<script>
+(function(){
+  var aturan={en:[[90,'Really Good'],[80,'Good'],[70,'Adequate'],[0,'Need Improvement']],id:[[90,'Sangat Baik'],[80,'Baik'],[70,'Cukup'],[0,'Perlu Peningkatan']]};
+  var $=function(i){return document.getElementById(i);};
+  function pred(){var n=parseInt($('nilai').value,10);var a=aturan[$('bahasa').value];var t='';
+    if(!isNaN(n)){for(var i=0;i<a.length;i++){if(n>=a[i][0]){t='Predikat: '+a[i][1];break;}}}$('pred').textContent=t;}
+  $('nilai').addEventListener('input',pred);$('bahasa').addEventListener('change',pred);pred();
+  $('draf').addEventListener('click',function(){
+    var q=new URLSearchParams({draf:'1',ta:'{{ ta }}',sem:'{{ sem }}',nilai:$('nilai').value,bahasa:$('bahasa').value,gaya:$('gaya').value,utama:$('utama').value,tambahan:$('tambahan').value});
+    if($('deskripsi').value.trim()&&!confirm('Ganti deskripsi dengan draf baru?'))return;
+    fetch('?'+q.toString(),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){$('deskripsi').value=d.draf;});
+  });
+})();
+</script>
+{% endblock %}

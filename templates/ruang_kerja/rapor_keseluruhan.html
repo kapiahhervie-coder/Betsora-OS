@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block title %}Rapor Semester {{ siswa.nama }}{% endblock %}
+{% block page_title %}Rapor Semester{% endblock %}
+{% block content %}
+<style>
+  @page { size: A4; margin: 12mm; }
+  @media print {
+    aside, main > header, .no-print { display:none !important; }
+    html, body, main, .flex-1 { height:auto !important; overflow:visible !important; background:#fff !important; }
+    .rp-page { box-shadow:none !important; border:none !important; padding:0 !important; margin:0 !important; max-width:none !important; min-height:0 !important; break-after:page; }
+    .rp-page:last-of-type { break-after:auto; }
+  }
+  .rp-page { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:30px; max-width:820px; min-height:1000px; margin:0 auto 16px; color:#111; font-size:13px; }
+  .rp-bio { width:100%; border:1px solid #333; border-collapse:collapse; margin-bottom:14px; }
+  .rp-bio td { padding:8px 10px; vertical-align:top; width:50%; line-height:1.7; }
+  .rp-judul-besar { text-align:center; font-size:17px; margin:6px 0 14px; letter-spacing:.04em; }
+  .rp-h { font-size:14px; margin:16px 0 6px; }
+  .rp-t { width:100%; border-collapse:collapse; margin-bottom:8px; }
+  .rp-t th, .rp-t td { border:1px solid #444; padding:6px 9px; vertical-align:top; text-align:left; }
+  .rp-t th { background:#f3f4f6; } .rp-t .c { text-align:center; }
+  .rp-mapel { break-inside:avoid; } .rp-desk { line-height:1.6; text-align:justify; }
+  .rp-kecil { font-size:11.5px; color:#6b7280; } .rp-isi { font-size:12px; color:#3C8C1F; margin-left:8px; }
+  .rp-box { border:1px solid #444; padding:10px 12px; line-height:1.7; white-space:pre-wrap; min-height:70px; }
+  .rp-ttd { width:100%; margin-top:26px; text-align:center; } .rp-ttd td { width:33%; } .rp-ttd .g { height:70px; }
+  .rp-form { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px; max-width:820px; margin:20px auto; font-size:13px; }
+  .rp-form h3 { font-size:15px; margin:0 0 4px; } .rp-form h4 { margin:16px 0 6px; font-size:13px; }
+  .rp-form input, .rp-form textarea { border:1px solid #d1d5db; border-radius:8px; padding:6px 8px; width:100%; font-size:13px; }
+  .rp-form label { display:block; font-size:12px; color:#6b7280; }
+  .rp-form .g2 { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+  .rp-form .r { display:flex; gap:6px; margin-bottom:6px; }
+  .rp-form .add { background:#f3f4f6; border:1px solid #d1d5db; border-radius:8px; padding:4px 10px; font-size:12px; cursor:pointer; }
+  .rp-form .simpan { display:block; margin-top:16px; background:#3C8C1F; color:#fff; border:none; border-radius:8px; padding:9px 18px; font-weight:600; cursor:pointer; }
+  @media (max-width:640px){ .rp-form .g2{grid-template-columns:1fr;} .rp-page{padding:16px;} }
+</style>
+
+<div class="mb-4 no-print" style="max-width:820px;margin:0 auto 12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+  <a href="{% url 'accounts:daftar_siswa' %}" class="text-sm text-[#3C8C1F] hover:underline">&larr; Kembali ke Daftar Siswa</a>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <form method="get" style="display:flex;gap:6px;align-items:center;font-size:12px;color:#6b7280;">
+      Tahun ajaran <input name="ta" value="{{ ta }}" size="9" style="border:1px solid #d1d5db;border-radius:8px;padding:5px 8px;font-size:12px;">
+      Semester <select name="sem" style="border:1px solid #d1d5db;border-radius:8px;padding:5px 8px;font-size:12px;"><option value="1"{% if sem == 1 %} selected{% endif %}>1</option><option value="2"{% if sem == 2 %} selected{% endif %}>2</option></select>
+      <button type="submit" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;">Terapkan</button>
+    </form>
+    <button onclick="window.print()" style="background:#3C8C1F;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;">Print / Simpan PDF</button>
+  </div>
+</div>
+{% if messages %}{% for m in messages %}<div class="no-print" style="max-width:820px;margin:0 auto 10px;padding:10px 14px;border-radius:10px;font-size:13px;background:#EAF7DE;color:#2f6f18;">{{ m }}</div>{% endfor %}{% endif %}
+{% if not semua_mapel %}<div class="no-print" style="max-width:820px;margin:0 auto 12px;padding:10px 14px;border:1px dashed #D9B860;background:#FBF3E3;color:#92702E;border-radius:10px;font-size:12.5px;">Anda hanya melihat <strong>mata pelajaran yang Anda ajar</strong>. Rapor lengkap dapat dilihat wali kelas, kepala sekolah, dan admin.</div>{% endif %}
+
+<section class="rp-page">
+  <table class="rp-bio"><tr>
+    <td><b>Student's Name</b> : {{ siswa.nama }}<br><b>NIS / NISN</b> : {{ siswa.nis }}{% if data and data.nisn %} / {{ data.nisn }}{% endif %}<br><b>School</b> : {% if sekolah %}{{ sekolah.nama }}{% endif %}<br><b>Address</b> : {% if data and data.alamat_sekolah %}{{ data.alamat_sekolah }}{% endif %}</td>
+    <td><b>Class / Semester</b> : {{ siswa.kelas }} / {{ sem }}<br><b>Academic Year</b> : {{ ta }}<br><b>Page No.</b> : 1 of {{ jumlah_halaman }}</td>
+  </tr></table>
+  <h2 class="rp-judul-besar">SEMESTER REPORT</h2>
+  <h3 class="rp-h">A. Spirituality</h3>
+  <table class="rp-t"><tr><th style="width:60px">No</th><th>Aspect</th><th style="width:170px">Predicate</th></tr>
+  {% for s in data.spiritual %}<tr><td class="c">{{ forloop.counter }}</td><td>{{ s.aspek }}</td><td class="c">{{ s.predikat }}</td></tr>
+  {% empty %}<tr><td class="c">1</td><td>&nbsp;</td><td>&nbsp;</td></tr>{% endfor %}</table>
+  <p class="rp-kecil">Predicate: Really Good (90-100), Good (80-89), Adequate (70-79), Need Improvement (&lt;70).</p>
+</section>
+<section class="rp-page">
+  <table class="rp-bio"><tr>
+    <td><b>Student's Name</b> : {{ siswa.nama }}<br><b>NIS / NISN</b> : {{ siswa.nis }}{% if data and data.nisn %} / {{ data.nisn }}{% endif %}<br><b>School</b> : {% if sekolah %}{{ sekolah.nama }}{% endif %}<br><b>Address</b> : {% if data and data.alamat_sekolah %}{{ data.alamat_sekolah }}{% endif %}</td>
+    <td><b>Class / Semester</b> : {{ siswa.kelas }} / {{ sem }}<br><b>Academic Year</b> : {{ ta }}<br><b>Page No.</b> : 2 of {{ jumlah_halaman }}</td>
+  </tr></table>
+  <h2 class="rp-judul-besar">B. Cognitive and Skills</h2>
+  {% for b in baris %}
+  <table class="rp-t rp-mapel"><tr><th colspan="2">{{ forloop.counter }}. {{ b.nama }}</th></tr>
+  <tr><td style="width:55%">{{ b.label.nilai }}: <b>{% if b.nilai is not None %}{{ b.nilai }}{% else %}-{% endif %}</b></td><td>{{ b.label.predikat }}: <b>{{ b.predikat|default:"-" }}</b></td></tr>
+  <tr><td colspan="2" class="rp-desk">{% if b.deskripsi %}{{ b.deskripsi }}{% else %}<span class="rp-kecil">Belum diisi.</span>{% endif %}
+  {% if not b.terisi %}<a class="no-print rp-isi" href="{% url 'ruang_kerja:nilai_mapel_rapor' b.ruang.id siswa.id %}?ta={{ ta }}&sem={{ sem }}">Isi nilai &rarr;</a>{% endif %}</td></tr></table>
+  {% empty %}<p class="rp-kecil">Siswa belum terdaftar di mata pelajaran mana pun.</p>{% endfor %}
+</section>
+<section class="rp-page">
+  <table class="rp-bio"><tr>
+    <td><b>Student's Name</b> : {{ siswa.nama }}<br><b>NIS / NISN</b> : {{ siswa.nis }}{% if data and data.nisn %} / {{ data.nisn }}{% endif %}<br><b>School</b> : {% if sekolah %}{{ sekolah.nama }}{% endif %}<br><b>Address</b> : {% if data and data.alamat_sekolah %}{{ data.alamat_sekolah }}{% endif %}</td>
+    <td><b>Class / Semester</b> : {{ siswa.kelas }} / {{ sem }}<br><b>Academic Year</b> : {{ ta }}<br><b>Page No.</b> : 3 of {{ jumlah_halaman }}</td>
+  </tr></table>
+  <h2 class="rp-judul-besar"></h2>
+  <h3 class="rp-h">C. Extracurricular</h3>
+  <table class="rp-t"><tr><th style="width:40px">No</th><th>Activity</th><th style="width:110px">Predicate</th><th>Description</th></tr>
+  {% for e in data.ekskul %}<tr><td class="c">{{ forloop.counter }}</td><td>{{ e.kegiatan }}</td><td class="c">{{ e.predikat }}</td><td>{{ e.deskripsi }}</td></tr>
+  {% empty %}<tr><td class="c">1</td><td>&nbsp;</td><td></td><td></td></tr>{% endfor %}</table>
+  <h3 class="rp-h">D. Achievement</h3>
+  <table class="rp-t"><tr><th style="width:40px">No</th><th>Activities</th><th>Notes</th></tr>
+  {% for e in data.prestasi %}<tr><td class="c">{{ forloop.counter }}</td><td>{{ e.kegiatan }}</td><td>{{ e.catatan }}</td></tr>
+  {% empty %}<tr><td class="c">1</td><td>&nbsp;</td><td></td></tr>{% endfor %}</table>
+  <h3 class="rp-h">E. Growth and Cleanliness</h3>
+  <table class="rp-t"><tr><td>Body Weight</td><td>{{ data.berat_badan }}</td><td>Hearing</td><td>{{ data.pendengaran }}</td></tr>
+  <tr><td>Height</td><td>{{ data.tinggi_badan }}</td><td>Sight</td><td>{{ data.penglihatan }}</td></tr>
+  <tr><td>Head Circumference</td><td>{{ data.lingkar_kepala }}</td><td>Teeth</td><td>{{ data.gigi }}</td></tr></table>
+</section>
+<section class="rp-page">
+  <table class="rp-bio"><tr>
+    <td><b>Student's Name</b> : {{ siswa.nama }}<br><b>NIS / NISN</b> : {{ siswa.nis }}{% if data and data.nisn %} / {{ data.nisn }}{% endif %}<br><b>School</b> : {% if sekolah %}{{ sekolah.nama }}{% endif %}<br><b>Address</b> : {% if data and data.alamat_sekolah %}{{ data.alamat_sekolah }}{% endif %}</td>
+    <td><b>Class / Semester</b> : {{ siswa.kelas }} / {{ sem }}<br><b>Academic Year</b> : {{ ta }}<br><b>Page No.</b> : 4 of {{ jumlah_halaman }}</td>
+  </tr></table>
+  <h2 class="rp-judul-besar"></h2>
+  <h3 class="rp-h">F. Attendances</h3>
+  <table class="rp-t"><tr><td>Sick Leave</td><td>{{ hari.sakit }} day(s)</td></tr><tr><td>Permitted</td><td>{{ hari.izin }} day(s)</td></tr><tr><td>Without Notice</td><td>{{ hari.alpha }} day(s)</td></tr></table>
+  <h3 class="rp-h">G. Teacher's Comments</h3>
+  <div class="rp-box">{{ data.komentar_guru }}</div>
+  <h3 class="rp-h">H. Parents Feedback</h3>
+  <div class="rp-box" style="min-height:90px"></div>
+  <p style="text-align:right;margin:14px 0 0;font-size:13px;">{% if data and data.tempat %}{{ data.tempat }}, {% endif %}{% if data and data.tanggal_rapor %}{{ data.tanggal_rapor|date:"F j, Y" }}{% endif %}</p>
+
+  <table class="rp-ttd"><tr>
+    <td>Parents / Guardian<div class="g"></div>(............................)</td>
+    <td>Homeroom Teacher<div class="g"></div><u>{{ nama_wali|default:"............................" }}</u></td>
+    <td>Principal<div class="g"></div><u>{% if data and data.nama_kepala_sekolah %}{{ data.nama_kepala_sekolah }}{% else %}............................{% endif %}</u></td>
+  </tr></table>
+</section>
+
+{% if boleh_menulis %}
+<form method="post" action="{% url 'ruang_kerja:simpan_rapor_semester' siswa.id %}" class="no-print rp-form">
+  {% csrf_token %}<input type="hidden" name="ta" value="{{ ta }}"><input type="hidden" name="sem" value="{{ sem }}">
+  <h3>Isian data semester (wali kelas)</h3>
+  <p class="rp-kecil">Nilai dan deskripsi per mata pelajaran diisi guru mapel lewat tombol "Nilai Semester" di rapor mapel. Predikat: {{ predikat_list|join:", " }}.</p>
+  <div class="g2">
+    <label>NISN<input name="nisn" value="{{ data.nisn }}"></label>
+    <label>Alamat sekolah<input name="alamat_sekolah" value="{{ data.alamat_sekolah }}"></label>
+    <label>Tempat<input name="tempat" value="{{ data.tempat }}"></label>
+    <label>Tanggal rapor<input type="date" name="tanggal_rapor" value="{{ data.tanggal_rapor|date:'Y-m-d' }}"></label>
+    <label>Nama kepala sekolah<input name="nama_kepala_sekolah" value="{{ data.nama_kepala_sekolah }}"></label>
+  </div>
+  <h4>A. Spirituality</h4><div class="rows" data-t="sp">
+    {% for s in data.spiritual %}<div class="r"><input name="sp_aspek" value="{{ s.aspek }}" placeholder="Aspect"><input name="sp_predikat" value="{{ s.predikat }}" placeholder="Predicate"></div>{% endfor %}
+  </div><button type="button" class="add" data-t="sp">+ baris</button>
+  <h4>C. Extracurricular</h4><div class="rows" data-t="ek">
+    {% for e in data.ekskul %}<div class="r"><input name="ek_kegiatan" value="{{ e.kegiatan }}" placeholder="Activity"><input name="ek_predikat" value="{{ e.predikat }}" placeholder="Predicate"><input name="ek_deskripsi" value="{{ e.deskripsi }}" placeholder="Description"></div>{% endfor %}
+  </div><button type="button" class="add" data-t="ek">+ baris</button>
+  <h4>D. Achievement</h4><div class="rows" data-t="pr">
+    {% for e in data.prestasi %}<div class="r"><input name="pr_kegiatan" value="{{ e.kegiatan }}" placeholder="Activities"><input name="pr_catatan" value="{{ e.catatan }}" placeholder="Notes"></div>{% endfor %}
+  </div><button type="button" class="add" data-t="pr">+ baris</button>
+  <h4>E. Growth and Cleanliness</h4>
+  <div class="g2">
+    <label>Body Weight<input name="berat_badan" value="{{ data.berat_badan }}"></label><label>Height<input name="tinggi_badan" value="{{ data.tinggi_badan }}"></label>
+    <label>Head Circumference<input name="lingkar_kepala" value="{{ data.lingkar_kepala }}"></label><label>Hearing<input name="pendengaran" value="{{ data.pendengaran }}"></label>
+    <label>Sight<input name="penglihatan" value="{{ data.penglihatan }}"></label><label>Teeth<input name="gigi" value="{{ data.gigi }}"></label>
+  </div>
+  <h4>F. Attendances (kosongkan = hitung otomatis dari absensi)</h4>
+  <div class="g2">
+    <label>Sick Leave (hari)<input type="number" min="0" name="sakit_hari" value="{{ data.sakit_hari|default_if_none:'' }}" placeholder="otomatis: {{ hari.sakit }}"></label>
+    <label>Permitted (hari)<input type="number" min="0" name="izin_hari" value="{{ data.izin_hari|default_if_none:'' }}" placeholder="otomatis: {{ hari.izin }}"></label>
+    <label>Without Notice (hari)<input type="number" min="0" name="alpha_hari" value="{{ data.alpha_hari|default_if_none:'' }}" placeholder="otomatis: {{ hari.alpha }}"></label>
+  </div>
+  <h4>G. Teacher's Comments</h4>
+  <textarea name="komentar_guru" rows="4">{{ data.komentar_guru }}</textarea>
+  <button type="submit" class="simpan">Simpan data semester</button>
+</form>
+<script>
+(function(){
+  var kolom={sp:[['sp_aspek','Aspect'],['sp_predikat','Predicate']],ek:[['ek_kegiatan','Activity'],['ek_predikat','Predicate'],['ek_deskripsi','Description']],pr:[['pr_kegiatan','Activities'],['pr_catatan','Notes']]};
+  function tambah(t){var d=document.createElement('div');d.className='r';kolom[t].forEach(function(k){var i=document.createElement('input');i.name=k[0];i.placeholder=k[1];d.appendChild(i);});document.querySelector('.rows[data-t="'+t+'"]').appendChild(d);}
+  document.querySelectorAll('.add').forEach(function(b){b.addEventListener('click',function(){tambah(b.dataset.t);});});
+  ['sp','ek','pr'].forEach(function(t){if(!document.querySelector('.rows[data-t="'+t+'"] .r'))tambah(t);});
+})();
+</script>
+{% endif %}
+{% endblock %}

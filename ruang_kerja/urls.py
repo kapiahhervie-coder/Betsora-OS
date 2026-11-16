@@ -1,5 +1,5 @@
 ﻿from django.urls import path
-from . import views
+from . import views, rapor_keseluruhan, rapor_semester
 
 app_name = 'ruang_kerja'
 
@@ -47,6 +47,11 @@ urlpatterns = [
     path('kelas/<int:kelas_id>/hapus/', views.hapus_kelas, name='hapus_kelas'),
     path('kelas/<int:kelas_id>/', views.detail_kelas, name='detail_kelas'),
     path('kelas/<int:kelas_id>/mapel/tambah/', views.tambah_mapel_kelas, name='tambah_mapel_kelas'),
+    path('rapor-keseluruhan/', rapor_keseluruhan.daftar_rapor, name='rapor_daftar'),
+    path('rapor-keseluruhan/<int:siswa_id>/', rapor_keseluruhan.rapor_keseluruhan, name='rapor_keseluruhan'),
+    path('rapor-keseluruhan/<int:siswa_id>/catatan/', rapor_keseluruhan.simpan_catatan_wali, name='simpan_catatan_wali'),
+    path('rapor-keseluruhan/<int:siswa_id>/semester/', rapor_keseluruhan.simpan_rapor_semester, name='simpan_rapor_semester'),
+    path('<int:ruang_id>/rapor/<int:siswa_id>/nilai-semester/', rapor_semester.nilai_mapel_rapor, name='nilai_mapel_rapor'),
     path('<int:ruang_id>/rapor/', views.rapor_ruang_kerja, name='rapor_ruang_kerja'),
     path('<int:ruang_id>/rapor/<int:siswa_id>/', views.rapor_siswa, name='rapor_siswa'),
     path('<int:ruang_id>/rapor/<int:siswa_id>/simpan/', views.simpan_catatan_rapor, name='simpan_catatan_rapor'),

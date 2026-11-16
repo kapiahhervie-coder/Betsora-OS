@@ -28,6 +28,14 @@
   .topik-badge { background:#EAF7DE; color:#3C8C1F; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; display:inline-flex; align-items:center; gap:6px; margin-bottom:20px; }
   .ql-editor img { max-width:100%; height:auto; }
   .ql-editor::after { content:''; display:block; clear:both; }
+  /* ===== Emoji pemanis materi ===== */
+  .emoji-btn { width:auto !important; padding:0 6px !important; font-size:16px; line-height:1; }
+  .emoji-pop { position:fixed; z-index:9999; box-sizing:border-box; width:300px; max-width:calc(100vw - 16px); overflow-y:auto; background:#fff; border:1px solid #d1d5db; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.18); padding:8px 10px 10px; }
+  .emoji-pop h5 { margin:8px 0 4px; font-size:10px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.05em; }
+  .emoji-pop h5:first-child { margin-top:0; }
+  .emoji-grid { display:flex; flex-wrap:wrap; gap:2px; }
+  .emoji-grid button { border:none; background:transparent; font-size:20px; line-height:1; width:32px; height:32px; border-radius:6px; cursor:pointer; }
+  .emoji-grid button:hover, .emoji-grid button:focus { background:#EAF7DE; outline:none; }
   .jenis-pilih { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .jenis-kartu { display:flex; align-items:center; gap:10px; border:1.5px solid #e5e7eb; border-radius:10px; padding:10px 12px; cursor:pointer; background:#fff; transition:border-color .15s, background .15s; }
   .jenis-kartu:hover { border-color:#9ca3af; }
@@ -293,6 +301,87 @@
     ['clean']
   ];
 
+  // ===== Emoji pemanis: tombol di toolbar editor, klik emoji untuk menyisipkannya di posisi kursor =====
+  var EMOJI_GRUP = [
+    ['Mengamati dan bertanya', ['🔍', '👀', '👁️', '🔎', '🧐', '❓', '❗', '💭', '🤔', '🔭', '🧠', '💡']],
+    ['Mengajak dan menyapa', ['📣', '📢', '🎺', '🔔', '👋', '🙌', '🎯', '🚀', '⭐', '✨', '🌟', '🎉']],
+    ['Kegiatan belajar', ['✏️', '📝', '📖', '📚', '🧪', '🔬', '🎨', '🎵', '🏃', '🤝', '🗣️', '👂', '✂️', '🧮', '📐', '🖍️']],
+    ['Hasil dan penguatan', ['✅', '❌', '🏆', '🥇', '👏', '💪', '👍', '❤️', '😊', '🙂', '🌱', '🌍']],
+    ['Petunjuk', ['➡️', '⬇️', '⚠️', '📌', '📎', '⏰', '📅', '🔗', '🎬', '🎧', '📷', '🛒']]
+  ];
+
+  function pasangEmoji(quill) {
+    var toolbar = quill.getModule('toolbar').container;
+    var wadah = quill.container;
+    var grup = document.createElement('span');
+    grup.className = 'ql-formats';
+    var tombol = document.createElement('button');
+    tombol.type = 'button';
+    tombol.className = 'emoji-btn';
+    tombol.title = 'Sisipkan emoji';
+    tombol.setAttribute('aria-label', 'Sisipkan emoji');
+    tombol.textContent = '😀';
+    grup.appendChild(tombol);
+    toolbar.appendChild(grup);
+
+    var pop = null;
+    function tutup() {
+      if (pop) { pop.remove(); pop = null; }
+      document.removeEventListener('mousedown', luar, true);
+      document.removeEventListener('keydown', tombolEsc, true);
+      window.removeEventListener('scroll', gulir, true);
+      window.removeEventListener('resize', tutup);
+    }
+    function gulir(e) { if (pop && !pop.contains(e.target)) tutup(); }
+    function luar(e) { if (pop && !pop.contains(e.target) && e.target !== tombol) tutup(); }
+    function tombolEsc(e) { if (e.key === 'Escape') tutup(); }
+    function sisip(emoji) {
+      var sel = quill.getSelection(true);
+      var idx = sel ? sel.index : quill.getLength();
+      if (sel && sel.length) quill.deleteText(sel.index, sel.length, 'user');
+      quill.insertText(idx, emoji, 'user');
+      quill.setSelection(idx + emoji.length, 0, 'user');
+    }
+    function buka() {
+      pop = document.createElement('div');
+      pop.className = 'emoji-pop';
+      EMOJI_GRUP.forEach(function(g) {
+        var judul = document.createElement('h5');
+        judul.textContent = g[0];
+        var kisi = document.createElement('div');
+        kisi.className = 'emoji-grid';
+        g[1].forEach(function(e) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = e;
+          b.addEventListener('mousedown', function(ev) { ev.preventDefault(); });   // fokus editor tidak hilang
+          b.addEventListener('click', function() { sisip(e); });
+          kisi.appendChild(b);
+        });
+        pop.appendChild(judul);
+        pop.appendChild(kisi);
+      });
+      document.body.appendChild(pop);   // di luar editor, supaya tidak terpotong wadah yang overflow:hidden
+      var r = tombol.getBoundingClientRect();
+      var tinggiMaks = Math.min(420, window.innerHeight - 16);
+      pop.style.maxHeight = tinggiMaks + 'px';
+      var tinggi = pop.offsetHeight;
+      var atas = r.bottom + 4;
+      if (atas + tinggi > window.innerHeight - 8) {
+        atas = r.top - tinggi - 4;                       // tidak muat di bawah: buka ke atas
+        if (atas < 8) atas = Math.max(8, window.innerHeight - tinggi - 8);
+      }
+      pop.style.top = atas + 'px';
+      pop.style.left = Math.max(8, Math.min(r.right - pop.offsetWidth, window.innerWidth - pop.offsetWidth - 8)) + 'px';
+      document.addEventListener('mousedown', luar, true);
+      document.addEventListener('keydown', tombolEsc, true);
+      window.addEventListener('scroll', gulir, true);
+      window.addEventListener('resize', tutup);
+    }
+    tombol.addEventListener('mousedown', function(ev) { ev.preventDefault(); });
+    tombol.addEventListener('click', function() { if (pop) tutup(); else buka(); });
+  }
+
   // ===== Atur gambar ala majalah: posisi, teks mengalir, ukuran =====
   // Toolbar bawaan modul resize (hanya kiri/tengah/kanan) dimatikan; diganti toolbar di bawah.
   var IMAGE_RESIZE_OPTS = { modules: ['Resize', 'DisplaySize'] };
@@ -507,6 +596,7 @@
       modules: { toolbar: QUILL_TOOLBAR, imageResize: IMAGE_RESIZE_OPTS }
     });
     pasangToolbarGambar(quill);
+    pasangEmoji(quill);
     if (kontenAwal) {
       quill.root.innerHTML = kontenAwal;
     }
@@ -516,6 +606,7 @@
       modules: { toolbar: QUILL_TOOLBAR, imageResize: IMAGE_RESIZE_OPTS }
     });
     pasangToolbarGambar(lembarQuill);
+    pasangEmoji(lembarQuill);
 
     function perbaruiTombolLembar() {
       var terbuka = lembarWrap.style.display !== 'none';
@@ -532,6 +623,7 @@
       modules: { toolbar: QUILL_TOOLBAR, imageResize: IMAGE_RESIZE_OPTS }
     });
     pasangToolbarGambar(insightQuill);
+    pasangEmoji(insightQuill);
 
     function perbaruiTombolInsight() {
       var terbuka = insightWrap.style.display !== 'none';

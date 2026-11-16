@@ -71,6 +71,8 @@
       </div>
       <div style="display:flex; gap:8px; justify-content:flex-end;">
         <a href="{% url 'ruang_kerja:rapor_siswa' ruang.id row.siswa.id %}" target="_blank" style="text-align:center; background:#f3f4f6; color:#374151; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:500; text-decoration:none; white-space:nowrap;">Lihat Rapor</a>
+        <a href="{% url 'ruang_kerja:nilai_mapel_rapor' ruang.id row.siswa.id %}" style="text-align:center; background:#FBF3E3; color:#92702E; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:500; text-decoration:none; white-space:nowrap;">Nilai Semester</a>
+        <a href="{% url 'ruang_kerja:rapor_keseluruhan' row.siswa.id %}" target="_blank" style="text-align:center; background:#EAF7DE; color:#2f6f18; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:500; text-decoration:none; white-space:nowrap;">Rapor Keseluruhan</a>
         <button type="submit" style="background:#3C8C1F; color:white; border:none; border-radius:8px; padding:8px 14px; font-size:12px; font-weight:600; cursor:pointer; white-space:nowrap;">Simpan</button>
       </div>
     </form>

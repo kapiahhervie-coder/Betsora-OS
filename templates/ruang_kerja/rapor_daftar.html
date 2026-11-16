@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Rapor{% endblock %}
+{% block page_title %}Rapor{% endblock %}
+{% block content %}
+<p class="text-sm text-gray-500 mb-4">Pilih siswa untuk membuka <strong>Rapor Keseluruhan</strong> (semua mata pelajaran, kehadiran, misi, dan catatan wali kelas). Dari halaman rapor Anda bisa mencetak atau menyimpannya sebagai PDF.</p>
+<form method="GET" class="flex gap-2 items-center mb-5" style="flex-wrap:wrap;">
+  <select name="kelas" class="border border-gray-200 rounded-lg px-3 py-2 text-sm" onchange="this.form.submit()">
+    <option value="">Semua Kelas</option>
+    {% for k in kelas_list %}<option value="{{ k }}" {% if k == kelas_filter %}selected{% endif %}>Kelas {{ k }}</option>{% endfor %}
+  </select>
+  <input type="search" name="q" value="{{ cari }}" placeholder="Cari nama siswa..." class="border border-gray-200 rounded-lg px-3 py-2 text-sm" style="min-width:220px;">
+  <button type="submit" class="border border-gray-200 rounded-lg px-4 py-2 text-sm bg-white hover:bg-gray-50">Cari</button>
+</form>
+<div class="card overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-100">
+      <tr>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Nama</th>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">NIS</th>
+        <th class="text-left px-4 py-3 text-xs text-gray-500 font-semibold uppercase">Kelas</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for s in siswa %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 font-medium text-gray-800">{{ s.nama }}</td>
+        <td class="px-4 py-3 text-gray-500 font-mono text-xs">{{ s.nis }}</td>
+        <td class="px-4 py-3"><span class="bg-[#EAF7DE] text-[#4FA82E] text-xs font-medium px-2 py-0.5 rounded-full">{{ s.kelas }}</span></td>
+        <td class="px-4 py-3 text-right"><a href="{% url 'ruang_kerja:rapor_keseluruhan' s.id %}" class="text-xs text-[#3C8C1F] hover:underline">Buka Rapor →</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="px-4 py-8 text-center text-gray-400 text-sm">Tidak ada siswa{% if cari or kelas_filter %} yang cocok dengan pencarian{% endif %}.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

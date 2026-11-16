@@ -119,6 +119,9 @@ tailwind.config = {
       <i class="ti ti-clipboard-text" style="font-size:16px"></i>Penilaian
     </a>
     {% endif %}
+    <a href="{% url 'ruang_kerja:rapor_daftar' %}" class="nav-link {% if request.resolver_match.url_name == 'rapor_daftar' or request.resolver_match.url_name == 'rapor_keseluruhan' %}active{% endif %}">
+      <i class="ti ti-report" style="font-size:16px"></i>Rapor
+    </a>
     {% endif %}
 
     {% if user.role != "orangtua" %}

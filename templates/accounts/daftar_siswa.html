@@ -45,7 +45,7 @@
           <a href="{% url 'accounts:buat_akun_orangtua' s.id %}" onclick="return confirm('Buat akun orang tua untuk {{ s.nama }}?')" class="text-xs text-[#3C8C1F] underline">Buat akun</a>
           {% endif %}
         </td>
-        <td class="px-4 py-3 text-right"><a href="{% url 'portofolio:detail' s.id %}" class="text-xs text-[#3C8C1F] hover:underline">Portofolio →</a></td>
+        <td class="px-4 py-3 text-right"><a href="{% url 'ruang_kerja:rapor_keseluruhan' s.id %}" class="text-xs text-[#3C8C1F] hover:underline" style="margin-right:12px;">Rapor →</a><a href="{% url 'portofolio:detail' s.id %}" class="text-xs text-[#3C8C1F] hover:underline">Portofolio →</a></td>
       </tr>
       {% empty %}
       <tr><td colspan="7" class="text-center py-12 text-gray-400">Belum ada siswa. <a href="{% url 'accounts:tambah_siswa' %}" class="text-[#3C8C1F] underline">Tambah sekarang</a></td></tr>
