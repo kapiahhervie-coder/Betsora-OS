@@ -893,14 +893,39 @@ def tambah_kelas(request):
 
 
 @login_required
+def edit_kelas(request, kelas_id):
+    kelas_obj = get_object_or_404(Kelas, id=kelas_id)
+    if _bukan_staf(request.user):
+        messages.error(request, 'Hanya guru yang dapat mengubah kelas.')
+        return redirect('ruang_kerja:kelola_kelas')
+    if request.method == 'POST':
+        nama = request.POST.get('nama', '').strip()
+        if not nama:
+            messages.error(request, 'Nama kelas tidak boleh kosong.')
+        elif nama == kelas_obj.nama:
+            pass
+        elif Kelas.objects.filter(nama__iexact=nama).exclude(id=kelas_obj.id).exists():
+            messages.error(request, f'Kelas "{nama}" sudah ada.')
+        else:
+            lama = kelas_obj.label_kelas
+            kelas_obj.nama = nama
+            kelas_obj.save(update_fields=['nama'])
+            RuangKerja.objects.filter(kelas_baru=kelas_obj).update(kelas=nama)
+            messages.success(request, f'Kelas "{lama}" diubah menjadi "{kelas_obj.label_kelas}".')
+    return redirect('ruang_kerja:kelola_kelas')
+
+
+@login_required
 def hapus_kelas(request, kelas_id):
     kelas_obj = get_object_or_404(Kelas, id=kelas_id)
     if _bukan_staf(request.user):
         messages.error(request, 'Hanya guru yang dapat menghapus kelas.')
         return redirect('ruang_kerja:kelola_kelas')
     if request.method == 'POST':
-        if RuangKerja.objects.filter(kelas_baru=kelas_obj).exists():
-            messages.error(request, f'"{kelas_obj.label_kelas}" tidak bisa dihapus karena masih dipakai di ruang kerja yang ada.')
+        pemakai = list(RuangKerja.objects.filter(kelas_baru=kelas_obj).values_list('mapel', flat=True))
+        if pemakai:
+            daftar = ', '.join(pemakai[:5]) + (f' dan {len(pemakai) - 5} lainnya' if len(pemakai) > 5 else '')
+            messages.error(request, f'"{kelas_obj.label_kelas}" tidak bisa dihapus karena masih dipakai ruang kerja: {daftar}. Hapus ruang kerja itu dulu di halaman kelasnya.')
         else:
             kelas_obj.delete()
             messages.success(request, f'Kelas "{kelas_obj.label_kelas}" dihapus.')

@@ -12,13 +12,21 @@
 
 <div class="grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:16px;">
   {% for ruang in ruang_list %}
-  <a href="{% url 'ruang_kerja:detail' ruang.id %}" class="card p-5" style="text-decoration:none; display:block;">
+  <div class="card p-5" style="position:relative;">
+  {% if request.user.role != 'siswa' %}
+  <form method="POST" action="{% url 'ruang_kerja:hapus_ruang_kerja' ruang.id %}" style="position:absolute; top:12px; right:12px; margin:0;" onsubmit="return confirm('Hapus ruang kerja {{ ruang.mapel|escapejs }} di {{ kelas_obj.label_kelas|escapejs }}? Semua materi, tugas, nilai, dan pengumuman di dalamnya ikut terhapus. Tindakan ini tidak bisa dibatalkan.')">
+    {% csrf_token %}
+    <button type="submit" title="Hapus ruang kerja" style="background:#fee2e2; color:#dc2626; border:none; width:30px; height:30px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;"><i class="ti ti-trash" style="font-size:15px;"></i></button>
+  </form>
+  {% endif %}
+  <a href="{% url 'ruang_kerja:detail' ruang.id %}" style="text-decoration:none; display:block;">
     <div style="width:40px; height:40px; border-radius:8px; background:#EAF7DE; color:#3C8C1F; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; margin-bottom:12px;">
       {{ ruang.mapel|slice:":2"|upper }}
     </div>
     <h3 class="font-semibold text-gray-800">{{ ruang.mapel }}</h3>
     <p class="text-xs text-gray-400 mt-1">{{ ruang.materi_set.count }} materi</p>
   </a>
+  </div>
   {% empty %}
   <div class="card" style="padding:40px; text-align:center; color:#9ca3af; grid-column:1/-1;">
     Belum ada mata pelajaran di {{ kelas_obj.label_kelas }}.

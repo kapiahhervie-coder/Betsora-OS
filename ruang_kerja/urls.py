@@ -45,6 +45,7 @@ urlpatterns = [
     path('kelas/', views.kelola_kelas, name='kelola_kelas'),
     path('kelas/tambah/', views.tambah_kelas, name='tambah_kelas'),
     path('kelas/<int:kelas_id>/hapus/', views.hapus_kelas, name='hapus_kelas'),
+    path('kelas/<int:kelas_id>/edit/', views.edit_kelas, name='edit_kelas'),
     path('kelas/<int:kelas_id>/', views.detail_kelas, name='detail_kelas'),
     path('kelas/<int:kelas_id>/mapel/tambah/', views.tambah_mapel_kelas, name='tambah_mapel_kelas'),
     path('rapor-keseluruhan/', rapor_keseluruhan.daftar_rapor, name='rapor_daftar'),

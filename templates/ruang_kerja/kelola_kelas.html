@@ -22,7 +22,12 @@
     {% for k in kelas_qs %}
     <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid #f3f4f6;">
       <a href="{% url 'ruang_kerja:detail_kelas' k.id %}" style="font-size:13px; font-weight:500; color:#1f2937; text-decoration:none; flex:1;">{{ k.label_kelas }} <span style="color:#9ca3af; font-weight:400;">&rarr;</span></a>
-      <form method="POST" action="{% url 'ruang_kerja:hapus_kelas' k.id %}" onsubmit="return confirm('Hapus {{ k.label_kelas }}?')">
+      <form method="POST" action="{% url 'ruang_kerja:edit_kelas' k.id %}" class="form-edit-kelas" style="margin-right:6px;">
+        {% csrf_token %}
+        <input type="hidden" name="nama" value="{{ k.nama }}">
+        <button type="button" title="Ubah nama" onclick="ubahNamaKelas(this)" style="background:#e0f2fe; color:#0369a1; border:none; width:30px; height:30px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;"><i class="ti ti-pencil" style="font-size:15px;"></i></button>
+      </form>
+      <form method="POST" action="{% url 'ruang_kerja:hapus_kelas' k.id %}" onsubmit="return confirm('Hapus {{ k.label_kelas|escapejs }}?')">
         {% csrf_token %}
         <button type="submit" title="Hapus" style="background:#fee2e2; color:#dc2626; border:none; width:30px; height:30px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;"><i class="ti ti-trash" style="font-size:15px;"></i></button>
       </form>
@@ -33,6 +38,18 @@
     </div>
     {% endfor %}
   </div>
-  <p style="font-size:11px; color:#9ca3af; margin-top:8px;">Kelas yang sudah dipakai di ruang kerja aktif tidak bisa dihapus.</p>
+  <p style="font-size:11px; color:#9ca3af; margin-top:8px;">Kelas yang masih punya ruang kerja tidak bisa dihapus. Buka kelasnya (klik namanya), hapus ruang kerjanya dulu, lalu hapus kelasnya.</p>
 </div>
+<script>
+  function ubahNamaKelas(tombol) {
+    var form = tombol.closest('form');
+    var isian = form.querySelector('input[name="nama"]');
+    var baru = prompt('Ubah nama kelas:', isian.value);
+    if (baru === null) return;
+    baru = baru.trim();
+    if (!baru || baru === isian.value) return;
+    isian.value = baru;
+    form.submit();
+  }
+</script>
 {% endblock %}
